@@ -1,0 +1,4 @@
+[branch "master"]
+	mergeoptions = --no-ff
+[branch "dev"]
+	mergeoptions = --no-ff
