@@ -3,7 +3,23 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.index()
+GET        /                    controllers.Application.index()
+
+# Drone calls
+GET           /drones                           controllers.DroneController.getAll()
+POST          /drones                           controllers.DroneController.add()
+DELETE        /drones                           controllers.DroneController.deleteAll()
+GET           /drones/:id                       controllers.DroneController.get(id: Long)
+DELETE        /drones/:id                       controllers.DroneController.delete(id: Long)
+PUT           /drones/:id                       controllers.DroneController.update(id: Long)
+GET           /drones/:id/testConnection        controllers.DroneController.testConnection(id: Long)
+GET           /drones/:id/battery               controllers.DroneController.battery(id: Long)
+GET           /drones/:id/cameraCapture         controllers.DroneController.cameraCapture(id: Long)
+GET           /drones/:id/location              controllers.DroneController.location(id: Long)
+GET           /drones/:id/abort                 controllers.DroneController.emergency(id: Long)
+
+POST          /login                            controllers.SecurityController.login()
+GET           /logout                           controllers.SecurityController.logout()
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET        /assets/*file        controllers.Assets.at(path="/public", file)
