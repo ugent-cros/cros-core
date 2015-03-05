@@ -1,0 +1,26 @@
+This is a FFmpeg Win32 Shared build by puku0x.
+
+ffmpeg version 1.0.git-631ec06 Copyright (c) 2000-2013 the FFmpeg developers
+  built on Jan  7 2013 00:21:59 with gcc 4.7.2 (GCC)
+  configuration: --disable-static --enable-shared --disable-gpl
+  libavutil      52. 13.100 / 52. 13.100
+  libavcodec     54. 85.101 / 54. 85.101
+  libavformat    54. 59.105 / 54. 59.105
+  libavdevice    54.  3.102 / 54.  3.102
+  libavfilter     3. 32.100 /  3. 32.100
+  libswscale      2.  1.103 /  2.  1.103
+  libswresample   0. 17.102 /  0. 17.102
+
+ffmpeg is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+ffmpeg is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with ffmpeg; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
