@@ -37,6 +37,8 @@ public abstract class Resource extends Model {
             this.rel = rel;
             this.path = path;
         }
+
+        public Link() { }
     }
 
 }
