@@ -21,11 +21,10 @@ import java.nio.ByteOrder;
  */
 public class ArDrone3 extends UntypedActor {
 
-    private static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+
     private static final int MAX_FRAME_SIZE = 1500; //TODO check
 
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
 
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
@@ -58,12 +57,22 @@ public class ArDrone3 extends UntypedActor {
         } else unhandled(msg);
     }
 
-    private void sendData(ByteString data) {
+    public void sendData(ByteString data) {
         connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
     }
 
     private void processFrame(Frame frame) {
         log.debug("Processing frame: type = [{}], id = [{}], seq = [{}]", frame.getType(), frame.getId(), frame.getSeq());
+
+        switch(frame.getType()){
+            case ACK:
+                break;
+            case DATA:
+            case DATA_LOW_LATENCY:
+                break;
+            case DATA_WITH_ACK:
+                break;
+        }
     }
 
     private void processRawData(ByteString data) {
@@ -78,7 +87,7 @@ public class ArDrone3 extends UntypedActor {
                 recvBuffer = current;
                 break;
             } else {
-                final int length = current.iterator().drop(3).getInt(BYTE_ORDER); //skip first 3 bytes (type, id, seq)
+                final int length = current.iterator().drop(3).getInt(FrameHelper.BYTE_ORDER); //skip first 3 bytes (type, id, seq)
                 if (length > MAX_FRAME_SIZE) {
                     log.error("Received too large frame: [{}]", length);
                     throw new IllegalArgumentException(

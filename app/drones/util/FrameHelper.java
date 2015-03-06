@@ -1,11 +1,19 @@
 package drones.util;
 
+import akka.util.ByteString;
+import akka.util.ByteStringBuilder;
+import drones.models.Frame;
 import drones.models.FrameType;
+
+import java.nio.ByteOrder;
 
 /**
  * Created by Cedric on 3/6/2015.
  */
 public class FrameHelper {
+
+    public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+    private final static int MAX_WIFI_ID = 256;
 
     //TODO: try to embed frame type parse code in enum itself
     /***
@@ -26,5 +34,34 @@ public class FrameHelper {
             default:
                 throw new IllegalArgumentException("type");
         }
+    }
+
+    /***
+     * Calculates the acknowledged id from the server to the drone
+     * @param id The id to acknowledge
+     * @return The id to send
+     */
+    public static byte getAckToDrone(byte id){
+        return (byte)(id + (MAX_WIFI_ID/2));
+    }
+
+    /***
+     * Calculates the acknowledged id from a drone to the server id's
+     * @param id The received id
+     * @return The id to acknowledge
+     */
+    public static byte getAckToServer(byte id){
+        return (byte)(id - (MAX_WIFI_ID/2));
+    }
+
+    public static ByteString getFrameData(Frame frame){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(frame.getType().getByte());
+        b.putByte(frame.getId());
+        b.putByte(frame.getSeq());
+
+        b.putInt(frame.getData().length(), BYTE_ORDER);
+
+        return b.result().concat(frame.getData());
     }
 }

@@ -15,7 +15,7 @@ public enum FrameType {
         this.id = (byte)id;
     }
 
-    public byte getId(){
+    public byte getByte(){
         return this.id;
     }
 }
