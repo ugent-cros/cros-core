@@ -30,7 +30,7 @@ public class Application extends Controller {
         Ebean.save(drones);
 
         List<User> users = new ArrayList<>();
-        users.add(new User("cros@test.be", "freddy", "cros tester"));
+        users.add(new User("cros@test.be", "freddy", "cros", "tester"));
 
         Ebean.save(users);
 

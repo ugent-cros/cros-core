@@ -1,5 +1,4 @@
 import models.User;
-import org.junit.*;
 
 import play.test.*;
 
@@ -18,11 +17,11 @@ public class TestSuperclass {
         start(application);
 
         // Create and store user in in memory database
-        User authenticatedUser = new User("john.doe@test.com", "testing", "John Doe");
+        User authenticatedUser = new User("john.doe@test.com", "testing", "John", "Doe");
         authenticatedUser.save();
 
         // Create an (un)authorized request for later test
-        String token = authenticatedUser.createToken();
+        String token = authenticatedUser.getAuthToken();
         long id = authenticatedUser.id;
         authorizedRequest = fakeRequest().withHeader("X-AUTH-TOKEN", token).withHeader("X-AUTH-ID", "" + id);
     }
