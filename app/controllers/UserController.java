@@ -103,17 +103,38 @@ public class UserController {
         User user = User.find.byId(id);
         if(user == null) {
             return notFound("No such user");
-        } else {
-
-            JsonNode result = Json.toJson(user);
-
-            // Add auth token if user is requesting his own info
-            if(client.id == id) {
-                // TODO: add auth token
-            }
-
-            return ok(result);
         }
+
+        return ok(Json.toJson(user));
+    }
+
+    public static Result getUserAuthToken(Long id) {
+
+        // Check if user has correct privileges
+        User client = SecurityController.getUser();
+        if(client.id != id) {
+            return unauthorized();
+        }
+
+        return ok(Json.toJson(client.getAuthToken()));
+    }
+
+    public static Result invalidateAuthToken(Long userId) {
+
+        // Check if user has correct privileges
+        User client = SecurityController.getUser();
+        if(!client.hasRole(User.UserRole.ADMIN) && client.id != userId) {
+            return unauthorized();
+        }
+
+        User user = User.find.byId(userId);
+        if(user == null) {
+            return notFound("No such user");
+        }
+
+        user.invalidateAuthToken();
+
+        return ok();
     }
 
     public static Result updateUser(Long id) {
@@ -150,5 +171,14 @@ public class UserController {
         user.update(updatedUser);
 
         return ok();
+    }
+
+    public static Result currentUser() {
+
+        User client = SecurityController.getUser();
+        if(client == null) {
+            return notFound();
+        }
+        return redirect(controllers.routes.UserController.getUser(client.id));
     }
 }
