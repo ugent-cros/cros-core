@@ -1,58 +1,25 @@
 package drones.models;
 
 import akka.util.ByteString;
-import akka.util.ByteStringBuilder;
-import drones.util.FrameHelper;
-
-import java.nio.ByteOrder;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by Cedric on 3/6/2015.
  */
-public class Channel {
-    public final static int INFINITE_RETRY = -1;
-
-    private byte id;
-    private FrameType type;
-    private byte seq;
-    private int sendDelay;
-    private int ackTimeout;
-    private int numRetry;
+public abstract class Channel {
+    // Channel specs
+    protected final byte id;
+    protected final FrameType type;
+    protected byte seq;
 
     private final Object lock = new Object();
-    private final ConcurrentLinkedQueue<AckedFrame> frameQueue;
 
-    public Channel(byte id, FrameType type, byte seq) {
-        this(id, type, seq, 20, -1, INFINITE_RETRY);
-    }
-
-    public Channel(byte id, FrameType type, byte seq, int sendDelay, int ackTimeout, int numRetry) {
+    public Channel(FrameType type, byte id){
         this.id = id;
         this.type = type;
-        this.seq = seq;
-        this.sendDelay = sendDelay;
-        this.ackTimeout = ackTimeout;
-        this.numRetry = numRetry;
-
-        this.frameQueue = new ConcurrentLinkedQueue<>();
+        this.seq = 0;
     }
 
-    public void send(ByteString data){
-        ByteString frameLoad = FrameHelper.getFrameData(createFrame(data));
-
-        if(type == FrameType.DATA_WITH_ACK){
-
-        } else {
-
-        }
-    }
-
-    private void trySendAcked(){
-
-    }
-
-    private Frame createFrame(ByteString data){
+    public Frame createFrame(ByteString data){
         byte s = 0;
         synchronized (lock){
             s = this.seq++;
@@ -70,17 +37,5 @@ public class Channel {
 
     public byte getSeq() {
         return seq;
-    }
-
-    public int getSendDelay() {
-        return sendDelay;
-    }
-
-    public int getAckTimeout() {
-        return ackTimeout;
-    }
-
-    public int getNumRetry() {
-        return numRetry;
     }
 }

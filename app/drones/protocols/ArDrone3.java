@@ -21,10 +21,9 @@ import java.nio.ByteOrder;
  */
 public class ArDrone3 extends UntypedActor {
 
-
     private static final int MAX_FRAME_SIZE = 1500; //TODO check
 
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
@@ -66,13 +65,23 @@ public class ArDrone3 extends UntypedActor {
 
         switch(frame.getType()){
             case ACK:
+
                 break;
             case DATA:
             case DATA_LOW_LATENCY:
+                //TODO: dispatch to channel
                 break;
             case DATA_WITH_ACK:
+                //TODO: dispatch to channel
+                ackFrame(frame); //ALWAYS send ack, even when seq is ignored
                 break;
         }
+    }
+
+    private void ackFrame(Frame frame){
+        byte id = FrameHelper.getAckToDrone(frame.getId());
+        ByteString payload = FrameHelper.getAck(frame);
+
     }
 
     private void processRawData(ByteString data) {
@@ -127,5 +136,9 @@ public class ArDrone3 extends UntypedActor {
 
             } else unhandled(msg);
         };
+    }
+
+    public LoggingAdapter getLog(){
+        return log;
     }
 }

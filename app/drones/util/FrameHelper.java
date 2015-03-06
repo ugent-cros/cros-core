@@ -54,6 +54,12 @@ public class FrameHelper {
         return (byte)(id - (MAX_WIFI_ID/2));
     }
 
+    public static ByteString getAck(Frame frame){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(frame.getSeq());
+        return b.result();
+    }
+
     public static ByteString getFrameData(Frame frame){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(frame.getType().getByte());
