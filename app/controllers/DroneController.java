@@ -9,6 +9,7 @@ import play.mvc.Security;
 
 import static play.mvc.Http.Context.Implicit.request;
 import static play.mvc.Results.badRequest;
+import static play.mvc.Results.notFound;
 import static play.mvc.Results.ok;
 
 /**
@@ -43,14 +44,20 @@ public class DroneController {
     }
 
     public static Result update(Long id) {
-        Form<Drone> droneForm = Form.form(Drone.class).bindFromRequest();
+        Drone drone = Drone.find.byId(id);
+        if (drone == null)
+            return notFound();
 
-        if (droneForm.hasErrors())
-            return badRequest(droneForm.errors().toString());
+        Form<Drone> f = Form.form(Drone.class);
+        Form<Drone> newData = Form.form(Drone.class).bindFromRequest();
+        f.bind(newData.data());
 
-        Drone original = Drone.find.byId(id);
-        original.update(droneForm.get());
-        return get(original.id);
+        if (f.hasErrors())
+            return badRequest(f.errors().toString());
+
+        Drone updatedDrone = f.get();
+        drone.update(updatedDrone);
+        return ok(Json.toJson(updatedDrone));
     }
 
     public static Result location(Long id) {
