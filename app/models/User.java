@@ -14,6 +14,8 @@ import java.util.*;
 @Table(name="useraccount")
 public class User extends Model {
 
+    public static Constraints.Validator PasswordValidator = Constraints.minLength(8);
+
     public static enum UserRole {
         USER,
         ADMIN,
