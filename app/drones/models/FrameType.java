@@ -1,0 +1,21 @@
+package drones.models;
+
+/**
+ * Created by Cedric on 3/6/2015.
+ */
+public enum FrameType {
+
+    ACK(1),
+    DATA(2),
+    DATA_LOW_LATENCY(3),
+    DATA_WITH_ACK(4);
+
+    private byte id;
+    private FrameType(int id){
+        this.id = (byte)id;
+    }
+
+    public byte getId(){
+        return this.id;
+    }
+}
