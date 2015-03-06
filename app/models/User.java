@@ -8,43 +8,20 @@ import javax.persistence.*;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name="useraccount")
 public class User extends Model {
 
+    public static enum UserRole {
+        USER,
+        ADMIN,
+        READONLY_ADMIN
+    }
+
     @Id
     public Long id;
-
-    @Column(length = 256, unique = true, nullable = false)
-    @Constraints.MaxLength(256)
-    @Constraints.Required
-    @Constraints.Email
-    private String email;
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email.toLowerCase();
-    }
-
-    @Column(length = 64, nullable = false)
-    @JsonIgnore
-    private byte[] shaPassword;
-
-    public void setPassword(String password) {
-        shaPassword = getSha512(password);
-    }
-
-    public boolean checkPassword(String password) {
-        byte[] hash = getSha512(password);
-        return Arrays.equals(shaPassword, hash);
-    }
 
     @Column(length = 256, nullable = false)
     @Constraints.Required
@@ -61,6 +38,55 @@ public class User extends Model {
     @Column(nullable = false)
     public Date creationDate;
 
+    @Column(length = 256, unique = true, nullable = false)
+    @Constraints.MaxLength(256)
+    @Constraints.Required
+    @Constraints.Email
+    private String email;
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email.toLowerCase();
+    }
+
+    private Set<UserRole> roles;
+
+    public void setRoles(Set<UserRole> roles) {
+        // custom setter to copy set
+        this.roles = new HashSet<>(roles);
+    }
+
+    public Set<UserRole> getRoles() {
+        return roles;
+    }
+
+    public void addRole(UserRole role) {
+        roles.add(role);
+    }
+
+    public void removeRole(UserRole role) {
+        roles.remove(role);
+    }
+
+    public boolean hasRole(UserRole role) {
+        return roles.contains(role);
+    }
+
+    @Column(length = 64, nullable = false)
+    @JsonIgnore
+    private byte[] shaPassword;
+
+    public void setPassword(String password) {
+        shaPassword = getSha512(password);
+    }
+
+    public boolean checkPassword(String password) {
+        byte[] hash = getSha512(password);
+        return Arrays.equals(shaPassword, hash);
+    }
 
     // TODO: allow multiple browsers
     @JsonIgnore
@@ -83,7 +109,8 @@ public class User extends Model {
     }
 
     public User() {
-        authToken = UUID.randomUUID().toString();
+        this.authToken = UUID.randomUUID().toString();
+        this.roles = new HashSet<>();
         this.creationDate = new Date();
     }
 
