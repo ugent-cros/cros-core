@@ -7,6 +7,7 @@ import controllers.routes;
 import models.Drone;
 import org.junit.*;
 
+import play.mvc.Http;
 import play.mvc.Result;
 import scala.tools.nsc.typechecker.Analyzer;
 
@@ -80,7 +81,7 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void getDrone_DatabaseFilledWithDrones_DroneIdNotAvailable() {
         Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizedRequest);
-        assertThat(contentAsString(result)).isEqualTo("");
+        assertThat(status(result)).isEqualTo(Http.Status.BAD_REQUEST);
     }
 
     @Test
