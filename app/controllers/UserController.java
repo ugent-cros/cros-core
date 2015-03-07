@@ -1,20 +1,13 @@
 package controllers;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import models.User;
-import play.data.DynamicForm;
 import play.data.Form;
-import play.data.validation.Constraints;
-import play.data.validation.ValidationError;
 import play.libs.Json;
-import play.mvc.Http;
 import play.mvc.Result;
-import play.mvc.Security;
+import utils.annotations.Authentication;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static play.mvc.Controller.request;
 import static play.mvc.Controller.session;
 import static play.mvc.Results.*;
 
@@ -22,7 +15,6 @@ import static play.mvc.Results.*;
  * Created by yasser on 4/03/15.
  */
 
-@Security.Authenticated(Secured.class)
 public class UserController {
 
 
@@ -30,24 +22,11 @@ public class UserController {
 
     public static Result allUsers() {
 
-        // Check if user has correct privileges
-        User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN)
-                && !client.hasRole(User.UserRole.READONLY_ADMIN)) {
-            return unauthorized();
-        }
-
         List<User> allUsers = User.find.all();
         return ok(Json.toJson(allUsers));
     }
 
     public static Result createUser() {
-
-        // Check if user has correct privileges
-        User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN)) {
-            return unauthorized();
-        }
 
         Form<User> filledForm = form.bindFromRequest();
 
@@ -75,12 +54,6 @@ public class UserController {
 
     public static Result deleteUser(Long id) {
 
-        // Check if user has correct privileges
-        User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN)) {
-            return unauthorized();
-        }
-
         // Check if user exists
         User userToDelete = User.find.byId(id);
         if(userToDelete == null) {
@@ -96,7 +69,7 @@ public class UserController {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN) && client.id != id) {
+        if(!User.Role.ADMIN.equals(client.role) && client.id != id) {
             return unauthorized();
         }
 
@@ -123,7 +96,7 @@ public class UserController {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN) && client.id != userId) {
+        if(!User.Role.ADMIN.equals(client.role) && client.id != userId) {
             return unauthorized();
         }
 
@@ -141,7 +114,7 @@ public class UserController {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!client.hasRole(User.UserRole.ADMIN) && client.id != id) {
+        if(!User.Role.ADMIN.equals(client.role) && client.id != id) {
             return unauthorized();
         }
 
