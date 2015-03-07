@@ -1,8 +1,5 @@
 import models.User;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import play.mvc.Result;
 import play.test.FakeApplication;
 import play.test.FakeRequest;
@@ -20,10 +17,6 @@ import static play.test.Helpers.*;
  */
 public class UserTest extends TestSuperclass {
 
-    // Code to provide fake app
-
-    private static FakeApplication app;
-
     @BeforeClass
     public static void setup() {
         startFakeApplication();
@@ -34,44 +27,63 @@ public class UserTest extends TestSuperclass {
         stopFakeApplication();
     }
 
-    @Ignore
     @Test
-    public void checkPasswordHash() {
+    public void checkPassword_PasswordIsCorrect_ReturnsTrue() {
 
-        String password = "lolcats";
+        String password = "lolcats1";
         User u = new User("student@ugent.be", password, "test", "student");
         assertThat(u.checkPassword(password)).isTrue();
+    }
+
+    @Test
+    public void checkPassword_PasswordIsWrong_ReturnsFalse() {
+
+        String password = "lolcats1";
+        User u = new User("student@ugent.be", password, "test", "student");
         assertThat(u.checkPassword("lol")).isFalse();
     }
 
+
     @Test
-    public void rolesTest() {
-
-        User u = new User("student@ugent.be", "password", "test", "student");
-        u.addRole(User.UserRole.ADMIN);
-        System.err.println(u.getRoles());
-        u.save();
-        System.err.println(u.getRoles());
-
-        u = User.find.byId(u.id);
-        System.err.println(u.getRoles());
-        assertThat(u.hasRole(User.UserRole.ADMIN)).isTrue();
-    }
-
-    @Ignore
-    @Test
-    public void checkUserCreation() {
+    public void userCreation_ByUnpriviledgedUser_ReturnsUnauthorized() {
 
         Map<String, String> data = new HashMap<>();
         data.put("email", "yasser.deceukelier@ugent.be");
-        data.put("password", "test");
+        data.put("password", "testtest");
         data.put("firstName", "Yasser");
         data.put("lastName", "Deceukelier");
 
-        FakeRequest createUser = authorizedRequest.withFormUrlEncodedBody(data);
-        Result result = callAction(routes.ref.UserController.createUser(), createUser);
+        FakeRequest create = fakeRequest().withFormUrlEncodedBody(data);
+
+        Result result = callAction(routes.ref.UserController.createUser(), create);
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getUser()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getReadOnlyAdmin()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getAdmin()));
+        assertThat(status(result)).isEqualTo(CREATED);
 
         System.out.println(contentAsString(result));
+    }
+
+    @Test
+    public void userCreation_ByAdmin_ReturnsCreated() {
+
+        Map<String, String> data = new HashMap<>();
+        data.put("email", "yasser.deceukelier@ugent.be");
+        data.put("password", "testtest");
+        data.put("firstName", "Yasser");
+        data.put("lastName", "Deceukelier");
+
+        FakeRequest create = fakeRequest().withFormUrlEncodedBody(data);
+
+        Result result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getAdmin()));
         assertThat(status(result)).isEqualTo(CREATED);
+
+        System.out.println(contentAsString(result));
     }
 }
