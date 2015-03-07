@@ -26,6 +26,7 @@ public class UserController {
         return ok(Json.toJson(allUsers));
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result createUser() {
 
         Form<User> filledForm = form.bindFromRequest();
@@ -52,6 +53,7 @@ public class UserController {
         return created(Json.toJson((newUser)));
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result deleteUser(Long id) {
 
         // Check if user exists
@@ -65,6 +67,7 @@ public class UserController {
         return ok("User was deleted");
     }
 
+    // Manual security check in code
     public static Result getUser(Long id) {
 
         // Check if user has correct privileges
@@ -81,6 +84,7 @@ public class UserController {
         return ok(Json.toJson(user));
     }
 
+    // Manual security check in code
     public static Result getUserAuthToken(Long id) {
 
         // Check if user has correct privileges
@@ -92,6 +96,7 @@ public class UserController {
         return ok(Json.toJson(client.getAuthToken()));
     }
 
+    // Manual security check in code
     public static Result invalidateAuthToken(Long userId) {
 
         // Check if user has correct privileges
@@ -110,6 +115,7 @@ public class UserController {
         return ok();
     }
 
+    // Manual security check in code
     public static Result updateUser(Long id) {
 
         // Check if user has correct privileges
@@ -146,6 +152,7 @@ public class UserController {
         return ok();
     }
 
+    // no check needed
     public static Result currentUser() {
 
         User client = SecurityController.getUser();
