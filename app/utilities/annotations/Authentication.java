@@ -1,4 +1,4 @@
-package utils.annotations;
+package utilities.annotations;
 
 import models.User;
 import play.mvc.With;

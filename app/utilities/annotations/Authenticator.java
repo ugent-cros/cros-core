@@ -1,4 +1,4 @@
-package utils.annotations;
+package utilities.annotations;
 
 import controllers.SecurityController;
 import models.User;
@@ -16,12 +16,10 @@ public class Authenticator extends Action<Authentication> {
 
     public F.Promise<Result> call(Http.Context context) {
 
-        System.out.println("Called");
         User user = checkAuthentication(context);
 
         // Check if a user is logged in
         if (user != null) {
-            System.out.println(Json.toJson(user));
             // Check if user has an allowed role
             User.Role[] allowedRoles = configuration.value();
             for(User.Role role : allowedRoles)  {
@@ -34,7 +32,6 @@ public class Authenticator extends Action<Authentication> {
                     }
                 }
             }
-            System.out.println("no roles found");
         }
 
         return F.Promise.pure(unauthorized());

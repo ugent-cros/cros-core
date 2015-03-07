@@ -4,7 +4,7 @@ import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
-import utils.annotations.Authentication;
+import utilities.annotations.Authentication;
 
 import java.util.List;
 
