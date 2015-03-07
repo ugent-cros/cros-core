@@ -2,14 +2,13 @@ package models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonRootName;
-import controllers.routes;
+import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
+import play.db.ebean.Model;
+import utilities.ControllerHelper;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by matthias on 19/02/2015.
@@ -17,11 +16,15 @@ import java.util.List;
 
 @Entity
 @JsonRootName("drone")
-public class Drone extends Resource {
+public class Drone extends Model {
 
+
+
+    @JsonView(ControllerHelper.Summary.class)
     @Id
     public Long id;
 
+    @JsonView(ControllerHelper.Summary.class)
     @Constraints.Required
     public String name;
 
@@ -80,16 +83,6 @@ public class Drone extends Resource {
     }
 
     public static Finder<Long,Drone> find = new Finder<>(Long.class, Drone.class);
-
-    @Override
-    public List<Link> getLinksList() {
-        List<Link> links = new ArrayList<>();
-        links.add(new Link("self", routes.DroneController.get(id).url()));
-        links.add(new Link("all", routes.DroneController.getAll().url()));
-        links.add(new Link("add", routes.DroneController.add().url()));
-        links.add(new Link("delete", routes.DroneController.delete(id).url()));
-        return links;
-    }
 
     public class Location {
         @Constraints.Required
