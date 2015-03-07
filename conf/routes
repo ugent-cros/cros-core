@@ -19,6 +19,12 @@ GET           /drones/:id/cameraCapture         controllers.DroneController.came
 GET           /drones/:id/location              controllers.DroneController.location(id: Long)
 GET           /drones/:id/abort                 controllers.DroneController.emergency(id: Long)
 
+# Assignment calls
+GET           /assignments                      controllers.AssignmentController.getAllAssignments()
+POST          /assignments                      controllers.AssignmentController.createAssignment()
+GET           /assignments/:id                  controllers.AssignmentController.getAssignment(id: Long)
+DELETE        /assignments/:id                  controllers.AssignmentController.deleteAssigment(id: Long)
+
 POST          /login                            controllers.SecurityController.login()
 GET           /logout                           controllers.SecurityController.logout()
 
