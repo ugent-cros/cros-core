@@ -9,6 +9,7 @@ import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
+import utilities.annotations.Authenticator;
 
 /**
  * Created by matthias on 20/02/2015.
@@ -19,7 +20,11 @@ public class SecurityController extends Controller {
     public static final String AUTH_TOKEN = "authToken";
 
     public static User getUser() {
-        return (User) Http.Context.current().args.get("user");
+        User user = (User) Http.Context.current().args.get("user");
+        if(user == null) {
+            user = Authenticator.checkAuthentication(Http.Context.current());
+        }
+        return user;
     }
 
     // returns an authToken

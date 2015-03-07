@@ -37,9 +37,8 @@ public class Authenticator extends Action<Authentication> {
         return F.Promise.pure(unauthorized());
     }
 
-    private User checkAuthentication(Http.Context context) {
+    public static User checkAuthentication(Http.Context context) {
 
-        System.out.println(context.request().headers());
         String[] authTokenHeaderValues = context.request().headers().get(SecurityController.AUTH_TOKEN_HEADER);
 
         if (authTokenHeaderValues == null)
