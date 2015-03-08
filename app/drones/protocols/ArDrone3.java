@@ -9,6 +9,7 @@ import akka.io.UdpMessage;
 import akka.japi.Procedure;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
+import drones.handlers.ArDrone3.ArDrone3Processor;
 import drones.models.*;
 import drones.util.FrameHelper;
 
@@ -37,6 +38,7 @@ public class ArDrone3 extends UntypedActor {
     private static final byte EMERGENCY_CHANNEL = 12;
 
     private final EnumMap<FrameDirection, Map<Byte, DataChannel>> channels;
+    private final Map<Byte, CommandTypeProcessor> processors;
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -44,16 +46,21 @@ public class ArDrone3 extends UntypedActor {
     private InetSocketAddress senderAddress;
     private ActorRef connectionMgrRef;
 
-    //http://doc.akka.io/docs/akka/2.2.0/java/io-codec.html
     private ByteString recvBuffer;
 
-    public ArDrone3(DroneConnectionDetails details) {
+    private final ActorRef listener; //to respond messages to
+
+    public ArDrone3(DroneConnectionDetails details, final ActorRef listener) {
         this.details = details;
+        this.listener = listener;
+
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
 
         this.channels = new EnumMap<>(FrameDirection.class);
+        this.processors = new HashMap<>();
 
         initChannels(); // Initialize channels
+        initHandlers(); //TODO: static lazy loading
 
         final ActorRef mgr = Udp.get(getContext().system()).getManager();
         mgr.tell(
@@ -98,7 +105,15 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void processPacket(Packet packet){
+        CommandTypeProcessor p = processors.get(packet.getType());
+        if(p == null){
+            log.debug("No CommandTypeProcessor for [{}]", p.getType());
+        }
+        Object msg = p.handle(packet);
 
+        if(msg != null){
+            listener.tell(msg, getSelf()); //Dispatch message
+        }
     }
 
     private void processDataFrame(Frame frame){
@@ -245,6 +260,10 @@ public class ArDrone3 extends UntypedActor {
         addSendChannel(FrameType.DATA, NONACK_CHANNEL);
         addSendChannel(FrameType.DATA_WITH_ACK, ACK_CHANNEL);
         addSendChannel(FrameType.DATA_WITH_ACK, EMERGENCY_CHANNEL);
+    }
+
+    private void initHandlers(){
+        processors.put(PacketType.ARDRONE3.getNum(), new ArDrone3Processor());
     }
 
     private Procedure<Object> ready(final ActorRef socket) {

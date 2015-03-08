@@ -13,8 +13,11 @@ import drones.util.FrameHelper;
  */
 public class PilotingStateHandler extends CommandProcessor {
 
-    public final static byte PACKET_TYPE = PacketType.ARDRONE3.getNum();
     public final static byte COMMAND_CLASS = 4;
+
+    public PilotingStateHandler(){
+        super(COMMAND_CLASS);
+    }
 
     @Override
     protected void initHandlers() {
