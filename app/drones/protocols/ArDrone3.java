@@ -79,12 +79,34 @@ public class ArDrone3 extends UntypedActor {
         connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
     }
 
+    private void extractPacket(Frame frame){
+        ByteIterator it = frame.getData().iterator();
+        byte type = it.getByte();
+        byte cmdClass = it.getByte();
+        short cmd = it.getShort(FrameHelper.BYTE_ORDER);
+        if(cmd < 0){
+            log.warning("Command sign bit overflow.");
+        } else {
+            int payloadLen = frame.getData().length() - 4;
+            ByteString payload = null;
+            if(payloadLen > 0) {
+                payload = frame.getData().slice(4, payloadLen);
+            }
+            Packet packet = new Packet(type, cmdClass, cmd, payload);
+            processPacket(packet);
+        }
+    }
+
+    private void processPacket(Packet packet){
+
+    }
+
     private void processDataFrame(Frame frame){
         Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_CONTROLLER);
         DataChannel ch = recvMap.get(frame.getId());
         if (ch != null) {
             if(ch.shouldAllowFrame(frame)){
-
+                extractPacket(frame);
             } else {
                 log.warning("Packet timed out in seq.");
             }

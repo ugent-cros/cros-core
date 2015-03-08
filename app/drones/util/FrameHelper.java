@@ -62,8 +62,8 @@ public class FrameHelper {
 
     public static ByteString getPong(long time){
         ByteStringBuilder b = new ByteStringBuilder();
-        b.putLong(time, ByteOrder.LITTLE_ENDIAN);
-        b.putLong(0, ByteOrder.BIG_ENDIAN); //add garbage nanoseconds
+        b.putLong(time, BYTE_ORDER);
+        b.putLong(0, BYTE_ORDER); //add garbage nanoseconds
         return b.result();
     }
 
