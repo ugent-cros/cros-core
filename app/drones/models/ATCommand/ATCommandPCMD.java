@@ -4,7 +4,7 @@ package drones.models.ATCommand;
  * Created by brecht on 3/7/15.
  */
 public class ATCommandPCMD extends ATCommand {
-    private static final String TYPE = "PCMD";
+    private static final String TYPE = "AT*PCMD";
 
     // Params command REF
     private float flag;
@@ -23,10 +23,7 @@ public class ATCommandPCMD extends ATCommand {
 
     @Override
     public String toString() {
-        String prefix = "AT*" + TYPE + "=";
-        String id = Integer.toString(5);
-        String params = flag + "," + roll + "," + pitch + "," + gaz + "," + yaw;
-
-        return (prefix + id + "," + params + "\r");
+        String params = intOfFloat(flag) + "," + intOfFloat(roll) + "," + intOfFloat(pitch) + "," + intOfFloat(gaz) + "," + intOfFloat(yaw);
+        return (TYPE + "=" + seq + "," + params + "\r");
     }
 }
