@@ -2,6 +2,10 @@ package drones.models.ATCommand;
 
 import akka.util.ByteString;
 
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+
 /**
  * Created by brecht on 3/7/15.
  *
@@ -11,7 +15,13 @@ public abstract class ATCommand {
     protected int seq;
 
     public ATCommand() {
+        ByteBuffer bb = ByteBuffer.allocate(4);
+        fb = bb.asFloatBuffer();
+        ib = bb.asIntBuffer();
+    }
 
+    public ATCommand(int seq) {
+        this.seq = seq;
     }
 
     public void setSeq(int seq) {
@@ -22,4 +32,11 @@ public abstract class ATCommand {
         return seq;
     }
 
+    private FloatBuffer fb;
+    private IntBuffer ib;
+
+    protected int intOfFloat(float f) {
+        fb.put(0, f);
+        return ib.get(0);
+    }
 }
