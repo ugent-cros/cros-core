@@ -5,6 +5,7 @@ import models.Checkpoint;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
+import utilities.annotations.Authentication;
 
 import java.util.List;
 
@@ -17,11 +18,13 @@ public class BasestationController {
 
     private static Form<Basestation> form = Form.form(Basestation.class);
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         List<Basestation> all = Basestation.find.all();
         return ok(Json.toJson(all));
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result add() {
         Form<Basestation> filledForm = form.bindFromRequest();
 
@@ -40,6 +43,7 @@ public class BasestationController {
         return created(Json.toJson(basestation));
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result get(long id) {
         Basestation basestation = Basestation.find.byId(id);
 
@@ -50,6 +54,7 @@ public class BasestationController {
         return ok(Json.toJson(basestation));
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result update(long id) {
         if(Basestation.find.byId(id) == null){
             return notFound("No such basestation");
@@ -71,6 +76,7 @@ public class BasestationController {
         return ok();
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result delete(long id) {
         Basestation basestation = Basestation.find.byId(id);
         if(basestation == null){
