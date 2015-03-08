@@ -106,16 +106,15 @@ public class ArDrone3 extends UntypedActor {
                     recvBuffer = current;
                     break;
                 } else {
-
                     ByteIterator it = current.iterator();
                     final byte type = it.getByte();
                     final byte id = it.getByte();
                     final byte seq = it.getByte();
 
-                    ByteString payload = current.slice(7, 7 + length);
+                    ByteString payload = current.slice(7, length);
                     processFrame(new Frame(FrameHelper.parseFrameType(type), id, seq, payload));
 
-                    current = current.drop(length + 3 + 4); //TODO: check correctness (advance pointer with len + header)
+                    current = current.drop(length);
                 }
             }
         }
