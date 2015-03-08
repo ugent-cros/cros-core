@@ -28,6 +28,8 @@ public class Checkpoint extends Model {
     @Constraints.Required
     public int waitingTime;
 
+    public static Finder<Long, Checkpoint> find = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
+
 
     public Checkpoint (double longitude, double lattitude, double altitude){
         this.longitude = longitude;
