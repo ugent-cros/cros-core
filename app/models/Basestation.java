@@ -22,6 +22,7 @@ public class Basestation extends Model {
     @Constraints.Required
     public Checkpoint checkpoint;
 
+    public static Finder<Long, Basestation> find = new Finder<Long, Basestation>(Long.class, Basestation.class);
 
     public Basestation(String name, Checkpoint checkpoint){
         this.name = name;
