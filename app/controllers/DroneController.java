@@ -16,6 +16,7 @@ import utilities.ControllerHelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import static play.mvc.Controller.request;
 import static play.mvc.Results.*;
 
 /**
@@ -91,16 +92,14 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        Form<Drone> f = Form.form(Drone.class);
-        Form<Drone> newData = Form.form(Drone.class).bindFromRequest();
-        f.bind(newData.data());
+        Form<Drone> f = Form.form(Drone.class).bindFromRequest();
 
         if (f.hasErrors())
             return badRequest(f.errors().toString());
 
         Drone updatedDrone = f.get();
         drone.update(updatedDrone);
-        return get(updatedDrone.id);
+        return get(drone.id);
     }
 
     public static Result location(Long id) {

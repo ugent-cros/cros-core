@@ -53,7 +53,7 @@ public class DroneControllerTest extends TestSuperclass {
         try {
             JsonNode node = mapper.readTree(jsonString).get("drone");
             if(node.isArray()) {
-                for(int i = 0; i < node.size(); ++i) {
+                for(int i = 0; i < testDrones.size(); ++i) {
                     assertThat(node.get(i).get("id").asLong()).isEqualTo(testDrones.get(i).id);
                     assertThat(node.get(i).get("name").asText()).isEqualTo(testDrones.get(i).name);
                 }
@@ -81,7 +81,7 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void getDrone_DatabaseFilledWithDrones_DroneIdNotAvailable() {
         Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizeRequest(fakeRequest(), getAdmin()));
-        assertThat(status(result)).isEqualTo(Http.Status.BAD_REQUEST);
+        assertThat(status(result)).isEqualTo(Http.Status.NOT_FOUND);
     }
 
     @Test
@@ -110,7 +110,33 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void deleteDrone_DatabaseFilledWithDrones_DroneIsDeleted() {
+    public void updateDrone_DatabaseFilledWithDrones_UpdatesAreCorrect() {
+        Drone d = new Drone("test1", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"address1");
+        d.save();
+        Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put("name", "test2");
+        parameters.put("address", "address2");
+        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
+            assertThat(node.get("name").asText()).isEqualTo("test2");
+            assertThat(node.get("address").asText()).isEqualTo("address2");
+            assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
+            assertThat(node.get("status").asText()).isEqualTo("AVAILABLE");
+
+            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
+            assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
+
+            // remove drone afterwards
+            d.delete();
+        } catch (IOException e) {
+            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+        }
+    }
+
+    @Test
+     public void deleteDrone_DatabaseFilledWithDrones_DroneIsDeleted() {
         Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x");
         droneToBeRemoved.save();
 
