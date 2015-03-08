@@ -40,7 +40,6 @@ public class DroneDiscoveredMessage implements Serializable {
         return status;
     }
 
-
     public int getSendPort() {
         return sendPort;
     }

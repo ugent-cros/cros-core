@@ -60,6 +60,13 @@ public class FrameHelper {
         return b.result();
     }
 
+    public static ByteString getPong(long time){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putLong(time, ByteOrder.LITTLE_ENDIAN);
+        b.putLong(0, ByteOrder.BIG_ENDIAN); //add garbage nanoseconds
+        return b.result();
+    }
+
     public static ByteString getFrameData(Frame frame){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(frame.getType().getByte());
