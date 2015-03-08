@@ -1,5 +1,6 @@
 package models;
 
+import com.avaje.ebean.annotation.PrivateOwned;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
@@ -8,85 +9,100 @@ import javax.persistence.*;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Date;
-import java.util.UUID;
-
-/**
- * Created by matthias on 20/02/2015.
- */
+import java.util.*;
 
 @Entity
 @Table(name="useraccount")
 public class User extends Model {
 
+    public static Constraints.Validator PasswordValidator = Constraints.minLength(8);
+
+    public static enum Role {
+        USER,
+        ADMIN,
+        READONLY_ADMIN
+    }
+
     @Id
     public Long id;
 
-    // TODO: allow multiple browsers
-    private String authToken;
+    @Column(length = 256, nullable = false)
+    @Constraints.Required
+    @Constraints.MinLength(1)
+    @Constraints.MaxLength(256)
+    public String firstName;
+
+    @Column(length = 256, nullable = false)
+    @Constraints.Required
+    @Constraints.MinLength(1)
+    @Constraints.MaxLength(256)
+    public String lastName;
+
+    @Column(nullable = false)
+    public Date creationDate;
 
     @Column(length = 256, unique = true, nullable = false)
     @Constraints.MaxLength(256)
     @Constraints.Required
     @Constraints.Email
-    private String emailAddress;
+    private String email;
 
-    public String getEmailAddress() {
-        return emailAddress;
+    public String getEmail() {
+        return email;
     }
 
-    public void setEmailAddress(String emailAddress) {
-        this.emailAddress = emailAddress.toLowerCase();
+    public void setEmail(String email) {
+        this.email = email.toLowerCase();
     }
+
+    @Enumerated(EnumType.STRING)
+    public Role role;
 
     @Column(length = 64, nullable = false)
+    @JsonIgnore
     private byte[] shaPassword;
 
-    @Transient
-    @Constraints.Required
-    @Constraints.MinLength(6)
-    @Constraints.MaxLength(256)
-    @JsonIgnore
-    private String password;
-
-    public String getPassword() {
-        return password;
-    }
-
     public void setPassword(String password) {
-        this.password = password;
         shaPassword = getSha512(password);
     }
 
-    @Column(length = 256, nullable = false)
-    @Constraints.Required
-    @Constraints.MinLength(2)
-    @Constraints.MaxLength(256)
-    public String fullName;
+    public boolean checkPassword(String password) {
+        byte[] hash = getSha512(password);
+        return Arrays.equals(shaPassword, hash);
+    }
 
-    @Column(nullable = false)
-    public Date creationDate;
+    // TODO: allow multiple browsers
+    @JsonIgnore
+    private String authToken;
 
-    public String createToken() {
-        authToken = UUID.randomUUID().toString();
-        save();
+    public String getAuthToken() {
+
+        // create a token if non exists for this user
+        if(authToken == null) {
+            authToken = UUID.randomUUID().toString();
+            save();
+        }
+
         return authToken;
     }
 
-    public void deleteAuthToken() {
+    public void invalidateAuthToken() {
         authToken = null;
         save();
     }
 
     public User() {
+        this.authToken = UUID.randomUUID().toString();
+        role = Role.USER;
         this.creationDate = new Date();
     }
 
-    public User(String emailAddress, String password, String fullName) {
-        setEmailAddress(emailAddress);
+    public User(String email, String password, String firstName, String lastName) {
+        this();
+        setEmail(email);
         setPassword(password);
-        this.fullName = fullName;
-        this.creationDate = new Date();
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
 
@@ -113,8 +129,16 @@ public class User extends Model {
         }
     }
 
-    public static User findByEmailAddressAndPassword(String emailAddress, String password) {
-        return find.where().eq("emailAddress", emailAddress.toLowerCase()).eq("shaPassword", getSha512(password)).findUnique();
+    public static User findByEmail(String emailAddress) {
+        return find.where().eq("email", emailAddress.toLowerCase()).findUnique();
     }
 
+    public static User authenticate(String email, String password) {
+
+        User user = findByEmail(email);
+        if(user != null && user.checkPassword(password)) {
+            return user;
+        }
+        return null;
+    }
 }
