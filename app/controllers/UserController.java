@@ -1,13 +1,19 @@
 package controllers;
 
 import models.User;
+import play.data.DynamicForm;
 import play.data.Form;
+import play.data.validation.ValidationError;
 import play.libs.Json;
 import play.mvc.Result;
+import utilities.ControllerHelper;
 import utilities.annotations.Authentication;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static play.mvc.Controller.request;
 import static play.mvc.Controller.session;
 import static play.mvc.Results.*;
 
@@ -67,12 +73,12 @@ public class UserController {
         return ok("User was deleted");
     }
 
-    // Manual security check in code
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
     public static Result getUser(Long id) {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!User.Role.ADMIN.equals(client.role) && client.id != id) {
+        if(User.Role.USER.equals(client.role) && client.id != id) {
             return unauthorized();
         }
 
@@ -84,7 +90,7 @@ public class UserController {
         return ok(Json.toJson(user));
     }
 
-    // Manual security check in code
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
     public static Result getUserAuthToken(Long id) {
 
         // Check if user has correct privileges
@@ -96,12 +102,13 @@ public class UserController {
         return ok(Json.toJson(client.getAuthToken()));
     }
 
-    // Manual security check in code
+    @Authentication({User.Role.ADMIN, User.Role.USER})
     public static Result invalidateAuthToken(Long userId) {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!User.Role.ADMIN.equals(client.role) && client.id != userId) {
+        if(!User.Role.ADMIN.equals(client.role)
+                && client.id != userId) {
             return unauthorized();
         }
 
@@ -115,7 +122,7 @@ public class UserController {
         return ok();
     }
 
-    // Manual security check in code
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
     public static Result updateUser(Long id) {
 
         // Check if user has correct privileges
@@ -131,23 +138,22 @@ public class UserController {
         }
 
         // Added posted info + existing info about user
-        Form<User> userForm = form.fill(user);
         Form<User> filledForm = form.bindFromRequest();
-        userForm.bind(filledForm.data());
+        ControllerHelper.removeErrorsOnMissingFields(filledForm);
 
         // Check if password is long enough in filled form
         String password = filledForm.field("password").value();
         if(password != null && !User.PasswordValidator.isValid(password)) {
-            userForm.reject("password", (String)User.PasswordValidator.getErrorMessageKey()._1);
+            filledForm.reject("password", (String)User.PasswordValidator.getErrorMessageKey()._1);
         }
         // Check rest of input
-        if(userForm.hasErrors()) {
+        if(filledForm.hasErrors()) {
             return badRequest(filledForm.errorsAsJson());
         }
 
         // Update the user
-        User updatedUser = userForm.get();
-        user.update(updatedUser);
+        User updatedUser = filledForm.get();
+        updatedUser.update(id);
 
         return ok();
     }
