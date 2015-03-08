@@ -2,6 +2,7 @@ package controllers;
 
 import models.Basestation;
 import models.Checkpoint;
+import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
