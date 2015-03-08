@@ -1,5 +1,6 @@
 package models;
 
+import com.avaje.ebean.annotation.PrivateOwned;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
@@ -16,7 +17,7 @@ public class User extends Model {
 
     public static Constraints.Validator PasswordValidator = Constraints.minLength(8);
 
-    public static enum UserRole {
+    public static enum Role {
         USER,
         ADMIN,
         READONLY_ADMIN
@@ -54,28 +55,8 @@ public class User extends Model {
         this.email = email.toLowerCase();
     }
 
-    private Set<UserRole> roles;
-
-    public void setRoles(Set<UserRole> roles) {
-        // custom setter to copy set
-        this.roles = new HashSet<>(roles);
-    }
-
-    public Set<UserRole> getRoles() {
-        return roles;
-    }
-
-    public void addRole(UserRole role) {
-        roles.add(role);
-    }
-
-    public void removeRole(UserRole role) {
-        roles.remove(role);
-    }
-
-    public boolean hasRole(UserRole role) {
-        return roles.contains(role);
-    }
+    @Enumerated(EnumType.STRING)
+    public Role role;
 
     @Column(length = 64, nullable = false)
     @JsonIgnore
@@ -112,7 +93,7 @@ public class User extends Model {
 
     public User() {
         this.authToken = UUID.randomUUID().toString();
-        this.roles = new HashSet<>();
+        role = Role.USER;
         this.creationDate = new Date();
     }
 

@@ -47,7 +47,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void getAll_DatabaseFilledWithDrones_SuccessfullyGetAllDrones() {
-        Result result = callAction(routes.ref.DroneController.getAll(), authorizedRequest);
+        Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         String jsonString = contentAsString(result);
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -67,7 +67,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void getDrone_DatabaseFilledWithDrones_SuccessfullyGetDrone() {
-        Result result = callAction(routes.ref.DroneController.get(testDrones.size()-1), authorizedRequest);
+        Result result = callAction(routes.ref.DroneController.get(testDrones.size()-1), authorizeRequest(fakeRequest(), getAdmin()));
         String jsonString = contentAsString(result);
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -80,7 +80,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void getDrone_DatabaseFilledWithDrones_DroneIdNotAvailable() {
-        Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizedRequest);
+        Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(Http.Status.BAD_REQUEST);
     }
 
@@ -90,7 +90,7 @@ public class DroneControllerTest extends TestSuperclass {
         parameters.put("name", "super drone");
         parameters.put("address", "192.168.0.15");
         parameters.put("communicationType", "DEFAULT");
-        Result result = callAction(routes.ref.DroneController.add(), authorizedRequest.withFormUrlEncodedBody(parameters));
+        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
         ObjectMapper mapper = new ObjectMapper();
         try {
             JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
@@ -98,7 +98,7 @@ public class DroneControllerTest extends TestSuperclass {
             assertThat(node.get("address").asText()).isEqualTo("192.168.0.15");
             assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
 
-            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizedRequest);
+            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
             assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
 
             // remove drone afterwards
@@ -114,7 +114,7 @@ public class DroneControllerTest extends TestSuperclass {
         Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x");
         droneToBeRemoved.save();
 
-        callAction(routes.ref.DroneController.delete(droneToBeRemoved.id), authorizedRequest);
+        callAction(routes.ref.DroneController.delete(droneToBeRemoved.id), authorizeRequest(fakeRequest(), getAdmin()));
 
         long amount = Drone.find.all().stream().filter(d -> d.id == droneToBeRemoved.id).count();
         assertThat(amount).isEqualTo(0);
@@ -124,7 +124,7 @@ public class DroneControllerTest extends TestSuperclass {
     public void testConnection_DatabaseFilledWithDrones_CorrectConnectionReceived() {
         ObjectMapper mapper = new ObjectMapper();
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.testConnection(drone.id), authorizedRequest);
+            Result r = callAction(routes.ref.DroneController.testConnection(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
             try {
                 boolean status = mapper.readTree(contentAsString(r)).get("Boolean").asBoolean();
                 assertThat(status).isEqualTo(drone.testConnection());
@@ -138,7 +138,7 @@ public class DroneControllerTest extends TestSuperclass {
     public void battery_DatabaseFilledWithDrones_CorrectBatteryStatusReceived() {
         ObjectMapper mapper = new ObjectMapper();
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.battery(drone.id), authorizedRequest);
+            Result r = callAction(routes.ref.DroneController.battery(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
             try {
                 int status = mapper.readTree(contentAsString(r)).get("Integer").intValue();
                 assertThat(status).isEqualTo(drone.getBatteryStatus());
@@ -151,7 +151,7 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void cameraCapture_DatabaseFilledWithDrones_CorrectCaptureReceived() {
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id), authorizedRequest);
+            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
             ObjectMapper mapper = new ObjectMapper();
             try {
                 String capture = mapper.readTree(contentAsString(r)).get("String").asText();
