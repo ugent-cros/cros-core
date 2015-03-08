@@ -22,5 +22,12 @@ GET           /drones/:id/abort                 controllers.DroneController.emer
 POST          /login                            controllers.SecurityController.login()
 GET           /logout                           controllers.SecurityController.logout()
 
+#Basestation calls
+GET           /basestations/                    controllers.BasestationController.getAll()
+POST          /basestations/                    controllers.BasestationController.add()
+GET           /basestations/:id                 controllers.BasestationController.get(id: Long)
+PUT           /basestations/:id                 controllers.BasestationController.update(id: Long)
+DELETE        /basestations/:id                 controllers.BasestationController.delete(id: Long)
+
 # Map static resources from the /public folder to the /assets URL path
 GET           /assets/*file                     controllers.Assets.at(path="/public", file)
