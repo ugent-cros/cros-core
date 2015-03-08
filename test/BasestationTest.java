@@ -85,5 +85,13 @@ public class BasestationTest extends WithApplication {
         assertThat(status(result)).isEqualTo(OK);
     }
 
+    @Test
+    public void deleteBasestation(){
+        FakeRequest deleteRequest = new FakeRequest("DELETE", "/basestations/1");
+        Result result = routeAndCall(deleteRequest, 10);
+        //test statuscode
+        assertThat(status(result)).isEqualTo(OK);
+    }
+
 
 }

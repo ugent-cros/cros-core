@@ -83,8 +83,7 @@ public class BasestationController {
             return badRequest();
         }
 
-        //TODO: cascading delete
-        basestation.delete();
+        basestation.delete();//cascading delete automatically
         return ok();
     }
 }
