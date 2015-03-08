@@ -5,12 +5,15 @@ import models.Drone;
 import models.User;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utilities.ControllerHelper;
 import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Application extends Controller {
+
+    public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().url());
 
     public static Result index() {
         return ok(index.render("Your new application is ready."));

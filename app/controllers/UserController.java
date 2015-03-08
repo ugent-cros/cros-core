@@ -1,5 +1,10 @@
 package controllers;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.User;
 import play.data.DynamicForm;
 import play.data.Form;
@@ -9,6 +14,7 @@ import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.annotations.Authentication;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,13 +29,31 @@ import static play.mvc.Results.*;
 
 public class UserController {
 
+    private static ObjectMapper jsonMapper = new ObjectMapper();
+
+    public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.allUsers().url());
 
     private static Form<User> form = Form.form(User.class);
 
     public static Result allUsers() {
 
         List<User> allUsers = User.find.all();
-        return ok(Json.toJson(allUsers));
+
+        ObjectNode root = jsonMapper.createObjectNode();
+
+        // Add users list
+        ArrayNode usersNode = root.putArray("users");
+        for(User user : allUsers) {
+            JsonNode userNode = shortUserToJson(user);
+            usersNode.add(userNode);
+        }
+
+        // Add navigation links
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(Application.homeLink);
+        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+        return ok(root);
     }
 
     @Authentication({User.Role.ADMIN})
@@ -56,7 +80,18 @@ public class UserController {
 
         // Create new user
         newUser.save();
-        return created(Json.toJson((newUser)));
+
+        // Add user to result
+        ObjectNode root = jsonMapper.createObjectNode();
+        root.put("user", Json.toJson(newUser));
+
+        // Add links to result
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(Application.homeLink);
+        links.add(allUsersLink);
+        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+        return created(root);
     }
 
     @Authentication({User.Role.ADMIN})
@@ -70,7 +105,15 @@ public class UserController {
 
         // Delete the user
         userToDelete.delete();
-        return ok("User was deleted");
+
+        // Add links to result
+        ObjectNode root = jsonMapper.createObjectNode();
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(Application.homeLink);
+        links.add(allUsersLink);
+        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+        return ok(root);
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
@@ -87,7 +130,17 @@ public class UserController {
             return notFound("No such user");
         }
 
-        return ok(Json.toJson(user));
+        // Add user to result
+        ObjectNode root = jsonMapper.createObjectNode();
+        root.put("user", Json.toJson(user));
+
+        // Add links to result
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(Application.homeLink);
+        links.add(allUsersLink);
+        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+        return ok(root);
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
@@ -114,7 +167,15 @@ public class UserController {
 
         User user = User.find.byId(userId);
         if(user == null) {
-            return notFound("No such user");
+
+            // Return possible links
+            ObjectNode root = jsonMapper.createObjectNode();
+            List<ControllerHelper.Link> links = new ArrayList<>();
+            links.add(Application.homeLink);
+            links.add(allUsersLink);
+            root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+            return notFound();
         }
 
         user.invalidateAuthToken();
@@ -154,7 +215,17 @@ public class UserController {
         User updatedUser = filledForm.get();
         updatedUser.update(id);
 
-        return ok();
+        // Add user to result
+        ObjectNode root = jsonMapper.createObjectNode();
+        root.put("user", Json.toJson(updatedUser));
+
+        // Add links to result
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(Application.homeLink);
+        links.add(allUsersLink);
+        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
+
+        return ok(root);
     }
 
     // no check needed
@@ -165,5 +236,13 @@ public class UserController {
             return notFound();
         }
         return redirect(controllers.routes.UserController.getUser(client.id));
+    }
+
+    private static JsonNode shortUserToJson(User user) {
+
+        ObjectNode root = jsonMapper.createObjectNode();
+        root.put("email", user.getEmail());
+        root.put("href", controllers.routes.UserController.getUser(user.id).url());
+        return root;
     }
 }
