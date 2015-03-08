@@ -137,9 +137,8 @@ public class UserController {
             return notFound("No such user");
         }
 
-        // Added posted info + existing info about user
+        // Check input
         Form<User> filledForm = form.bindFromRequest();
-        ControllerHelper.removeErrorsOnMissingFields(filledForm);
 
         // Check if password is long enough in filled form
         String password = filledForm.field("password").value();

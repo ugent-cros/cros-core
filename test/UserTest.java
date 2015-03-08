@@ -97,14 +97,19 @@ public class UserTest extends TestSuperclass {
     public void updateUser_ByUnpriviledgedUser_ReturnsUnauthorized() {
 
         // Create original user
-        User u = new User("unauthorized.userupdate@user.tests.cros.com", "password", "John", "Doe");
+        String firstName = "John";
+        String lastName = "Doe";
+        String email = "unauthorized.userupdate@user.tests.cros.com";
+
+        User u = new User(email, "password", firstName, lastName);
         u.save();
 
         // Send request to update this user
         Map<String, String> data = new HashMap<>();
-        data.put("firstName", "Jane");
-
-        FakeRequest update = fakeRequest().withFormUrlEncodedBody(data);
+        firstName = "Jane";
+        data.put("firstName", firstName);
+        data.put("lastName", lastName);
+        data.put("email", email);
 
         Result result = updateUser(u.id, data, null);
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
@@ -120,20 +125,26 @@ public class UserTest extends TestSuperclass {
     public void updateUser_ByAdmin_UpdatesDBEntry() {
 
         // Create original user
-        User u = new User("admin.userupdate@user.tests.cros.com", "password", "John", "Doe");
+        String firstName = "John";
+        String lastName = "Doe";
+        String email = "admin.userupdate@user.tests.cros.com";
+
+        User u = new User(email, "password", firstName, lastName);
         u.save();
 
-        // Send request to update this user as admin
+        // Send request to update this user
         Map<String, String> data = new HashMap<>();
-        String newName = "Jane";
-        data.put("firstName", newName);
+        firstName = "Jane";
+        data.put("firstName", firstName);
+        data.put("lastName", lastName);
+        data.put("email", email);
 
         Result result = updateUser(u.id, data, getAdmin());
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(newName);
+        assertThat(u.firstName).isEqualTo(firstName);
 
         u.delete();
     }
@@ -142,20 +153,26 @@ public class UserTest extends TestSuperclass {
     public void updateUser_ByUserHimself_UpdatesDBEntry() {
 
         // Create original user
-        User u = new User("owner.userupdate@user.tests.cros.com", "password", "John", "Doe");
+        String firstName = "John";
+        String lastName = "Doe";
+        String email = "himself.userupdate@user.tests.cros.com";
+
+        User u = new User(email, "password", firstName, lastName);
         u.save();
 
-        // Send request to update this user as admin
+        // Send request to update this user
         Map<String, String> data = new HashMap<>();
-        String newName = "Jane";
-        data.put("firstName", newName);
+        firstName = "Jane";
+        data.put("firstName", firstName);
+        data.put("lastName", lastName);
+        data.put("email", email);
 
         Result result = updateUser(u.id, data, u);
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(newName);
+        assertThat(u.firstName).isEqualTo(firstName);
 
         u.delete();
     }
