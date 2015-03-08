@@ -76,13 +76,17 @@ public class BasestationTest extends WithApplication {
         data.put("checkpoint_id",  Long.toString(ref.checkpoint.id));
         data.put("lattitude", Double.toString(ref.checkpoint.lattitude));
         data.put("longitude", Double.toString(ref.checkpoint.longitude));
-        data.put("altitude", "0.0");
+        data.put("altitude",  Double.toString(ref.checkpoint.altitude));
 
         FakeRequest putRequest = new FakeRequest("PUT", "/basestations/1");
         putRequest = putRequest.withFormUrlEncodedBody(data);
         Result result = routeAndCall(putRequest, 10);
         //test statuscode
         assertThat(status(result)).isEqualTo(OK);
+
+        //test change
+        Basestation updated = Basestation.find.byId((long)1);
+        assertThat(updated.name).isEqualTo(ref.name + "- edited");
     }
 
     @Test

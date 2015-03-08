@@ -62,15 +62,9 @@ public class BasestationController {
             return badRequest(filledForm.errorsAsJson());
         }
 
-        //update checkpoint
+        //update basestation
         long cp_id = Long.valueOf(filledForm.data().get("checkpoint_id"));
         Checkpoint cp = Checkpoint.find.byId(cp_id);
-        cp.longitude = Double.valueOf(filledForm.data().get("longitude"));
-        cp.lattitude = Double.valueOf(filledForm.data().get("lattitude"));
-        cp.altitude =  Double.valueOf(filledForm.data().get("altitude"));
-        cp.update(cp_id);
-
-        //update basestation
         Basestation basestation = filledForm.get();
         basestation.checkpoint = cp;
         basestation.update(id);
