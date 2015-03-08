@@ -1,7 +1,7 @@
-package drones.handlers.ArDrone3;
+package drones.handlers.ardrone3;
 
-import drones.models.CommandTypeProcessor;
-import drones.models.PacketType;
+import drones.models.ardrone3.CommandTypeProcessor;
+import drones.models.ardrone3.PacketType;
 
 /**
  * Created by Cedric on 3/8/2015.

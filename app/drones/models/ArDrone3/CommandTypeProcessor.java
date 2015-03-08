@@ -1,4 +1,4 @@
-package drones.models;
+package drones.models.ardrone3;
 
 import java.util.HashMap;
 import java.util.Map;

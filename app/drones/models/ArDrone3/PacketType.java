@@ -1,4 +1,4 @@
-package drones.models;
+package drones.models.ardrone3;
 
 /**
  * Created by Cedric on 3/8/2015.

@@ -1,12 +1,11 @@
-package drones.handlers.ArDrone3;
+package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
 import drones.messages.*;
-import drones.models.CommandProcessor;
+import drones.models.ardrone3.CommandProcessor;
 import drones.models.FlyingState;
-import drones.models.Packet;
-import drones.models.PacketType;
-import drones.util.FrameHelper;
+import drones.models.ardrone3.Packet;
+import drones.util.ardrone3.FrameHelper;
 
 /**
  * Created by Cedric on 3/8/2015.

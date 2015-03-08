@@ -9,9 +9,10 @@ import akka.io.UdpMessage;
 import akka.japi.Procedure;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
-import drones.handlers.ArDrone3.ArDrone3Processor;
+import drones.handlers.ardrone3.ArDrone3Processor;
 import drones.models.*;
-import drones.util.FrameHelper;
+import drones.models.ardrone3.*;
+import drones.util.ardrone3.FrameHelper;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
@@ -274,7 +275,6 @@ public class ArDrone3 extends UntypedActor {
                 processRawData(r.data());
             } else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
-
             } else if (msg instanceof Udp.Unbound) {
                 getContext().stop(getSelf());
 

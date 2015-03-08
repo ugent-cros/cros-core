@@ -1,8 +1,8 @@
-package drones.util;
+package drones.util.ardrone3;
 
 import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
-import drones.models.Packet;
+import drones.models.ardrone3.Packet;
 
 /**
  * Created by Cedric on 3/8/2015.

@@ -1,9 +1,9 @@
-package drones.util;
+package drones.util.ardrone3;
 
 import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
-import drones.models.Frame;
-import drones.models.FrameType;
+import drones.models.ardrone3.Frame;
+import drones.models.ardrone3.FrameType;
 
 import java.nio.ByteOrder;
 

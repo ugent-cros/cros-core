@@ -1,4 +1,4 @@
-package drones.models;
+package drones.models.ardrone3;
 
 import akka.util.ByteString;
 

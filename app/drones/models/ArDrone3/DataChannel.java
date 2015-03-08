@@ -1,8 +1,6 @@
-package drones.models;
+package drones.models.ardrone3;
 
 import akka.util.ByteString;
-import drones.protocols.ArDrone3;
-import drones.util.FrameHelper;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
