@@ -15,6 +15,9 @@ public class PacketHelper {
         b.putByte(packet.getCommandClass());
         b.putShort(packet.getCommand(), FrameHelper.BYTE_ORDER);
 
-        return b.result().concat(packet.getData());
+        if(packet.getData() == null)
+            return b.result();
+        else
+            return b.result().concat(packet.getData());
     }
 }

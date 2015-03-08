@@ -20,6 +20,8 @@ import java.nio.charset.Charset;
  * Created by Cedric on 3/8/2015.
  */
 public class ArDrone3Discovery extends UntypedActor {
+    public static final int DEFAULT_COMMAND_PORT = 43210;
+
     final InetSocketAddress remote;
     final ActorRef listener;
     final int commandPort;

@@ -12,10 +12,8 @@ import drones.util.ardrone3.FrameHelper;
  */
 public class PilotingStateHandler extends CommandProcessor {
 
-    public final static byte COMMAND_CLASS = 4;
-
     public PilotingStateHandler(){
-        super(COMMAND_CLASS);
+        super(ArDrone3TypeProcessor.ArDrone3Class.PILOTINGSTATE.getVal());
     }
 
     @Override
@@ -30,11 +28,11 @@ public class PilotingStateHandler extends CommandProcessor {
         addHandler((short)8, PilotingStateHandler::altitudeChanged);
     }
 
-    public static Object flatTrimChanged(Packet p){
+    private static Object flatTrimChanged(Packet p){
         return new FlatTrimChangedMessage();
     }
 
-    public static Object attitudeChanged(Packet p){
+    private static Object attitudeChanged(Packet p){
         ByteIterator it = p.getData().iterator();
         float roll = it.getFloat(FrameHelper.BYTE_ORDER);
         float pitch = it.getFloat(FrameHelper.BYTE_ORDER);
@@ -42,7 +40,7 @@ public class PilotingStateHandler extends CommandProcessor {
         return new AttitudeChangedMessage(roll, pitch, yaw);
     }
 
-    public static Object speedChanged(Packet p){
+    private static Object speedChanged(Packet p){
         ByteIterator it = p.getData().iterator();
         float sx = it.getFloat(FrameHelper.BYTE_ORDER);
         float sy = it.getFloat(FrameHelper.BYTE_ORDER);
@@ -70,19 +68,19 @@ public class PilotingStateHandler extends CommandProcessor {
         }
     }
 
-    public static Object flyingStateChanged(Packet p){
+    private static Object flyingStateChanged(Packet p){
         ByteIterator it = p.getData().iterator();
         int val = it.getInt(FrameHelper.BYTE_ORDER);
         return new FlyingStateChangedMessage(getFlyingState(val));
     }
 
-    public static Object altitudeChanged(Packet p){
+    private static Object altitudeChanged(Packet p){
         ByteIterator it = p.getData().iterator();
         double alt = it.getDouble(FrameHelper.BYTE_ORDER);
         return new AltitudeChangedMessage(alt);
     }
 
-    public static Object positionChanged(Packet p){
+    private static Object positionChanged(Packet p){
         ByteIterator it = p.getData().iterator();
         double lat = it.getDouble(FrameHelper.BYTE_ORDER);
         double longit = it.getDouble(FrameHelper.BYTE_ORDER);

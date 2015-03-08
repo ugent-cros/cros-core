@@ -9,11 +9,19 @@ import akka.io.UdpMessage;
 import akka.japi.Procedure;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
-import drones.handlers.ardrone3.ArDrone3Processor;
+import drones.commands.LandCommand;
+import drones.handlers.ardrone3.ArDrone3TypeProcessor;
+import drones.handlers.ardrone3.CommonTypeProcessor;
+import drones.commands.DroneCommandMessage;
+import drones.commands.FlatTrimCommand;
+import drones.commands.TakeOffCommand;
 import drones.models.*;
 import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
+import drones.util.ardrone3.PacketCreator;
+import drones.util.ardrone3.PacketHelper;
 
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.EnumMap;
@@ -67,20 +75,6 @@ public class ArDrone3 extends UntypedActor {
         mgr.tell(
                 UdpMessage.bind(getSelf(), new InetSocketAddress("localhost", details.getReceivingPort())),
                 getSelf());
-    }
-
-    @Override
-    public void preStart() {
-        log.info("Starting ARDrone 3.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
-    }
-
-    @Override
-    public void onReceive(Object msg) {
-        if (msg instanceof Udp.Bound) {
-            this.connectionMgrRef = getSender();
-            getContext().become(ready(connectionMgrRef));
-            log.debug("Socket ARDRone 3.0 bound.");
-        } else unhandled(msg);
     }
 
     public void sendData(ByteString data) {
@@ -264,21 +258,89 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void initHandlers(){
-        processors.put(PacketType.ARDRONE3.getNum(), new ArDrone3Processor());
+        processors.put(PacketType.ARDRONE3.getVal(), new ArDrone3TypeProcessor());
+        processors.put(PacketType.COMMON.getVal(), new CommonTypeProcessor());
+    }
+
+    @Override
+    public void preStart() {
+        log.info("Starting ARDrone 3.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
+    }
+
+    @Override
+    public void onReceive(Object msg) {
+        if (msg instanceof Udp.Bound) {
+            this.connectionMgrRef = getSender();
+            getContext().become(ready(connectionMgrRef));
+            log.debug("Socket ARDRone 3.0 bound.");
+        } else unhandled(msg);
+    }
+
+    private void dispatchCommand(DroneCommandMessage msg){
+        try {
+            // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
+            Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
+            handler.invoke(null, msg.getMessage());
+        } catch (Exception e) {
+            log.warning("No command dispatch for [{}] command.", msg.getMessage().getClass().getCanonicalName());
+        }
     }
 
     private Procedure<Object> ready(final ActorRef socket) {
         return msg -> {
             if (msg instanceof Udp.Received) {
                 final Udp.Received r = (Udp.Received) msg;
-                //socket.tell(UdpMessage.send(r.data(), r.sender()), getSelf());
                 processRawData(r.data());
             } else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
             } else if (msg instanceof Udp.Unbound) {
                 getContext().stop(getSelf());
-
+            } else if (msg instanceof DroneCommandMessage){
+                dispatchCommand((DroneCommandMessage)msg);
             } else unhandled(msg);
         };
+    }
+
+    private void sendDataOnChannel(Packet packet, DataChannel channel){
+        if(channel.getType() == FrameType.DATA_WITH_ACK){
+            throw new RuntimeException("Not implemented yet");
+        } else if(channel.getType() == FrameType.DATA){
+            ByteString data = PacketHelper.buildPacket(packet);
+            Frame frame = channel.createFrame(data);
+            sendData(FrameHelper.getFrameData(frame));
+            log.debug("Sent packet ([{}], [{}], [{}]) on channel [{}]",
+                    packet.getType(), packet.getCommandClass(), packet.getCommand(), channel.getId());
+        } else {
+            log.warning("Sending data over invalid channel type. ID = [{}]", channel.getId());
+        }
+    }
+
+    private void sendDataAck(Packet packet){
+        DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(ACK_CHANNEL);
+        sendDataOnChannel(packet, channel);
+    }
+
+    private void sendDataEmergency(Packet packet){
+        DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(EMERGENCY_CHANNEL);
+        sendDataOnChannel(packet, channel);
+    }
+
+    private void sendDataNoAck(Packet packet){
+        DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(NONACK_CHANNEL);
+        sendDataOnChannel(packet, channel);
+    }
+
+    // All command handlers
+    //TODO: move these to seperate class statically
+    private void handle(FlatTrimCommand cmd){
+        sendDataNoAck(PacketCreator.createFlatTrimPacket());
+    } //TODO: ack channel
+
+    private void handle(TakeOffCommand cmd){
+        sendDataNoAck(PacketCreator.createTakeOffPacket()); //TODO: ACK channel
+    }
+
+    private void handle(LandCommand cmd){
+        sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
     }
 }

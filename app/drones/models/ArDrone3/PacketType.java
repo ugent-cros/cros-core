@@ -21,7 +21,7 @@ public enum PacketType {
         this.num = (byte)type;
     }
 
-    public byte getNum(){
+    public byte getVal(){
         return num;
     }
 }
