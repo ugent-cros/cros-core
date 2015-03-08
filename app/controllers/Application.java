@@ -3,10 +3,9 @@ package controllers;
 import com.avaje.ebean.Ebean;
 import models.Drone;
 import models.User;
-import play.*;
-import play.mvc.*;
-
-import views.html.*;
+import play.mvc.Controller;
+import play.mvc.Result;
+import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +30,7 @@ public class Application extends Controller {
 
         List<User> users = new ArrayList<>();
         users.add(new User("cros@test.be", "freddy", "cros", "tester"));
+		users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
 
         Ebean.save(users);
 
