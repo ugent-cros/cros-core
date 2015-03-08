@@ -8,9 +8,7 @@ import play.mvc.Result;
 
 import java.util.List;
 
-import static play.mvc.Results.badRequest;
-import static play.mvc.Results.created;
-import static play.mvc.Results.ok;
+import static play.mvc.Results.*;
 
 /**
  * Created by Eveline on 8/03/2015.
@@ -53,7 +51,30 @@ public class BasestationController {
     }
 
     public static Result update(long id) {
-        return play.mvc.Results.TODO;
+        if(Basestation.find.byId(id) == null){
+            return notFound("No such basestation");
+        }
+        Form<Basestation> filledForm = form.bindFromRequest();
+
+        //TODO check input
+
+        if (filledForm.hasErrors()){
+            return badRequest(filledForm.errorsAsJson());
+        }
+
+        //update checkpoint
+        long cp_id = Long.valueOf(filledForm.data().get("checkpoint_id"));
+        Checkpoint cp = Checkpoint.find.byId(cp_id);
+        cp.longitude = Double.valueOf(filledForm.data().get("longitude"));
+        cp.lattitude = Double.valueOf(filledForm.data().get("lattitude"));
+        cp.altitude =  Double.valueOf(filledForm.data().get("altitude"));
+        cp.update(cp_id);
+
+        //update basestation
+        Basestation basestation = filledForm.get();
+        basestation.checkpoint = cp;
+        basestation.update(id);
+        return ok();
     }
 
     public static Result delete(long id) {
