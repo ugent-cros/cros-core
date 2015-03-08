@@ -19,7 +19,7 @@ public class Basestation extends Model {
     @Column(length = 256, unique = true, nullable = false)
     public String name;
 
-    @Constraints.Required
+    @OneToOne
     public Checkpoint checkpoint;
 
     public static Finder<Long, Basestation> find = new Finder<Long, Basestation>(Long.class, Basestation.class);
