@@ -8,7 +8,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
-import play.mvc.Security;
 import utilities.annotations.Authenticator;
 
 /**

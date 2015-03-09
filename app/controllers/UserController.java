@@ -28,6 +28,7 @@ public class UserController {
     public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.allUsers().url());
 
     private static Form<User> form = Form.form(User.class);
+    private static final String PASSWORD_FIELD_KEY = "password";
 
     public static Result allUsers() {
 
@@ -57,10 +58,10 @@ public class UserController {
         Form<User> filledForm = form.bind(postData.get("User"));
 
         // Check password
-        Form.Field passwordField = filledForm.field("password");
+        Form.Field passwordField = filledForm.field(PASSWORD_FIELD_KEY);
         String passwordError = User.validatePassword(passwordField.value());
         if(passwordError != null) {
-            filledForm.reject("password", passwordError);
+            filledForm.reject(PASSWORD_FIELD_KEY, passwordError);
         }
 
         if(filledForm.hasErrors()) {
@@ -106,7 +107,7 @@ public class UserController {
         // Check if user exists
         User userToDelete = User.find.byId(id);
         if(userToDelete == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Delete the user
@@ -133,7 +134,7 @@ public class UserController {
 
         User user = User.find.byId(id);
         if(user == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Add user to result
@@ -201,7 +202,7 @@ public class UserController {
         // Check if user exists
         User user = User.find.byId(id);
         if(user == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Check input
@@ -209,11 +210,11 @@ public class UserController {
         Form<User> filledForm = form.bind(postData.get("User"));
 
         // Check if password is long enough in filled form
-        String password = filledForm.field("password").value();
+        String password = filledForm.field(PASSWORD_FIELD_KEY).value();
         if(password != null) {
             String error = User.validatePassword(password);
             if(error != null) {
-                filledForm.reject("password", error);
+                filledForm.reject(PASSWORD_FIELD_KEY, error);
             }
         }
         // Check rest of input
