@@ -1,5 +1,5 @@
+import controllers.SecurityController;
 import models.User;
-import org.junit.*;
 
 import play.test.*;
 
@@ -11,23 +11,37 @@ import static play.test.Helpers.*;
 public class TestSuperclass {
 
     public static FakeApplication application;
-    public static FakeRequest authorizedRequest;
+
+    private static User admin;
+    public static User getAdmin() { return admin; }
+
+    private static User roAdmin;
+    public static User getReadOnlyAdmin() { return roAdmin; }
+
+    private static User user;
+    public static User getUser() { return user; }
 
     public static void startFakeApplication() {
         application = fakeApplication(inMemoryDatabase());
         start(application);
 
-        // Create and store user in in memory database
-        User authenticatedUser = new User("john.doe@test.com", "testing", "John Doe");
-        authenticatedUser.save();
-
-        // Create an (un)authorized request for later test
-        String token = authenticatedUser.createToken();
-        long id = authenticatedUser.id;
-        authorizedRequest = fakeRequest().withHeader("X-AUTH-TOKEN", token).withHeader("X-AUTH-ID", "" + id);
+        // Create a user of each role to test with
+        admin = new User("admin@test.cros", "password", "Admin", "Tester");
+        admin.role = User.Role.ADMIN;
+        admin.save();
+        roAdmin = new User("ro-admin@test.cros", "password", "Readonly-Admin", "Tester");
+        roAdmin.role = User.Role.READONLY_ADMIN;
+        roAdmin.save();
+        user = new User("user@test.cros", "password", "User", "Tester");
+        user.role = User.Role.USER;
+        user.save();
     }
 
     public static void stopFakeApplication() {
         stop(application);
+    }
+
+    public static FakeRequest authorizeRequest(FakeRequest request, User user) {
+        return request.withHeader(SecurityController.AUTH_TOKEN_HEADER, user.getAuthToken());
     }
 }

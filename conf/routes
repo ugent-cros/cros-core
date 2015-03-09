@@ -3,21 +3,24 @@
 # ~~~~
 
 # Home page
-GET           /                                 controllers.Application.index()
-GET           /initDB                           controllers.Application.initDb()
+GET           /                                     controllers.Application.index()
+GET           /initDB                               controllers.Application.initDb()
 
 # Drone calls
-GET           /drones                           controllers.DroneController.getAll()
-POST          /drones                           controllers.DroneController.add()
-DELETE        /drones                           controllers.DroneController.deleteAll()
-GET           /drones/:id                       controllers.DroneController.get(id: Long)
-DELETE        /drones/:id                       controllers.DroneController.delete(id: Long)
-PUT           /drones/:id                       controllers.DroneController.update(id: Long)
-GET           /drones/:id/testConnection        controllers.DroneController.testConnection(id: Long)
-GET           /drones/:id/battery               controllers.DroneController.battery(id: Long)
-GET           /drones/:id/cameraCapture         controllers.DroneController.cameraCapture(id: Long)
-GET           /drones/:id/location              controllers.DroneController.location(id: Long)
-GET           /drones/:id/abort                 controllers.DroneController.emergency(id: Long)
+GET           /drones                               controllers.DroneController.getAll()
+POST          /drones                               controllers.DroneController.add()
+DELETE        /drones                               controllers.DroneController.deleteAll()
+GET           /drones/:id                           controllers.DroneController.get(id: Long)
+DELETE        /drones/:id                           controllers.DroneController.delete(id: Long)
+PUT           /drones/:id                           controllers.DroneController.update(id: Long)
+GET           /drones/:id/testConnection            controllers.DroneController.testConnection(id: Long)
+GET           /drones/:id/battery                   controllers.DroneController.battery(id: Long)
+GET           /drones/:id/cameraCapture             controllers.DroneController.cameraCapture(id: Long)
+GET           /drones/:id/location                  controllers.DroneController.location(id: Long)
+GET           /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
+
+POST          /login                                controllers.SecurityController.login()
+GET           /logout                               controllers.SecurityController.logout()
 
 # Assignment calls
 GET           /assignments                      controllers.AssignmentController.getAllAssignments()
@@ -25,8 +28,23 @@ POST          /assignments                      controllers.AssignmentController
 GET           /assignments/:id                  controllers.AssignmentController.getAssignment(id: Long)
 DELETE        /assignments/:id                  controllers.AssignmentController.deleteAssigment(id: Long)
 
-POST          /login                            controllers.SecurityController.login()
-GET           /logout                           controllers.SecurityController.logout()
+# User mgmt
+GET           /users/                               controllers.UserController.allUsers()
+POST          /users/                               controllers.UserController.createUser()
+GET           /users/me                             controllers.UserController.currentUser()
+GET           /users/:id                            controllers.UserController.getUser(id: Long)
+PUT           /users/:id                            controllers.UserController.updateUser(id: Long)
+DELETE        /users/:id                            controllers.UserController.deleteUser(id: Long)
+GET           /users/:id/authToken                  controllers.UserController.getUserAuthToken(id: Long)
+GET           /users/:id/invalidateAuthToken        controllers.UserController.invalidateAuthToken(id: Long)
+
+
+#Basestation calls
+GET           /basestations/                    controllers.BasestationController.getAll()
+POST          /basestations/                    controllers.BasestationController.add()
+GET           /basestations/:id                 controllers.BasestationController.get(id: Long)
+PUT           /basestations/:id                 controllers.BasestationController.update(id: Long)
+DELETE        /basestations/:id                 controllers.BasestationController.delete(id: Long)
 
 # Map static resources from the /public folder to the /assets URL path
-GET           /assets/*file                     controllers.Assets.at(path="/public", file)
+GET           /assets/*file                         controllers.Assets.at(path="/public", file)

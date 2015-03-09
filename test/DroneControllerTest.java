@@ -7,12 +7,15 @@ import controllers.routes;
 import models.Drone;
 import org.junit.*;
 
+import play.mvc.Http;
 import play.mvc.Result;
 import scala.tools.nsc.typechecker.Analyzer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static play.test.Helpers.*;
 import static org.fest.assertions.Assertions.*;
@@ -44,13 +47,13 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void getAll_DatabaseFilledWithDrones_SuccessfullyGetAllDrones() {
-        Result result = callAction(routes.ref.DroneController.getAll(), authorizedRequest);
+        Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         String jsonString = contentAsString(result);
         ObjectMapper mapper = new ObjectMapper();
         try {
             JsonNode node = mapper.readTree(jsonString).get("drone");
             if(node.isArray()) {
-                for(int i = 0; i < node.size(); ++i) {
+                for(int i = 0; i < testDrones.size(); ++i) {
                     assertThat(node.get(i).get("id").asLong()).isEqualTo(testDrones.get(i).id);
                     assertThat(node.get(i).get("name").asText()).isEqualTo(testDrones.get(i).name);
                 }
@@ -59,6 +62,129 @@ public class DroneControllerTest extends TestSuperclass {
                 Assert.fail("Returned JSON is not an array");
         } catch (IOException e) {
             Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+        }
+    }
+
+    @Test
+    public void getDrone_DatabaseFilledWithDrones_SuccessfullyGetDrone() {
+        Result result = callAction(routes.ref.DroneController.get(testDrones.size()-1), authorizeRequest(fakeRequest(), getAdmin()));
+        String jsonString = contentAsString(result);
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(jsonString).get("drone");
+            assertThat(node.get("id").asLong()).isEqualTo(testDrones.size()-1);
+        } catch (IOException e) {
+            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+        }
+    }
+
+    @Test
+    public void getDrone_DatabaseFilledWithDrones_DroneIdNotAvailable() {
+        Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(Http.Status.NOT_FOUND);
+    }
+
+    @Test
+    public void addDrone_DatabaseFilledWithDrones_ReturnedDroneIsCorrect() {
+        Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put("name", "super drone");
+        parameters.put("address", "192.168.0.15");
+        parameters.put("communicationType", "DEFAULT");
+        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
+            assertThat(node.get("name").asText()).isEqualTo("super drone");
+            assertThat(node.get("address").asText()).isEqualTo("192.168.0.15");
+            assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
+
+            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
+            assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
+
+            // remove drone afterwards
+            Drone d = Drone.find.byId(node.get("id").asLong());
+            d.delete();
+        } catch (IOException e) {
+            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+        }
+    }
+
+    @Test
+    public void updateDrone_DatabaseFilledWithDrones_UpdatesAreCorrect() {
+        Drone d = new Drone("test1", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"address1");
+        d.save();
+        Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put("name", "test2");
+        parameters.put("address", "address2");
+        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
+            assertThat(node.get("name").asText()).isEqualTo("test2");
+            assertThat(node.get("address").asText()).isEqualTo("address2");
+            assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
+            assertThat(node.get("status").asText()).isEqualTo("AVAILABLE");
+
+            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
+            assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
+
+            // remove drone afterwards
+            d.delete();
+        } catch (IOException e) {
+            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+        }
+    }
+
+    @Test
+     public void deleteDrone_DatabaseFilledWithDrones_DroneIsDeleted() {
+        Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x");
+        droneToBeRemoved.save();
+
+        callAction(routes.ref.DroneController.delete(droneToBeRemoved.id), authorizeRequest(fakeRequest(), getAdmin()));
+
+        long amount = Drone.find.all().stream().filter(d -> d.id == droneToBeRemoved.id).count();
+        assertThat(amount).isEqualTo(0);
+    }
+
+    @Test
+    public void testConnection_DatabaseFilledWithDrones_CorrectConnectionReceived() {
+        ObjectMapper mapper = new ObjectMapper();
+        for(Drone drone : testDrones) {
+            Result r = callAction(routes.ref.DroneController.testConnection(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            try {
+                boolean status = mapper.readTree(contentAsString(r)).get("Boolean").asBoolean();
+                assertThat(status).isEqualTo(drone.testConnection());
+            } catch (IOException e) {
+                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+            }
+        }
+    }
+
+    @Test
+    public void battery_DatabaseFilledWithDrones_CorrectBatteryStatusReceived() {
+        ObjectMapper mapper = new ObjectMapper();
+        for(Drone drone : testDrones) {
+            Result r = callAction(routes.ref.DroneController.battery(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            try {
+                int status = mapper.readTree(contentAsString(r)).get("Integer").intValue();
+                assertThat(status).isEqualTo(drone.getBatteryStatus());
+            } catch (IOException e) {
+                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+            }
+        }
+    }
+
+    @Test
+    public void cameraCapture_DatabaseFilledWithDrones_CorrectCaptureReceived() {
+        for(Drone drone : testDrones) {
+            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                String capture = mapper.readTree(contentAsString(r)).get("String").asText();
+                assertThat(capture).isEqualTo(drone.getCameraCapture());
+            } catch (IOException e) {
+                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+            }
         }
     }
 
