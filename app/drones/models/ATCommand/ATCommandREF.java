@@ -15,6 +15,6 @@ public class ATCommandREF extends ATCommand {
 
     @Override
     public String toString() {
-        return (TYPE + "=" + seq + "," + intOfFloat(input) + "\r");
+        return String.format("%s=%d,%d\r",TYPE, seq, intOfFloat(input));
     }
 }

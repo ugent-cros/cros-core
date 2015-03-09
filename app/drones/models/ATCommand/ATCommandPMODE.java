@@ -16,6 +16,6 @@ public class ATCommandPMODE extends ATCommand {
 
     @Override
     public String toString() {
-        return TYPE + "=" + seq + "," + param1 + "\r";
+        return String.format("%s=%d,%d\r",TYPE, seq, param1);
     }
 }

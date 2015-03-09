@@ -21,9 +21,12 @@ public class ATCommandPCMD extends ATCommand {
         this.yaw = yaw;
     }
 
+    /**
+     *
+     * @return PCMD command, e.g.: "AT*PCMD=<SEQ>,<FLAG>,<ROLL><PITCH>,<GAZ>,<YAW>\r"
+     */
     @Override
     public String toString() {
-        String params = flag + "," + intOfFloat(roll) + "," + intOfFloat(pitch) + "," + intOfFloat(gaz) + "," + intOfFloat(yaw);
-        return (TYPE + "=" + seq + "," + params + "\r");
+        return String.format("%s=%d,%d,%d,%d,%d,%d\r",TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
     }
 }

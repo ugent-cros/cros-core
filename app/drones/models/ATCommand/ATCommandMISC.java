@@ -19,7 +19,6 @@ public class ATCommandMISC extends ATCommand {
 
     @Override
     public String toString() {
-        String params = param1 + "," + param2 + "," + param3 + "," + param4;
-        return TYPE + "=" + seq + "," + params + "\r";
+        return String.format("%s=%d,%d,%d,%d,%d\r",TYPE, seq, param1, param2, param3, param4);
     }
 }

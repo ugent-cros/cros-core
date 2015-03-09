@@ -10,6 +10,6 @@ public class ATCommandCOMWDG extends ATCommand {
 
     @Override
     public String toString() {
-        return TYPE + "=" + seq + "\r";
+        return String.format("%s=%d\r",TYPE, seq);
     }
 }

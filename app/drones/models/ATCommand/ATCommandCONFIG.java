@@ -16,7 +16,6 @@ public class ATCommandCONFIG extends ATCommand {
 
     @Override
     public String toString() {
-        String params = "\"" + key + "\"" + "," + "\"" + value + "\"";
-        return (TYPE + "=" + seq + "," + params + "\r");
+        return String.format("%s=%d,\"%s\",\"%s\"\r",TYPE, seq, key, value);
     }
 }
