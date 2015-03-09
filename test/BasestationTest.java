@@ -37,8 +37,12 @@ public class BasestationTest extends TestSuperclass {
     }
 
     private static void initializeDatabase(){
-        testObjects.add(new Basestation("Bar 1", new Checkpoint(88.0,88.0,0.0)));
-        testObjects.add(new Basestation("Bar 2", new Checkpoint(77.0,77.0,0.0)));
+        Checkpoint cp1 = new Checkpoint(88.0,88.0,0.0);
+        cp1.save();
+        Checkpoint cp2 = new Checkpoint(77.0,77.0,0.0);
+        cp2.save();
+        testObjects.add(new Basestation("Bar 1", cp1));
+        testObjects.add(new Basestation("Bar 2", cp2));
         Ebean.save(testObjects);
     }
 
@@ -50,7 +54,7 @@ public class BasestationTest extends TestSuperclass {
     @Test
     public void addBasestation_byAdmin_AddsBasestationToDB(){
         Map<String, String> data = new HashMap<>();
-        String name = Bar 3;
+        String name = "Bar 3";
         double lattitude = 55.57;
         double longitude = 55.57;
         double altitude = 1.0;
@@ -65,9 +69,10 @@ public class BasestationTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(CREATED);
 
         ObjectMapper mapper = new ObjectMapper();
+        long id=0;
         try {
             JsonNode node = mapper.readTree(contentAsString(result)).get("Basestation");
-            long id = node.get("id").asLong();
+            id = node.get("id").asLong();
         } catch (IOException e) {
             Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
         }
@@ -84,7 +89,7 @@ public class BasestationTest extends TestSuperclass {
     @Test
     public void addBasestation_byUnauthorizedUser_ReturnsUnauthorized(){
         Map<String, String> data = new HashMap<>();
-        String name = Bar 3;
+        String name = "Bar 3";
         double lattitude = 55.57;
         double longitude = 55.57;
         double altitude = 1.0;
@@ -212,7 +217,7 @@ public class BasestationTest extends TestSuperclass {
 
         FakeRequest getRequest = new FakeRequest("GET", "/basestations/1");
         result = callAction(controllers.routes.ref.BasestationController.get((long)1), authorizeRequest(getRequest, getAdmin()));
-        assertThat(status(result)).isEqualTo(NOT_FOUND);
+        assertThat(status(result)).isEqualTo(BAD_REQUEST);
     }
 
     @Test
