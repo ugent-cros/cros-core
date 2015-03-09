@@ -1,9 +1,10 @@
 package models;
 
-import com.avaje.ebean.annotation.PrivateOwned;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
+import utilities.ControllerHelper;
 
 import javax.persistence.*;
 import java.io.UnsupportedEncodingException;
@@ -15,14 +16,26 @@ import java.util.*;
 @Table(name="useraccount")
 public class User extends Model {
 
-    public static Constraints.Validator PasswordValidator = Constraints.minLength(8);
-
     public static enum Role {
         USER,
         ADMIN,
         READONLY_ADMIN
     }
 
+    private static final long MIN_PASSWORD_LENGTH = 8;
+    public static String validatePassword(String password) {
+        if(password == null) {
+            return "required";
+        }
+
+        if(password.length() < 8) {
+            return "min length " + MIN_PASSWORD_LENGTH;
+        }
+
+        return null;
+    }
+
+    @JsonView({ControllerHelper.Summary.class})
     @Id
     public Long id;
 
@@ -39,8 +52,13 @@ public class User extends Model {
     public String lastName;
 
     @Column(nullable = false)
-    public Date creationDate;
+    private Date creationDate;
 
+    public Date getCreationDate() {
+        return creationDate;
+    }
+
+    @JsonView({ControllerHelper.Summary.class})
     @Column(length = 256, unique = true, nullable = false)
     @Constraints.MaxLength(256)
     @Constraints.Required
@@ -58,8 +76,8 @@ public class User extends Model {
     @Enumerated(EnumType.STRING)
     public Role role;
 
-    @Column(length = 64, nullable = false)
     @JsonIgnore
+    @Column(length = 64, nullable = false)
     private byte[] shaPassword;
 
     public void setPassword(String password) {

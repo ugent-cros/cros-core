@@ -47,7 +47,6 @@ public class Authenticator extends Action<Authentication> {
         boolean headerIsValid = authTokenHeaderValues.length == 1 && authTokenHeaderValues[0] != null;
         if (headerIsValid) {
             User user = models.User.findByAuthToken(authTokenHeaderValues[0]);
-            System.out.println(user);
             if (user != null) {
                 context.args.put("user", user);
                 return user;

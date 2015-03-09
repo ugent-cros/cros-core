@@ -1,7 +1,11 @@
 package utilities;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.data.Form;
 import play.data.validation.ValidationError;
+import play.libs.Json;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -67,5 +71,16 @@ public class ControllerHelper {
         }
 
         return removedErrors;
+    }
+
+    public static ObjectNode objectToJsonWithView(Object o, Class view) {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            ObjectNode node =  (ObjectNode) Json.parse(objectMapper.writerWithView(view).writeValueAsString(o));
+            return node;
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }
