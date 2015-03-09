@@ -2,14 +2,12 @@ package drones.models;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.Futures;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.*;
+import drones.messages.DroneDiscoveredMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
-import scala.concurrent.Future;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -63,7 +61,7 @@ public class Bepop extends DroneActor {
         // Assumes the drone is on the ground
         log.info("Discovery finished. Setting up protocol handlers");
         protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self())));
+                () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()))); //TODO: passing self here might cause problems
 
         sendMessage(new RequestStatusCommand());
         sendMessage(new OutdoorCommand(!indoor));
@@ -76,11 +74,10 @@ public class Bepop extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT)));
+                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT))); //TODO: passing self here might cause problems
             }
         }
     }
-
 
     @Override
     protected void takeOff(Promise<Void> p) {

@@ -220,7 +220,6 @@ public class ArDrone3 extends UntypedActor {
                 }
             }
         }
-
     }
 
     private void addSendChannel(FrameType type, byte id) {
@@ -314,7 +313,7 @@ public class ArDrone3 extends UntypedActor {
                 final Udp.Received r = (Udp.Received) msg;
                 processRawData(r.data());
             } else if (msg.equals("tick")) {
-
+                tick();
             } else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
             } else if (msg instanceof Udp.Unbound) {
