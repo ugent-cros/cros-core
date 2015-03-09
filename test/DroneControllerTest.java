@@ -131,7 +131,7 @@ public class DroneControllerTest extends TestSuperclass {
             assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
 
             // remove drone afterwards
-            d.delete();
+            //d.delete();
         } catch (IOException e) {
             Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
         }
