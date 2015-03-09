@@ -1,6 +1,7 @@
 package drones.util.ardrone3;
 
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
+import drones.handlers.ardrone3.CommonTypeProcessor;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
 
@@ -19,5 +20,9 @@ public class PacketCreator {
 
     public static Packet createLandingPacket(){
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)3, null);
+    }
+
+    public static Packet createRequestStatusPacket(){
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)0, null);
     }
 }

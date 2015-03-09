@@ -34,4 +34,9 @@ public class LazyProperty<T> {
             return promise.future();
         }
     }
+
+    public T getRawValue(){
+        // Might return null!
+        return value;
+    }
 }

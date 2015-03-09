@@ -9,12 +9,9 @@ import akka.io.UdpMessage;
 import akka.japi.Procedure;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
-import drones.commands.LandCommand;
+import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.commands.DroneCommandMessage;
-import drones.commands.FlatTrimCommand;
-import drones.commands.TakeOffCommand;
 import drones.models.*;
 import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
@@ -342,5 +339,9 @@ public class ArDrone3 extends UntypedActor {
 
     private void handle(LandCommand cmd){
         sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
+    }
+
+    private void handle(RequestStatusCommand cmd){
+        sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
     }
 }

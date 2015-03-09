@@ -6,11 +6,8 @@ import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import drones.commands.DroneCommandMessage;
-import drones.commands.LandCommand;
+import drones.commands.*;
 import drones.messages.*;
-import drones.commands.FlatTrimCommand;
-import drones.commands.TakeOffCommand;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
 import scala.concurrent.Future;
@@ -79,9 +76,7 @@ public class Bepop extends Drone {
         protocol = getContext().actorOf(Props.create(ArDrone3.class,
                 () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self())));
 
-        // Send flattrim command
-       // sendMessage(new FlatTrimCommand());
-        //TODO: status request
+        sendMessage(new RequestStatusCommand());
     }
 
     @Override
@@ -101,11 +96,12 @@ public class Bepop extends Drone {
     public Future<Boolean> takeOff() {
         if(protocol == null){
             return Futures.failed(new DroneException("Drone is not initialized yet."));
-        } else if(status != FlyingState.LANDED){
+        } else if(status.getRawValue() != FlyingState.LANDED){
             return Futures.failed(new DroneException("Cannot takeoff from in-air situation."));
         } else {
             //TODO: only return when status changes to taking off promises
-            sendMessage(new TakeOffCommand());
+            sendMessage(new FlatTrimCommand()); //TODO: set this channel to ACK!
+            sendMessage(new TakeOffCommand()); //TODO: set to ACK!
             return Futures.successful(true);
         }
     }
