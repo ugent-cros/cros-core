@@ -52,10 +52,12 @@ public class DataChannel {
     }
 
     public Frame sendFrame(Frame f, long time){
-        synchronized (lock){
-            frameQueue.offer(f);
-        }
-        return tick(time);
+        if(type == FrameType.DATA_WITH_ACK){
+            synchronized (lock){
+                frameQueue.offer(f);
+            }
+            return tick(time);
+        } else return f;
     }
 
     public Frame tick(long time){

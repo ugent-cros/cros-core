@@ -17,13 +17,13 @@ import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
 import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
+import scala.concurrent.duration.Duration;
 
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Cedric on 3/6/2015.
@@ -31,6 +31,7 @@ import java.util.Map;
 public class ArDrone3 extends UntypedActor {
 
     private static final int MAX_FRAME_SIZE = 1500; //TODO check
+    private final static int TICK_DURATION = 50; //ms
 
     // Receiving ID's
     private static final byte PING_CHANNEL = 0;
@@ -44,6 +45,7 @@ public class ArDrone3 extends UntypedActor {
     private static final byte EMERGENCY_CHANNEL = 12;
 
     private final EnumMap<FrameDirection, Map<Byte, DataChannel>> channels;
+    private final List<DataChannel> ackChannels;
     private final Map<Byte, CommandTypeProcessor> processors;
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -63,6 +65,7 @@ public class ArDrone3 extends UntypedActor {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
 
         this.channels = new EnumMap<>(FrameDirection.class);
+        this.ackChannels = new ArrayList<>();
         this.processors = new HashMap<>();
 
         initChannels(); // Initialize channels
@@ -222,7 +225,11 @@ public class ArDrone3 extends UntypedActor {
 
     private void addSendChannel(FrameType type, byte id) {
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
-        sendChannels.put(id, new DataChannel(id, type));
+        DataChannel ch = new DataChannel(id, type);
+        if(type == FrameType.DATA_WITH_ACK){
+            ackChannels.add(ch);
+        }
+        sendChannels.put(id, ch);
     }
 
     private void addRecvChannel(FrameType type, byte id) {
@@ -262,6 +269,9 @@ public class ArDrone3 extends UntypedActor {
     @Override
     public void preStart() {
         log.info("Starting ARDrone 3.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
+        getContext().system().scheduler().scheduleOnce(
+                Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
+                getSelf(), "tick", getContext().dispatcher(), null);
     }
 
     @Override
@@ -283,12 +293,30 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
+    private void tick(){
+        long time = System.currentTimeMillis();
+        for(DataChannel ch : ackChannels){
+            Frame f = ch.tick(time);
+            if(f != null){
+                sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
+            }
+        }
+
+        // Reschedule
+        getContext().system().scheduler().scheduleOnce(
+                Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
+                getSelf(), "tick", getContext().dispatcher(), null);
+    }
+
     private Procedure<Object> ready(final ActorRef socket) {
         return msg -> {
             if (msg instanceof Udp.Received) {
                 final Udp.Received r = (Udp.Received) msg;
                 processRawData(r.data());
-            } else if (msg.equals(UdpMessage.unbind())) {
+            } else if(msg.equals("tick")){
+
+            }
+            else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
             } else if (msg instanceof Udp.Unbound) {
                 getContext().stop(getSelf());
@@ -299,11 +327,15 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void sendDataOnChannel(Packet packet, DataChannel channel){
+        ByteString data = PacketHelper.buildPacket(packet);
+        Frame frame = channel.createFrame(data);
         if(channel.getType() == FrameType.DATA_WITH_ACK){
-            throw new RuntimeException("Not implemented yet");
+            long time = System.currentTimeMillis();
+            Frame f = channel.sendFrame(frame, time);
+            if(f != null){
+                sendData(FrameHelper.getFrameData(f));//TODO: only compute once
+            }
         } else if(channel.getType() == FrameType.DATA){
-            ByteString data = PacketHelper.buildPacket(packet);
-            Frame frame = channel.createFrame(data);
             sendData(FrameHelper.getFrameData(frame));
             log.debug("Sent packet ([{}], [{}], [{}]) on channel [{}]",
                     packet.getType(), packet.getCommandClass(), packet.getCommand(), channel.getId());
