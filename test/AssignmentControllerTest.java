@@ -7,6 +7,7 @@ import models.User;
 import org.junit.*;
 import play.mvc.Http;
 import play.mvc.Result;
+import play.test.FakeRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,17 +28,14 @@ public class AssignmentControllerTest extends TestSuperclass {
         startFakeApplication();
 
         // Mock out some user
-        User john = new User("john@mail.com", "password123", "John Doe");
+        User john = new User("john@mail.com", "password123", "John", "Doe");
         john.save();
-        User jane = new User("jane@mail.com", "123password", "Jane Doe");
+        User jane = new User("jane@mail.com", "123password", "Jane", "Doe");
         jane.save();
-        // Mock out a list of checkpoints
-        List<String> route = new ArrayList<>();
-        route.add("some checkpoint");
 
         // Add assignments to the database
-        testAssignments.add(new Assignment(route, john));
-        testAssignments.add(new Assignment(route, jane));
+        testAssignments.add(new Assignment(null, john));
+        testAssignments.add(new Assignment(null, jane));
         Ebean.save(testAssignments);
     }
 
@@ -49,7 +47,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
     @Test
     public void getAll_DatabaseFilledWithAssigments_SuccessfullyGetAllAssignments() {
-        Result result = callAction(routes.ref.AssignmentController.getAllAssignments(), authorizedRequest);
+        Result result = callAction(routes.ref.AssignmentController.getAllAssignments(), authorizeRequest(new FakeRequest(), getUser()));
         String jsonString = contentAsString(result);
 
         System.out.println(jsonString);
@@ -70,7 +68,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
     @Test
     public void getAssignment_DatabaseFilledWithAssignments_SuccessfullyGetAssignment() {
-        Result result = callAction(routes.ref.AssignmentController.getAssignment(testAssignments.size()-1), authorizedRequest);
+        Result result = callAction(routes.ref.AssignmentController.getAssignment(testAssignments.size()-1), authorizeRequest(new FakeRequest(), getUser()));
         String jsonString = contentAsString(result);
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -83,7 +81,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
     @Test
     public void getAssignment_DatabaseFilledWithAssignments_BadRequestResponseFromServer() {
-        Result result = callAction(routes.ref.AssignmentController.getAssignment(testAssignments.size()+1), authorizedRequest);
+        Result result = callAction(routes.ref.AssignmentController.getAssignment(testAssignments.size()+1), authorizeRequest(new FakeRequest(), getUser()));
         assertThat(status(result)).isEqualTo(Http.Status.BAD_REQUEST);
     }
 }

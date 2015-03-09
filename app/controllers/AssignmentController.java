@@ -15,7 +15,7 @@ import static play.mvc.Results.ok;
 @Security.Authenticated(Secured.class)
 public class AssignmentController {
     public static Result getAllAssignments() {
-        return ok(JsonCast.toJson(Assignment.find.all(), Assignment.class));
+        return ok();
     }
 
     public static Result createAssignment() {

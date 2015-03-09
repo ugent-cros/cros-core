@@ -3,11 +3,9 @@ package models;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import controllers.routes;
 import play.data.validation.Constraints;
+import play.db.ebean.Model;
 
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,15 +14,14 @@ import java.util.List;
  */
 @Entity
 @JsonRootName("assignment")
-public class Assignment extends Resource {
+public class Assignment extends Model {
 
     @Id
     public Long id;
 
-    //TODO: list has to contain checkpoint objects
     @Constraints.Required
-    @ElementCollection
-    public List<String> route;
+    @ManyToMany
+    public List<Checkpoint> route;
 
     @Constraints.Required
     public int progress;
@@ -40,22 +37,17 @@ public class Assignment extends Resource {
     @OneToOne
     public Drone assignedDrone;
 
-    public Assignment(List<String> route, User creator) {
+    public Assignment(List<Checkpoint> route, User creator) {
+        this();
         this.route = route;
         this.creator = creator;
+    }
+
+    public Assignment() {
         priority = 0;
         progress = 0;
     }
 
     public static Finder<Long,Assignment> find = new Finder<>(Long.class, Assignment.class);
 
-    @Override
-    public List<Link> getLinksList() {
-        List<Link> links = new ArrayList<>();
-        links.add(new Link("all", routes.AssignmentController.getAllAssignments().url()));
-        links.add(new Link("create", routes.AssignmentController.createAssignment().url()));
-        links.add(new Link("get", routes.AssignmentController.getAssignment(id).url()));
-        links.add(new Link("delete", routes.AssignmentController.deleteAssigment(id).url()));
-        return links;
-    }
 }
