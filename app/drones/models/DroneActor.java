@@ -2,6 +2,7 @@ package drones.models;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
@@ -66,7 +67,7 @@ public abstract class DroneActor extends AbstractActor {
         if(!loaded){
             loaded = true;
             log.debug("Attempting init.");
-            Promise<Void> p = new Promise<>();
+            Promise<Void> p = Futures.promise();
             handleMessage(p.future(), sender, self);
             init(p);
         }
@@ -77,7 +78,7 @@ public abstract class DroneActor extends AbstractActor {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot takeoff when not on ground / not initialized.")), self);
         } else {
             log.debug("Attempting takeoff.");
-            Promise<Void> v = new Promise<>();
+            Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             takeOff(v);
         }
@@ -86,7 +87,7 @@ public abstract class DroneActor extends AbstractActor {
     private void landInternal(final ActorRef sender, final ActorRef self){
         if(loaded){
             log.debug("Attempting landing... (pray to cthullu that this works!)");
-            Promise<Void> v = new Promise<>();
+            Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             land(v);
         } else {

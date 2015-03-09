@@ -16,7 +16,7 @@ public class LazyProperty<T> {
     }
 
     public LazyProperty(){
-        promise = new Promise<>();
+        promise = Futures.promise();
     }
 
     public void setValue(T value){
