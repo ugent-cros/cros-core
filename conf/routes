@@ -24,6 +24,7 @@ POST          /login                                controllers.SecurityControll
 # User mgmt
 GET           /users/                               controllers.UserController.allUsers()
 POST          /users/                               controllers.UserController.createUser()
+DELETE        /users/                               controllers.UserController.deleteAll()
 GET           /users/me                             controllers.UserController.currentUser()
 GET           /users/:id                            controllers.UserController.getUser(id: Long)
 PUT           /users/:id                            controllers.UserController.updateUser(id: Long)
