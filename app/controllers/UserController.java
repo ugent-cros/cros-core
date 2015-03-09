@@ -95,6 +95,15 @@ public class UserController {
     }
 
     @Authentication({User.Role.ADMIN})
+    public static Result deleteAll() {
+
+        User client = SecurityController.getUser();
+        User.find.where().ne("id", client.id).findList().forEach(u -> u.delete());
+
+        return allUsers();
+    }
+
+    @Authentication({User.Role.ADMIN})
     public static Result deleteUser(Long id) {
 
         // Check if user exists

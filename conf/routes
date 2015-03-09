@@ -20,11 +20,11 @@ GET           /drones/:id/location                  controllers.DroneController.
 GET           /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
 
 POST          /login                                controllers.SecurityController.login()
-GET           /logout                               controllers.SecurityController.logout()
 
 # User mgmt
 GET           /users/                               controllers.UserController.allUsers()
 POST          /users/                               controllers.UserController.createUser()
+DELETE        /users/                               controllers.UserController.deleteAll()
 GET           /users/me                             controllers.UserController.currentUser()
 GET           /users/:id                            controllers.UserController.getUser(id: Long)
 PUT           /users/:id                            controllers.UserController.updateUser(id: Long)
