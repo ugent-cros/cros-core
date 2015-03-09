@@ -81,17 +81,17 @@ public class ArDrone3 extends UntypedActor {
         connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
     }
 
-    private void extractPacket(Frame frame){
+    private void extractPacket(Frame frame) {
         ByteIterator it = frame.getData().iterator();
         byte type = it.getByte();
         byte cmdClass = it.getByte();
         short cmd = it.getShort(FrameHelper.BYTE_ORDER);
-        if(cmd < 0){
+        if (cmd < 0) {
             log.warning("Command sign bit overflow.");
         } else {
             int payloadLen = frame.getData().length() - 4;
             ByteString payload = null;
-            if(payloadLen > 0) {
+            if (payloadLen > 0) {
                 payload = frame.getData().slice(4, payloadLen);
             }
             Packet packet = new Packet(type, cmdClass, cmd, payload);
@@ -99,23 +99,23 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void processPacket(Packet packet){
+    private void processPacket(Packet packet) {
         CommandTypeProcessor p = processors.get(packet.getType());
-        if(p == null){
+        if (p == null) {
             log.debug("No CommandTypeProcessor for [{}]", p.getType());
         }
         Object msg = p.handle(packet);
 
-        if(msg != null){
+        if (msg != null) {
             listener.tell(msg, getSelf()); //Dispatch message
         }
     }
 
-    private void processDataFrame(Frame frame){
+    private void processDataFrame(Frame frame) {
         Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_CONTROLLER);
         DataChannel ch = recvMap.get(frame.getId());
         if (ch != null) {
-            if(ch.shouldAllowFrame(frame)){
+            if (ch.shouldAllowFrame(frame)) {
                 extractPacket(frame);
             } else {
                 log.warning("Packet timed out in seq.");
@@ -179,9 +179,9 @@ public class ArDrone3 extends UntypedActor {
         ByteString payload = FrameHelper.getAck(frame);
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
         DataChannel ch = sendChannels.get(id);
-        if(ch != null){
+        if (ch != null) {
             sendData(FrameHelper.getFrameData(ch.createFrame(payload))); // Send pong
-        } else{
+        } else {
             log.warning("Could not find ACK channel for id = [{}]", frame.getId());
         }
     }
@@ -226,7 +226,7 @@ public class ArDrone3 extends UntypedActor {
     private void addSendChannel(FrameType type, byte id) {
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
         DataChannel ch = new DataChannel(id, type);
-        if(type == FrameType.DATA_WITH_ACK){
+        if (type == FrameType.DATA_WITH_ACK) {
             ackChannels.add(ch);
         }
         sendChannels.put(id, ch);
@@ -261,7 +261,7 @@ public class ArDrone3 extends UntypedActor {
         addSendChannel(FrameType.DATA_WITH_ACK, EMERGENCY_CHANNEL);
     }
 
-    private void initHandlers(){
+    private void initHandlers() {
         processors.put(PacketType.ARDRONE3.getVal(), new ArDrone3TypeProcessor());
         processors.put(PacketType.COMMON.getVal(), new CommonTypeProcessor());
     }
@@ -283,7 +283,7 @@ public class ArDrone3 extends UntypedActor {
         } else unhandled(msg);
     }
 
-    private void dispatchCommand(DroneCommandMessage msg){
+    private void dispatchCommand(DroneCommandMessage msg) {
         try {
             // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
             Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
@@ -293,11 +293,11 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void tick(){
+    private void tick() {
         long time = System.currentTimeMillis();
-        for(DataChannel ch : ackChannels){
+        for (DataChannel ch : ackChannels) {
             Frame f = ch.tick(time);
-            if(f != null){
+            if (f != null) {
                 sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
             }
         }
@@ -313,29 +313,28 @@ public class ArDrone3 extends UntypedActor {
             if (msg instanceof Udp.Received) {
                 final Udp.Received r = (Udp.Received) msg;
                 processRawData(r.data());
-            } else if(msg.equals("tick")){
+            } else if (msg.equals("tick")) {
 
-            }
-            else if (msg.equals(UdpMessage.unbind())) {
+            } else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
             } else if (msg instanceof Udp.Unbound) {
                 getContext().stop(getSelf());
-            } else if (msg instanceof DroneCommandMessage){
-                dispatchCommand((DroneCommandMessage)msg);
+            } else if (msg instanceof DroneCommandMessage) {
+                dispatchCommand((DroneCommandMessage) msg);
             } else unhandled(msg);
         };
     }
 
-    private void sendDataOnChannel(Packet packet, DataChannel channel){
+    private void sendDataOnChannel(Packet packet, DataChannel channel) {
         ByteString data = PacketHelper.buildPacket(packet);
         Frame frame = channel.createFrame(data);
-        if(channel.getType() == FrameType.DATA_WITH_ACK){
+        if (channel.getType() == FrameType.DATA_WITH_ACK) {
             long time = System.currentTimeMillis();
             Frame f = channel.sendFrame(frame, time);
-            if(f != null){
+            if (f != null) {
                 sendData(FrameHelper.getFrameData(f));//TODO: only compute once
             }
-        } else if(channel.getType() == FrameType.DATA){
+        } else if (channel.getType() == FrameType.DATA) {
             sendData(FrameHelper.getFrameData(frame));
             log.debug("Sent packet ([{}], [{}], [{}]) on channel [{}]",
                     packet.getType(), packet.getCommandClass(), packet.getCommand(), channel.getId());
@@ -344,36 +343,40 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void sendDataAck(Packet packet){
+    private void sendDataAck(Packet packet) {
         DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(ACK_CHANNEL);
         sendDataOnChannel(packet, channel);
     }
 
-    private void sendDataEmergency(Packet packet){
+    private void sendDataEmergency(Packet packet) {
         DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(EMERGENCY_CHANNEL);
         sendDataOnChannel(packet, channel);
     }
 
-    private void sendDataNoAck(Packet packet){
+    private void sendDataNoAck(Packet packet) {
         DataChannel channel = channels.get(FrameDirection.TO_DRONE).get(NONACK_CHANNEL);
         sendDataOnChannel(packet, channel);
     }
 
     // All command handlers
     //TODO: move these to seperate class statically
-    private void handle(FlatTrimCommand cmd){
+    private void handle(FlatTrimCommand cmd) {
         sendDataNoAck(PacketCreator.createFlatTrimPacket());
     } //TODO: ack channel
 
-    private void handle(TakeOffCommand cmd){
+    private void handle(TakeOffCommand cmd) {
         sendDataNoAck(PacketCreator.createTakeOffPacket()); //TODO: ACK channel
     }
 
-    private void handle(LandCommand cmd){
+    private void handle(LandCommand cmd) {
         sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
     }
 
-    private void handle(RequestStatusCommand cmd){
+    private void handle(RequestStatusCommand cmd) {
         sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
+    }
+
+    private void handle(OutdoorCommand cmd) {
+        sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
     }
 }

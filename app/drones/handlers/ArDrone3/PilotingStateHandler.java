@@ -91,7 +91,7 @@ public class PilotingStateHandler extends CommandProcessor {
         if(longit == 500.0d)
             longit = 0d;
 
-        return new PositionChangedMessage(longit, lat, alt);
+        return new LocationChangedMessage(longit, lat, alt);
 
     }
 }

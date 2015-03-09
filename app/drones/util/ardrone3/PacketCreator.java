@@ -1,5 +1,6 @@
 package drones.util.ardrone3;
 
+import akka.util.ByteStringBuilder;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
 import drones.models.ardrone3.Packet;
@@ -24,5 +25,11 @@ public class PacketCreator {
 
     public static Packet createRequestStatusPacket(){
         return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)0, null);
+    }
+
+    public static Packet createOutdoorStatusPacket(boolean outdoor){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(outdoor ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)3, b.result());
     }
 }
