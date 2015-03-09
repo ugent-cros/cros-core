@@ -98,8 +98,9 @@ public class DroneController {
             return badRequest(f.errors().toString());
 
         Drone updatedDrone = f.get();
-        drone.update(updatedDrone);
-        return get(drone.id);
+        updatedDrone.id = drone.id;
+        updatedDrone.update();
+        return get(updatedDrone.id);
     }
 
     public static Result location(Long id) {

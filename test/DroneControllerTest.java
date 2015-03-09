@@ -116,6 +116,8 @@ public class DroneControllerTest extends TestSuperclass {
         Map<String, String> parameters = new HashMap<String, String>();
         parameters.put("name", "test2");
         parameters.put("address", "address2");
+        parameters.put("status", "AVAILABLE");
+        parameters.put("communicationType", "DEFAULT");
         Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
         ObjectMapper mapper = new ObjectMapper();
         try {
