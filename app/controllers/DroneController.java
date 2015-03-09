@@ -40,12 +40,12 @@ public class DroneController {
                 droneNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(d));
 
                 List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("self", routes.DroneController.getAll().url()));
-                links.add(new ControllerHelper.Link("all", routes.DroneController.getAll().url()));
-                links.add(new ControllerHelper.Link("add", routes.DroneController.add().url()));
-                links.add(new ControllerHelper.Link("delete", routes.DroneController.delete(d.id).url()));
-                links.add(new ControllerHelper.Link("update", routes.DroneController.update(d.id).url()));
-                links.add(new ControllerHelper.Link("details", routes.DroneController.get(d.id).url()));
+                links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
+                links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
+                links.add(new ControllerHelper.Link("add", controllers.routes.DroneController.add().url()));
+                links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(d.id).url()));
+                links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(d.id).url()));
+                links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(d.id).url()));
                 droneNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(droneNode);
             } catch (JsonProcessingException e) {
@@ -65,19 +65,20 @@ public class DroneController {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = (ObjectNode) Json.toJson(d);
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", routes.DroneController.get(d.id).url()));
-        links.add(new ControllerHelper.Link("all", routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("add", routes.DroneController.add().url()));
-        links.add(new ControllerHelper.Link("delete", routes.DroneController.delete(d.id).url()));
-        links.add(new ControllerHelper.Link("update", routes.DroneController.update(d.id).url()));
-        links.add(new ControllerHelper.Link("details", routes.DroneController.get(d.id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(d.id).url()));
+        links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("add", controllers.routes.DroneController.add().url()));
+        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(d.id).url()));
+        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(d.id).url()));
+        links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(d.id).url()));
         ((ObjectNode) node.get("drone")).put("links", (JsonNode) mapper.valueToTree(links));
 
         return ok(node);
     }
 
     public static Result add() {
-        Form<Drone> droneForm = Form.form(Drone.class).bindFromRequest();
+        JsonNode node = request().body().asJson();
+        Form<Drone> droneForm = Form.form(Drone.class).bind(node);
 
         if (droneForm.hasErrors())
             return badRequest(droneForm.errors().toString());
@@ -92,7 +93,7 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        Form<Drone> f = Form.form(Drone.class).bindFromRequest();
+        Form<Drone> f = Form.form(Drone.class).bind(request().body().asJson());
 
         if (f.hasErrors())
             return badRequest(f.errors().toString());

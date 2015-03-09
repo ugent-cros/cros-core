@@ -39,19 +39,9 @@ public class Drone extends Model {
     @Constraints.Required
     public CommunicationType communicationType;
 
-    @Constraints.Required
-    public double longitude;
-    @Constraints.Required
-    public double latitude;
-    @Constraints.Required
-    public double altitude;
-
     // setting default values
     public Drone() {
         status = Status.AVAILABLE;
-        longitude = -1.0;
-        latitude = -1.0;
-        altitude = -1.0;
     }
 
     public Drone(String name, Status status, CommunicationType communicationType, String address) {
@@ -67,7 +57,7 @@ public class Drone extends Model {
 
     @JsonIgnore
     public Location location() {
-        return new Location(longitude,latitude,altitude);
+        return new Location();
     }
 
     public String getCameraCapture() {
