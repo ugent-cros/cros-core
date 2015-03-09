@@ -8,7 +8,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import drones.commands.DroneCommandMessage;
 import drones.commands.LandCommand;
-import drones.messages.DroneDiscoveredMessage;
+import drones.messages.*;
 import drones.commands.FlatTrimCommand;
 import drones.commands.TakeOffCommand;
 import drones.protocols.ArDrone3;
@@ -41,16 +41,28 @@ public class Bepop extends Drone {
         this.indoor = indoor;
 
         receive(ReceiveBuilder.
-                        match(DroneDiscoveredMessage.class, s -> {
-                            if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
-                                initPromise.failure(new DroneException("Failed to get drone discovery response."));
-                            } else {
-                                setupDrone(s);
-                                initPromise.success(true);
-                            }
-                        }).
-                        matchAny(o -> log.info("received unknown message")).build()
+                        match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse).
+                        match(PositionChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
+                        match(BatteryPercentageChangedMessage.class, s -> batteryPercentage.setValue(s.getPercent())).
+                        match(FlyingStateChangedMessage.class, s -> status.setValue(s.getState())).
+                        match(FlatTrimChangedMessage.class, s -> flatTrimStatus.setValue(true)).
+                matchAny(o -> log.info("received unknown message")).build()
         );
+    }
+
+    private void handlePositionChangedMessage(PositionChangedMessage msg){
+        location.setValue(new Location(msg.getLatitude() != PositionChangedMessage.UNAVAILABLE ? msg.getLatitude() : 0d,
+                msg.getLongitude() != PositionChangedMessage.UNAVAILABLE ? msg.getLongitude() : 0d,
+                msg.getGpsHeigth()));
+    }
+
+    private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s){
+        if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
+            initPromise.failure(new DroneException("Failed to get drone discovery response."));
+        } else {
+            setupDrone(s);
+            initPromise.success(true);
+        }
     }
 
     private <T extends Serializable> void sendMessage(T msg){
@@ -68,7 +80,8 @@ public class Bepop extends Drone {
                 () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self())));
 
         // Send flattrim command
-        sendMessage(new FlatTrimCommand());
+       // sendMessage(new FlatTrimCommand());
+        //TODO: status request
     }
 
     @Override
@@ -82,7 +95,6 @@ public class Bepop extends Drone {
             }
         }
         return initPromise.future();
-
     }
 
     @Override

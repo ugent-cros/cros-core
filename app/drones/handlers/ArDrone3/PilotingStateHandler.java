@@ -87,9 +87,9 @@ public class PilotingStateHandler extends CommandProcessor {
         double alt = it.getDouble(FrameHelper.BYTE_ORDER);
 
         if(lat == 500.0d)
-            lat = PositionChangedMessage.UNAVAILABLE;
+            lat = 0d;
         if(longit == 500.0d)
-            longit = PositionChangedMessage.UNAVAILABLE;
+            longit = 0d;
 
         return new PositionChangedMessage(longit, lat, alt);
 
