@@ -86,9 +86,16 @@ public class DroneControllerTest extends TestSuperclass {
     public void addDrone_DatabaseFilledWithDrones_ReturnedDroneIsCorrect() {
         Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"ipAddress");
         System.out.println(Json.toJson(droneToBeAdded).asText());
+        JsonNode node = Json.toJson(droneToBeAdded).get("drone");
 
-        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withJsonBody(Json.toJson(droneToBeAdded)), getAdmin()));
-        System.out.println(contentAsString(result));
+        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
+        try {
+            Drone d = new ObjectMapper().readValue(contentAsString(result), Drone.class);
+            System.out.println(d);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(Json.toJson(contentAsString(result)));
         Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
 
         assertThat(droneToBeAdded.id).equals(receivedDrone.id);
@@ -110,7 +117,8 @@ public class DroneControllerTest extends TestSuperclass {
         d.save();
         d.name = "test2";
         d.name = "address2";
-        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withJsonBody(Json.toJson(d)), getAdmin()));
+        JsonNode node = Json.toJson(d).get("drone");
+        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
         Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
         assertThat(d.id).equals(receivedDrone.id);

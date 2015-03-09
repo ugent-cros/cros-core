@@ -10,8 +10,8 @@ import models.Drone;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
+import play.mvc.BodyParser;
 import play.mvc.Result;
-import play.mvc.Security;
 import utilities.ControllerHelper;
 import utilities.annotations.Authentication;
 
@@ -80,6 +80,7 @@ public class DroneController {
     }
 
     @Authentication({User.Role.ADMIN})
+    @BodyParser.Of(BodyParser.Json.class)
     public static Result add() {
         JsonNode node = request().body().asJson();
         Form<Drone> droneForm = Form.form(Drone.class).bind(node);
