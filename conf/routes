@@ -20,7 +20,6 @@ GET           /drones/:id/location                  controllers.DroneController.
 GET           /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
 
 POST          /login                                controllers.SecurityController.login()
-GET           /logout                               controllers.SecurityController.logout()
 
 # User mgmt
 GET           /users/                               controllers.UserController.allUsers()

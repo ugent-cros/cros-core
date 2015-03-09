@@ -7,11 +7,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Drone;
+import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
 import play.mvc.Security;
 import utilities.ControllerHelper;
+import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +25,9 @@ import static play.mvc.Results.*;
  * Created by matthias on 19/02/2015.
  */
 
-@Security.Authenticated(Secured.class)
 public class DroneController {
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
@@ -56,6 +58,7 @@ public class DroneController {
         return ok(rootNode);
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result get(long i) {
         Drone d = Drone.find.byId(i);
 
@@ -76,6 +79,7 @@ public class DroneController {
         return ok(node);
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result add() {
         Form<Drone> droneForm = Form.form(Drone.class).bindFromRequest();
 
@@ -87,6 +91,7 @@ public class DroneController {
         return get(drone.id);
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result update(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -103,6 +108,7 @@ public class DroneController {
         return get(updatedDrone.id);
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result location(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -111,6 +117,7 @@ public class DroneController {
         return ok(Json.toJson(drone.location()));
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result testConnection(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -119,6 +126,7 @@ public class DroneController {
         return ok(Json.toJson(drone.testConnection()));
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result battery(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -127,6 +135,7 @@ public class DroneController {
         return ok(Json.toJson(drone.getBatteryStatus()));
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result cameraCapture(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -135,6 +144,7 @@ public class DroneController {
         return ok(Json.toJson(drone.getCameraCapture()));
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result emergency(Long id) {
         Drone drone = Drone.find.byId(id);
         if (drone == null)
@@ -144,11 +154,13 @@ public class DroneController {
         return ok();
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result deleteAll() {
         Drone.find.all().forEach(d -> d.delete());
         return ok();
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result delete(long i) {
         Drone d = Drone.find.byId(i);
         if (d == null)
