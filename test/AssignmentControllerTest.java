@@ -25,9 +25,12 @@ public class AssignmentControllerTest extends TestSuperclass {
     private static List<Assignment> testAssignments = new ArrayList<>();
 
     @BeforeClass
-    public static void initialiseAssignmentControllerTest() {
-        // Start application
+    public static void setup() {
         startFakeApplication();
+        initialiseDatabase();
+    }
+
+    private static void initialiseDatabase() {
         // Create some checkpoints and add them to a list
         Checkpoint chckpnt1 = new Checkpoint(1,2,3);
         Checkpoint chckpnt2 = new Checkpoint(2,4,6);
@@ -37,7 +40,6 @@ public class AssignmentControllerTest extends TestSuperclass {
         list1.add(chckpnt1);
         list2.add(chckpnt2);
         list2.add(chckpnt3);
-
         // Add assignments to the database
         testAssignments.add(new Assignment(list1, getUser()));
         testAssignments.add(new Assignment(list2, getUser()));
@@ -45,17 +47,16 @@ public class AssignmentControllerTest extends TestSuperclass {
     }
 
     @AfterClass
-    public static void finaliseAssignmentControllerTest() {
-        // End application
+    public static void teardown() {
         stopFakeApplication();
     }
 
     @Test
     public void getAll_DatabaseFilledWithAssigments_SuccessfullyGetAllAssignments() {
         Result result = callAction(routes.ref.AssignmentController.getAll(),
-                authorizeRequest(new FakeRequest(), getUser()));
-        String jsonString = contentAsString(result);
+                authorizeRequest(new FakeRequest(), getAdmin()));
 
+        String jsonString = contentAsString(result);
         JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
         if (node.isArray()) {
             for (int i = 0; i < node.size(); ++i) {
@@ -71,9 +72,10 @@ public class AssignmentControllerTest extends TestSuperclass {
     public void getAssignment_DatabaseFilledWithAssignments_SuccessfullyGetAssignment() {
         int index = testAssignments.size()-1;
         Assignment testAssignment = testAssignments.get(index);
-        Result result = callAction(routes.ref.AssignmentController.get(testAssignment.id), authorizeRequest(new FakeRequest(), getUser()));
-        String jsonString = contentAsString(result);
+        Result result = callAction(routes.ref.AssignmentController.get(testAssignment.id),
+                authorizeRequest(new FakeRequest(), getAdmin()));
 
+        String jsonString = contentAsString(result);
         JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
         Assignment receivedAssignment = Json.fromJson(node, Assignment.class);
         assertThat(testAssignment).isEqualTo(receivedAssignment);

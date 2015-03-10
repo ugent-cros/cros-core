@@ -11,7 +11,6 @@ import models.Assignment;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
-import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
 import utilities.ControllerHelper;
@@ -23,11 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static play.mvc.Results.*;
+import static play.mvc.Controller.request;
 
 /**
  * Created by Benjamin on 5/03/2015.
  */
 public class AssignmentController {
+
+    @Authentication({User.Role.READONLY_ADMIN, User.Role.ADMIN})
     public static Result getAll() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
@@ -39,7 +41,6 @@ public class AssignmentController {
                 ObjectNode assigmentNode = (ObjectNode) Json.parse(writer.writeValueAsString(assignment));
 
                 List<Link> links = new ArrayList<>();
-                links.add(new Link("self", controllers.routes.AssignmentController.getAll().url()));
                 links.add(new Link("details", controllers.routes.AssignmentController.get(assignment.id).url()));
                 assigmentNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(assigmentNode);
@@ -48,13 +49,17 @@ public class AssignmentController {
                 return internalServerError();
             }
         }
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(array, Assignment.class);
-        return ok(nodeWithRoot);
+        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Assignment.class);
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new Link("self", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new Link("create", controllers.routes.AssignmentController.create().url()));
+        node.put("links", (JsonNode) objectMapper.valueToTree(links));
+        return ok(node);
     }
 
-    @Authentication(User.Role.ADMIN)
+    @Authentication({User.Role.ADMIN, User.Role.USER})
     public static Result create() {
-        JsonNode body = Controller.request().body().asJson();
+        JsonNode body = request().body().asJson();
         JsonNode strippedBody = JsonHelper.removeRootElement(body, Assignment.class);
         Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);
 
@@ -70,23 +75,33 @@ public class AssignmentController {
 
         assignment.save();
         JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(assignment), Assignment.class);
-        return ok(nodeWithRoot);
+        return created(nodeWithRoot);
     }
 
+    @Authentication({User.Role.READONLY_ADMIN, User.Role.ADMIN})
     public static Result get(long id) {
         Assignment assignment = Assignment.find.byId(id);
         if(assignment == null)
             return notFound("Requested assignment not found");
 
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(assignment), Assignment.class);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = (ObjectNode) Json.toJson(assignment);
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(assignment.id).url()));
+        links.add(new ControllerHelper.Link("all", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("delete", controllers.routes.AssignmentController.delete(assignment.id).url()));
+        node.put("links", (JsonNode) mapper.valueToTree(links));
+
+        JsonNode nodeWithRoot = JsonHelper.addRootElement(node, Assignment.class);
         return ok(nodeWithRoot);
     }
 
+    @Authentication({User.Role.ADMIN})
     public static Result delete(long id) {
         Assignment assignment = Assignment.find.byId(id);
 
         if(assignment == null)
-            return badRequest("Requested assignment not found");
+            return notFound("Requested assignment not found");
 
         assignment.delete();
         return ok();

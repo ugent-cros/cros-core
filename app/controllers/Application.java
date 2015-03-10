@@ -1,10 +1,7 @@
 package controllers;
 
 import com.avaje.ebean.Ebean;
-import models.Assignment;
-import models.Checkpoint;
-import models.Drone;
-import models.User;
+import models.*;
 import play.mvc.Controller;
 import play.mvc.Result;
 import utilities.ControllerHelper;
@@ -47,6 +44,8 @@ public class Application extends Controller {
         checkpoints.add(checkpoint);
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
+
+        new Basestation("testing", new Checkpoint(5, 6, 7)).save();
 
         return ok();
     }
