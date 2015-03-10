@@ -1,7 +1,7 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import controllers.routes;
+import models.Assignment;
 import models.Drone;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -10,8 +10,8 @@ import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Http;
 import play.mvc.Result;
+import utilities.JsonHelper;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,34 +46,26 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void getAll_DatabaseFilledWithDrones_SuccessfullyGetAllDrones() {
         Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
-        String jsonString = contentAsString(result);
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode node = mapper.readTree(jsonString).get("drone");
-            if(node.isArray()) {
-                for(int i = 0; i < testDrones.size(); ++i) {
-                    assertThat(node.get(i).get("id").asLong()).isEqualTo(testDrones.get(i).id);
-                    assertThat(node.get(i).get("name").asText()).isEqualTo(testDrones.get(i).name);
-                }
+
+        JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+        if (node.isArray()) {
+            for (int i = 0; i < testDrones.size(); ++i) {
+                Drone testDrone = testDrones.get(i);
+                Assignment receivedDrone = Json.fromJson(node.get(i), Assignment.class);
+                assertThat(testDrone.id).isEqualTo(receivedDrone.id);
             }
-            else
-                Assert.fail("Returned JSON is not an array");
-        } catch (IOException e) {
-            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-        }
+        } else
+            Assert.fail("Returned JSON is not an array");
     }
 
     @Test
     public void getDrone_DatabaseFilledWithDrones_SuccessfullyGetDrone() {
-        Result result = callAction(routes.ref.DroneController.get(testDrones.size()-1), authorizeRequest(fakeRequest(), getAdmin()));
-        String jsonString = contentAsString(result);
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode node = mapper.readTree(jsonString).get("drone");
-            assertThat(node.get("id").asLong()).isEqualTo(testDrones.size()-1);
-        } catch (IOException e) {
-            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-        }
+        Drone droneToGet = testDrones.get(testDrones.size()-1);
+        Result result = callAction(routes.ref.DroneController.get(droneToGet.id), authorizeRequest(fakeRequest(), getAdmin()));
+
+        JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+        Drone d = Json.fromJson(node, Drone.class);
+        assertThat(d).isEqualTo(droneToGet);
     }
 
     @Test
@@ -85,30 +77,16 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void addDrone_DatabaseFilledWithDrones_ReturnedDroneIsCorrect() {
         Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"ipAddress");
-        System.out.println(Json.toJson(droneToBeAdded).asText());
-        JsonNode node = Json.toJson(droneToBeAdded).get("drone");
+        JsonNode node = JsonHelper.addRootElement(Json.toJson(droneToBeAdded), Drone.class);
 
-        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
-        try {
-            Drone d = new ObjectMapper().readValue(contentAsString(result), Drone.class);
-            System.out.println(d);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println(Json.toJson(contentAsString(result)));
-        Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
+        Result result = callAction(routes.ref.DroneController.create(), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
+        JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+        Drone d = Json.fromJson(receivedNode, Drone.class);
+        droneToBeAdded.id = d.id; // bypass id check, because droneToBeAdded has no id
+        assertThat(d).isEqualTo(droneToBeAdded);
 
-        assertThat(droneToBeAdded.id).equals(receivedDrone.id);
-        assertThat(droneToBeAdded.address).equals(receivedDrone.address);
-        assertThat(droneToBeAdded.communicationType).equals(receivedDrone.communicationType);
-        assertThat(droneToBeAdded.name).equals(receivedDrone.name);
-
-        Drone fetchedDrone = Drone.find.where().eq("name", droneToBeAdded.name).findUnique();
-
-        assertThat(droneToBeAdded.id).equals(fetchedDrone.id);
-        assertThat(droneToBeAdded.address).equals(fetchedDrone.address);
-        assertThat(droneToBeAdded.communicationType).equals(fetchedDrone.communicationType);
-        assertThat(droneToBeAdded.name).equals(fetchedDrone.name);
+        Drone fetchedDrone = Drone.find.byId(d.id);
+        assertThat(fetchedDrone).isEqualTo(droneToBeAdded);
     }
 
     @Test
@@ -117,21 +95,15 @@ public class DroneControllerTest extends TestSuperclass {
         d.save();
         d.name = "test2";
         d.name = "address2";
-        JsonNode node = Json.toJson(d).get("drone");
+        JsonNode node = JsonHelper.addRootElement(Json.toJson(d), Drone.class);
         Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
-        Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
-        assertThat(d.id).equals(receivedDrone.id);
-        assertThat(d.address).equals(receivedDrone.address);
-        assertThat(d.communicationType).equals(receivedDrone.communicationType);
-        assertThat(d.name).equals(receivedDrone.name);
+        JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+        Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
+        assertThat(receivedDrone).isEqualTo(d);
 
         Drone fetchedDrone = Drone.find.byId(d.id);
-
-        assertThat(d.id).equals(fetchedDrone.id);
-        assertThat(d.address).equals(fetchedDrone.address);
-        assertThat(d.communicationType).equals(fetchedDrone.communicationType);
-        assertThat(d.name).equals(fetchedDrone.name);
+        assertThat(fetchedDrone).isEqualTo(d);
     }
 
     @Test
@@ -147,29 +119,23 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void testConnection_DatabaseFilledWithDrones_CorrectConnectionReceived() {
-        ObjectMapper mapper = new ObjectMapper();
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.testConnection(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
-            try {
-                boolean status = mapper.readTree(contentAsString(r)).get("Boolean").asBoolean();
-                assertThat(status).isEqualTo(drone.testConnection());
-            } catch (IOException e) {
-                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-            }
+            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+
+            boolean status = node.get("connection").asBoolean();
+            assertThat(status).isEqualTo(drone.testConnection());
         }
     }
 
     @Test
     public void battery_DatabaseFilledWithDrones_CorrectBatteryStatusReceived() {
-        ObjectMapper mapper = new ObjectMapper();
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.battery(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
-            try {
-                int status = mapper.readTree(contentAsString(r)).get("Integer").intValue();
-                assertThat(status).isEqualTo(drone.getBatteryStatus());
-            } catch (IOException e) {
-                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-            }
+            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+
+            int status = node.get("battery").intValue();
+            assertThat(status).isEqualTo(drone.getBatteryStatus());
         }
     }
 
@@ -177,13 +143,10 @@ public class DroneControllerTest extends TestSuperclass {
     public void cameraCapture_DatabaseFilledWithDrones_CorrectCaptureReceived() {
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                String capture = mapper.readTree(contentAsString(r)).get("String").asText();
-                assertThat(capture).isEqualTo(drone.getCameraCapture());
-            } catch (IOException e) {
-                Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-            }
+            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+
+            String capture = node.get("cameraCapture").asText();
+            assertThat(capture).isEqualTo(drone.getCameraCapture());
         }
     }
 
