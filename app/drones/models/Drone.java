@@ -26,12 +26,14 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> init() {
-        return ask(droneActor, new InitRequestMessage(), TIMEOUT).map(s -> (Void) s, Akka.system().dispatcher());
+        //return ask(droneActor, new InitRequestMessage(), TIMEOUT).map(s -> (Void) s, Akka.system().dispatcher());
+        return null;
     }
 
     @Override
     public Future<Void> takeOff() {
-        return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(s -> (Void) s, Akka.system().dispatcher());
+        //return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(s -> (Void) s, Akka.system().dispatcher());
+        return null;
     }
 
     @Override
@@ -46,16 +48,19 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<FlyingState> getFlyingState() {
-        return ask(droneActor, new FlyingStateRequestMessage(), TIMEOUT).map(s -> (FlyingState) s, Akka.system().dispatcher());
+        //return ask(droneActor, new FlyingStateRequestMessage(), TIMEOUT).map(s -> (FlyingState) s, Akka.system().dispatcher());
+        return null;
     }
 
     @Override
     public Future<Location> getLocation() {
-        return ask(droneActor, new LocationRequestMessage(), TIMEOUT).map(s -> (Location)s, Akka.system().dispatcher());
+        //return ask(droneActor, new LocationRequestMessage(), TIMEOUT).map(s -> (Location)s, Akka.system().dispatcher());
+        return null;
     }
 
     @Override
     public Future<Byte> getBatteryPercentage() {
-        return ask(droneActor, new BatteryPercentageRequestMessage(), TIMEOUT).map(s -> (Byte)s, Akka.system().dispatcher());
+        //return ask(droneActor, new BatteryPercentageRequestMessage(), TIMEOUT).map(s -> (Byte)s, Akka.system().dispatcher());
+        return null;
     }
 }
