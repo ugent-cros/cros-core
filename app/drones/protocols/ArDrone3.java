@@ -101,9 +101,10 @@ public class ArDrone3 extends UntypedActor {
             log.warning("Command sign bit overflow.");
         } else {
             int payloadLen = frame.getData().length() - 4;
+          
             ByteString payload = null;
             if (payloadLen > 0) {
-                payload = frame.getData().slice(4, payloadLen);
+                payload = frame.getData().slice(4, 4 + payloadLen);
             }
             return new Packet(type, cmdClass, cmd, payload);
         }
@@ -259,7 +260,7 @@ public class ArDrone3 extends UntypedActor {
             Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
             sendChannels.put(ackChannelId, new DataChannel(ackChannelId, FrameType.ACK));
         }
-        recvChannels.put(id, new DataChannel(id, type));
+        recvChannels.put(id, new DataChannel(id, type, 0, 0, 3)); //TODO: specify send/recv so queue isn't needed
     }
 
     private void initChannels() {
