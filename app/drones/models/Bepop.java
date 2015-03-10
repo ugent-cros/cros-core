@@ -44,6 +44,7 @@ public class Bepop extends DroneActor {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
             protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
+            initPromise = null;
         } else {
             setupDrone(s);
 

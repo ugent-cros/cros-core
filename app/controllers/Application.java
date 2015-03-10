@@ -19,7 +19,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> initDrone() {
-        Drone d = Fleet.getFleet().createBepop("bepop", "localhost", true);
+        Drone d = Fleet.getFleet().createBepop("bepop", "192.168.42.1", true);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");

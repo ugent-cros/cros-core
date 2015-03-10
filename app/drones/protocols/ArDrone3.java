@@ -54,7 +54,7 @@ public class ArDrone3 extends UntypedActor {
 
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
-    private ActorRef connectionMgrRef;
+    private ActorRef senderRef;
 
     private ByteString recvBuffer;
 
@@ -72,14 +72,14 @@ public class ArDrone3 extends UntypedActor {
         initHandlers(); //TODO: static lazy loading
 
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(
-                UdpMessage.bind(getSelf(), new InetSocketAddress("localhost", receivingPort)),
-                getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)),getSelf());
+        log.debug("Listening on [{}]", receivingPort);
     }
 
     public boolean sendData(ByteString data) {
-        if(senderAddress != null){
-            connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
+        if(senderAddress != null && senderRef != null){
+            log.debug("Sending RAW data.");
+            senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
             return true;
         } else {
             log.debug("Sending data without discovery data available.");
@@ -118,10 +118,10 @@ public class ArDrone3 extends UntypedActor {
         if (p == null) {
             log.debug("No CommandTypeProcessor for [{}]", packet.getType());
         } else {
-            log.debug("Dispatching packet to CommandTypeProcessor");
             Object msg = p.handle(packet);
 
             if (msg != null) {
+                log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
                 listener.tell(msg, getSelf()); //Dispatch message back to droneactor
             }
         }
@@ -293,18 +293,19 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
-        log.debug("Drone discovery received at protocol handler.");
         this.details = details;
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
+        log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
-            this.connectionMgrRef = getSender();
-            getContext().become(ready(connectionMgrRef));
             log.debug("Socket ARDRone 3.0 bound.");
-        } else if (msg instanceof DroneDiscoveredMessage) {
+
+            senderRef = getSender();
+            getContext().become(ready(senderRef));
+        } else if (msg instanceof DroneConnectionDetails) {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if(msg instanceof StopMessage){
             stop();
