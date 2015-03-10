@@ -195,10 +195,12 @@ public class ArDrone3 extends UntypedActor {
 
     private void sendAck(Frame frame) {
         byte id = FrameHelper.getAckToDrone(frame.getId());
-        ByteString payload = FrameHelper.getAck(frame);
+
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
         DataChannel ch = sendChannels.get(id);
         if (ch != null) {
+            log.debug("Sending ACK for id = [{}]", frame.getId());
+            ByteString payload = FrameHelper.getAck(frame);
             sendData(FrameHelper.getFrameData(ch.createFrame(payload))); // Send pong
         } else {
             log.warning("Could not find ACK channel for id = [{}]", frame.getId());
@@ -267,7 +269,7 @@ public class ArDrone3 extends UntypedActor {
         // Init default recv channels
         addRecvChannel(FrameType.DATA, PING_CHANNEL);
         addRecvChannel(FrameType.DATA, PONG_CHANNEL);
-        addRecvChannel(FrameType.DATA, EVENT_CHANNEL);
+        addRecvChannel(FrameType.DATA_WITH_ACK, EVENT_CHANNEL);
         addRecvChannel(FrameType.DATA, NAVDATA_CHANNEL);
         addRecvChannel(FrameType.DATA_LOW_LATENCY, VIDEO_DATA_CHANNEL);
 
