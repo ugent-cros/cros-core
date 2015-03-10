@@ -27,6 +27,10 @@ public class PacketCreator {
         return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)0, null);
     }
 
+    public static Packet createRequestAllSettingsCommand(){
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.SETTINGS.getVal(), (short)0, null);
+    }
+
     public static Packet createOutdoorStatusPacket(boolean outdoor){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(outdoor ? (byte)1 : (byte)0);

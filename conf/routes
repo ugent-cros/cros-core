@@ -10,6 +10,7 @@ GET        /location            controllers.Application.getLocation()
 GET        /rotation            controllers.Application.getRotation()
 GET        /speed               controllers.Application.getSpeed()
 GET        /altitude            controllers.Application.getAltitude()
+GET        /version             controllers.Application.getVersion()
 
 #GET        /takeoff             controllers.Application.takeOff()
 GET        /land                controllers.Application.land()

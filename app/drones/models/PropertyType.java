@@ -10,5 +10,6 @@ public enum PropertyType {
     ALTITUDE,
     FLATTRIMSTATUS,
     FLYINGSTATE,
-    ROTATION
+    ROTATION,
+    VERSION
 }

@@ -3,14 +3,11 @@ package controllers;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.Drone;
 import drones.models.Fleet;
-import play.*;
 import play.libs.F;
 import play.libs.Json;
-import play.mvc.*;
-
-import scala.util.parsing.json.JSON;
-import scala.util.parsing.json.JSONObject$;
-import views.html.*;
+import play.mvc.Controller;
+import play.mvc.Result;
+import views.html.index;
 
 public class Application extends Controller {
 
@@ -52,6 +49,16 @@ public class Application extends Controller {
         return F.Promise.wrap(d.getAltitude()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("altitude", v);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> getVersion(){
+        Drone d = Fleet.getFleet().getDrone("bepop");
+        return F.Promise.wrap(d.getVersion()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("softwareVersion", v.getSoftware());
+            result.put("hardwareVersion", v.getHardware());
             return ok(result);
         });
     }

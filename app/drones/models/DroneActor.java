@@ -25,6 +25,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Rotation> rotation;
     protected LazyProperty<Speed> speed;
     protected LazyProperty<Double> altitude;
+    protected LazyProperty<DroneVersion> version;
 
     private boolean loaded = false;
 
@@ -38,6 +39,7 @@ public abstract class DroneActor extends AbstractActor {
         rotation = new LazyProperty<>();
         speed = new LazyProperty<>();
         altitude = new LazyProperty<>();
+        version = new LazyProperty<>();
 
         receive(createListeners(). //register specific handlers for implementation
 
@@ -60,6 +62,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(AttitudeChangedMessage.class, s -> rotation.setValue(new Rotation(s.getRoll(), s.getPitch(), s.getYaw()))).
                 match(AltitudeChangedMessage.class, s -> altitude.setValue(s.getAltitude())).
                 match(SpeedChangedMessage.class, s -> speed.setValue(new Speed(s.getSpeedX(), s.getSpeedY(), s.getSpeedZ()))).
+                match(ProductVersionChangedMessage.class, s -> version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()))).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
         }
 
@@ -85,6 +88,9 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case SPEED:
                 handleMessage(speed.getValue(), sender(), self());
+                break;
+            case VERSION:
+                handleMessage(version.getValue(), sender(), self());
                 break;
         }
     }

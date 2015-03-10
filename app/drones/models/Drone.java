@@ -106,4 +106,13 @@ public class Drone implements DroneControl, DroneStatus {
             }
         }, Akka.system().dispatcher());
     }
+
+    @Override
+    public Future<DroneVersion> getVersion() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.VERSION), TIMEOUT).map(new Mapper<Object, DroneVersion>() {
+            public DroneVersion apply(Object s) {
+                return (DroneVersion) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
 }

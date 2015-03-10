@@ -72,12 +72,12 @@ public class ArDrone3 extends UntypedActor {
         initHandlers(); //TODO: static lazy loading
 
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)),getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
 
     public boolean sendData(ByteString data) {
-        if(senderAddress != null && senderRef != null){
+        if (senderAddress != null && senderRef != null) {
             log.debug("Sending RAW data.");
             senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
             return true;
@@ -87,7 +87,7 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void stop(){
+    private void stop() {
         udpManager.tell(UdpMessage.unbind(), self());
         getContext().stop(self());
     }
@@ -310,7 +310,7 @@ public class ArDrone3 extends UntypedActor {
             getContext().become(ready(senderRef));
         } else if (msg instanceof DroneConnectionDetails) {
             droneDiscovered((DroneConnectionDetails) msg);
-        } else if(msg instanceof StopMessage){
+        } else if (msg instanceof StopMessage) {
             stop();
         } else {
             unhandled(msg);
@@ -332,7 +332,7 @@ public class ArDrone3 extends UntypedActor {
                 dispatchCommand((DroneCommandMessage) msg);
             } else if (msg instanceof DroneConnectionDetails) {
                 droneDiscovered((DroneConnectionDetails) msg);
-            } else if(msg instanceof StopMessage){
+            } else if (msg instanceof StopMessage) {
                 stop();
             } else unhandled(msg);
         };
@@ -343,20 +343,22 @@ public class ArDrone3 extends UntypedActor {
             // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
             //TODO: abstract class, receivebuilder
             //TODO: remove this hack
-           // Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
-           // handler.invoke(null, msg.getMessage());
+            // Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
+            // handler.invoke(null, msg.getMessage());
 
             //HORRIBLE HACK, WILL BE FIXED LATER
-            if(msg.getMessage() instanceof FlatTrimCommand){
-                handle((FlatTrimCommand)msg.getMessage());
-            } else if(msg.getMessage() instanceof TakeOffCommand){
-                handle((TakeOffCommand)msg.getMessage());
-            } else if(msg.getMessage() instanceof LandCommand){
-                handle((LandCommand)msg.getMessage());
-            } else if(msg.getMessage() instanceof RequestStatusCommand){
-                handle((RequestStatusCommand)msg.getMessage());
-            } else if(msg.getMessage() instanceof OutdoorCommand){
-                handle((OutdoorCommand)msg.getMessage());
+            if (msg.getMessage() instanceof FlatTrimCommand) {
+                handleFlatTrim();
+            } else if (msg.getMessage() instanceof TakeOffCommand) {
+                handleTakeoff();
+            } else if (msg.getMessage() instanceof LandCommand) {
+                handleLand();
+            } else if (msg.getMessage() instanceof RequestStatusCommand) {
+                handleRequestStatus();
+            } else if (msg.getMessage() instanceof OutdoorCommand) {
+                handleOutdoor((OutdoorCommand) msg.getMessage());
+            } else if (msg.getMessage() instanceof RequestSettingsCommand) {
+                handleRequestSettings();
             } else {
                 log.warning("No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
             }
@@ -379,7 +381,6 @@ public class ArDrone3 extends UntypedActor {
                 Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
                 getSelf(), "tick", getContext().dispatcher(), null);
     }
-
 
 
     private void sendDataOnChannel(Packet packet, DataChannel channel) {
@@ -417,23 +418,27 @@ public class ArDrone3 extends UntypedActor {
 
     // All command handlers
     //TODO: move these to seperate class statically
-    private void handle(FlatTrimCommand cmd) {
-        sendDataNoAck(PacketCreator.createFlatTrimPacket());
-    } //TODO: ack channel
+    private void handleFlatTrim() {
+        sendDataNoAck(PacketCreator.createFlatTrimPacket());//TODO: ack channel
+    }
 
-    private void handle(TakeOffCommand cmd) {
+    private void handleTakeoff() {
         sendDataNoAck(PacketCreator.createTakeOffPacket()); //TODO: ACK channel
     }
 
-    private void handle(LandCommand cmd) {
+    private void handleLand() {
         sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
     }
 
-    private void handle(RequestStatusCommand cmd) {
+    private void handleRequestStatus() {
         sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
     }
 
-    public void handle(OutdoorCommand cmd) {
+    private void handleRequestSettings() {
+        sendDataNoAck(PacketCreator.createRequestAllSettingsCommand()); //TODO: ack
+    }
+
+    public void handleOutdoor(OutdoorCommand cmd) {
         sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
     }
 }

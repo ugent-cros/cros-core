@@ -1,5 +1,6 @@
 package drones.util.ardrone3;
 
+import akka.util.ByteIterator;
 import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
 import drones.models.ardrone3.Packet;
@@ -19,5 +20,16 @@ public class PacketHelper {
             return b.result();
         else
             return b.result().concat(packet.getData());
+    }
+
+    public static String readString(ByteIterator it){
+        // Reads null terminated string
+        StringBuilder b = new StringBuilder();
+        byte v = it.getByte();
+        while(v != 0){
+            b.append((char)v);
+            v = it.getByte();
+        }
+        return b.toString();
     }
 }

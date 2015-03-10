@@ -12,4 +12,5 @@ public interface DroneStatus {
     Future<Double> getAltitude();
     Future<Rotation> getRotation();
     Future<Speed> getSpeed();
+    Future<DroneVersion> getVersion();
 }
