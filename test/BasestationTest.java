@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import play.libs.Json;
+import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
@@ -28,10 +29,10 @@ public class BasestationTest extends TestSuperclass {
     @BeforeClass
     public static void setup() {
         startFakeApplication();
-        initializeDatabase();
+        initialiseDatabase();
     }
 
-    private static void initializeDatabase(){
+    private static void initialiseDatabase() {
         Checkpoint cp1 = new Checkpoint(88.0,88.0,0.0);
         cp1.save();
         Checkpoint cp2 = new Checkpoint(77.0,77.0,0.0);
@@ -47,11 +48,48 @@ public class BasestationTest extends TestSuperclass {
     }
 
     @Test
-    public void add_AuthorizedRequest_BasestationAddedToDatabase(){
+    public void getAll_AuthorizedRequest_SuccessfullyGetAllBasestations() {
+        Result result = callAction(routes.ref.BasestationController.getAll(),
+                authorizeRequest(new FakeRequest(), getAdmin()));
+
+        String jsonString = contentAsString(result);
+        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+        if (node.isArray()) {
+            for (int i = 0; i < testBasestations.size(); ++i) {
+                Basestation testBasestation = testBasestations.get(i);
+                Basestation receivedBasestation = Json.fromJson(node.get(i), Basestation.class);
+                assertThat(testBasestation.id).isEqualTo(receivedBasestation.id);
+            }
+        } else
+            Assert.fail("Returned JSON is not an array");
+    }
+
+    @Test
+    public void get_AuthorizedRequestWithValidId_SuccessfullyGetBasestation(){
+        int index = testBasestations.size()-1;
+        Basestation testBasestation = testBasestations.get(index);
+        Result result = callAction(routes.ref.BasestationController.get(testBasestation.id),
+                authorizeRequest(new FakeRequest(), getAdmin()));
+
+        String jsonString = contentAsString(result);
+        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+        Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
+        assertThat(testBasestation).isEqualTo(receivedBasestation);
+    }
+
+    @Test
+    public void get_AuthorizedRequestWithInvalidId_NotFoundReturned() {
+        Result result = callAction(routes.ref.BasestationController.get(testBasestations.size() + 1000),
+                authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(Http.Status.NOT_FOUND);
+    }
+
+    @Test
+    public void create_AuthorizedRequest_BasestationCreated() {
         Basestation basestationToBeAdded = new Basestation("A new testing basestation", new Checkpoint(23, 23, 0));
         JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestationToBeAdded), Basestation.class);
 
-        Result result = callAction(routes.ref.BasestationController.add(),
+        Result result = callAction(routes.ref.BasestationController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
@@ -68,37 +106,7 @@ public class BasestationTest extends TestSuperclass {
     }
 
     @Test
-     public void get_AuthorizedRequest_SuccesfullyGetBasestation(){
-        int index = testBasestations.size()-1;
-        Basestation testBasestation = testBasestations.get(index);
-        Result result = callAction(routes.ref.BasestationController.get(testBasestation.id),
-                authorizeRequest(new FakeRequest(), getAdmin()));
-
-        String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
-        assertThat(testBasestation).isEqualTo(receivedBasestation);
-    }
-
-    @Test
-    public void getAll_AuthorizedRequest_SuccesfullyGetAllBaseStations(){
-        Result result = callAction(routes.ref.BasestationController.getAll(),
-                authorizeRequest(new FakeRequest(), getAdmin()));
-
-        String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        if (node.isArray()) {
-            for (int i = 0; i < node.size(); ++i) {
-                Basestation testBasestation = testBasestations.get(i);
-                Basestation receivedBasestation = Json.fromJson(node.get(i), Basestation.class);
-                assertThat(testBasestation.id).isEqualTo(receivedBasestation.id);
-            }
-        } else
-            Assert.fail("Returned JSON is not an array");
-    }
-
-    @Test
-    public void update_AuthorizedRequest_UpdatesAreCorrect() {
+    public void update_AuthorizedRequestWithValidId_BasestationUpdated() {
         Basestation basestation = new Basestation("Another basestation", new Checkpoint(3, 2, 1));
         basestation.save();
         basestation.name = "Changed name";
@@ -116,15 +124,14 @@ public class BasestationTest extends TestSuperclass {
         assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
     }
     @Test
-    public void deleteBasestation_byAdmin_deletesObject() {
-
+    public void delete_AuthorizedRequestWithValidId_BasestationDeleted() {
         Basestation basestationToBeRemoved = new Basestation("remove this drone", new Checkpoint(7,8,9));
         basestationToBeRemoved.save();
 
         callAction(routes.ref.BasestationController.delete(basestationToBeRemoved.id),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
-        long amount = Basestation.find.all().stream().filter(d -> d.id == basestationToBeRemoved.id).count();
+        long amount = Basestation.find.all().stream().filter(d -> d.id.equals(basestationToBeRemoved.id)).count();
         assertThat(amount).isEqualTo(0);
     }
 }

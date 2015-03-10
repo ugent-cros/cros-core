@@ -32,16 +32,14 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void checkPassword_PasswordIsCorrect_ReturnsTrue() {
-
+    public void checkPassword_PasswordIsCorrect_TrueReturned() {
         String password = "lolcats1";
         User u = new User("correct.password@user.tests.cros.com", password, "test", "student");
         assertThat(u.checkPassword(password)).isTrue();
     }
 
     @Test
-    public void checkPassword_PasswordIsWrong_ReturnsFalse() {
-
+    public void checkPassword_PasswordIsWrong_FalseReturned() {
         String password = "lolcats1";
         User u = new User("wrong.password@user.tests.cros.com", password, "test", "student");
         assertThat(u.checkPassword("lol")).isFalse();
@@ -49,8 +47,7 @@ public class UserTest extends TestSuperclass {
 
 
     @Test
-    public void userCreation_ByUnpriviledgedUser_ReturnsUnauthorized() {
-
+    public void create_UnauthorizedRequest_UnauthorizedReturned() {
         User user = new User("unauthorized.usercreation@user.tests.cros.com", "testtest", "Yasser", "Deceukelier");
 
         FakeRequest create = fakeRequest().withJsonBody(Json.toJson(user));
@@ -66,7 +63,7 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void userCreation_ByAdmin_AddsUserToDB() {
+    public void create_AuthorizedRequest_UserCreated() {
         String email = "unauthorized.usercreation@user.tests.cros.com";
         User u = new User(email,"testtest","Yasser","Deceukelier");
         ObjectNode objectNode = (ObjectNode) Json.toJson(u);
@@ -80,19 +77,19 @@ public class UserTest extends TestSuperclass {
         Result result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getAdmin()));
         assertThat(status(result)).isEqualTo(CREATED);
 
-        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
+        User receivedUser =
+                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
         u.id = receivedUser.id; // bypass id because u has no id yet
         assertThat(u).isEqualTo(receivedUser);
 
         User createdUser = User.findByEmail(email);
-        System.out.println("COMPARED2: " + createdUser);
         assertThat(u).isEqualTo(createdUser);
 
         createdUser.delete();
     }
 
     @Test
-    public void updateUser_ByUnpriviledgedUser_ReturnsUnauthorized() {
+    public void update_UnauthorizedRequest_UnauthorizedReturned() {
 
         // Create original user
         String firstName = "John";
@@ -118,7 +115,7 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void updateUser_ByAdmin_UpdatesDBEntry() {
+    public void update_AuthorizedRequest_UserUpdated() {
         User u = new User("admin.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
 
@@ -130,14 +127,15 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+        User receivedUser =
+                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
         User fetchedUser = User.find.byId(u.id);
         assertThat(fetchedUser).isEqualTo(u);
     }
 
     @Test
-    public void updateUser_ByUserHimself_UpdatesDBEntry() {
+    public void update_AuthorizedRequestByUser_UserUpdated() {
         User u = new User("himself.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
 
@@ -149,7 +147,8 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+        User receivedUser =
+                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
         User fetchedUser = User.find.byId(u.id);
         assertThat(fetchedUser).isEqualTo(u);
@@ -166,7 +165,7 @@ public class UserTest extends TestSuperclass {
 
     @Ignore
     @Test
-    public void allUsers_ByUnpriviledgedUser_ReturnsUnauthorized() {
+    public void getAll_UnauthorizedRequest_UnauthorizedReturned() {
 
         Result result = callAction(routes.ref.UserController.getAll(), fakeRequest());
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
@@ -177,8 +176,7 @@ public class UserTest extends TestSuperclass {
 
     @Ignore
     @Test
-    public void allUsers_ByPriviledgedUser_ReturnsListOfUsers() {
-
+    public void getAll_AuthorizedRequest_SuccessfullyGetAllUsers() {
         Result result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(OK);
 

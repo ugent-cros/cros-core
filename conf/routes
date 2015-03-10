@@ -40,7 +40,7 @@ GET           /users/:id/invalidateAuthToken        controllers.UserController.i
 
 #Basestation calls
 GET           /basestations                         controllers.BasestationController.getAll()
-POST          /basestations                         controllers.BasestationController.add()
+POST          /basestations                         controllers.BasestationController.create()
 GET           /basestations/:id                     controllers.BasestationController.get(id: Long)
 PUT           /basestations/:id                     controllers.BasestationController.update(id: Long)
 DELETE        /basestations/:id                     controllers.BasestationController.delete(id: Long)

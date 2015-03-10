@@ -26,9 +26,12 @@ public class DroneControllerTest extends TestSuperclass {
     private static List<Drone> testDrones = new ArrayList<>();
 
     @BeforeClass
-    public static void initialiseDroneControllerTest() {
-        // Start application
+    public static void setup() {
         startFakeApplication();
+        initialiseDatabase();
+    }
+
+    private static void initialiseDatabase() {
         // Add drones to the database
         testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x"));
         testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x"));
@@ -38,13 +41,12 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @AfterClass
-    public static void finishDroneControllerTest() {
-        // End application
+    public static void teardown() {
         stopFakeApplication();
     }
 
     @Test
-    public void getAll_DatabaseFilledWithDrones_SuccessfullyGetAllDrones() {
+    public void getAll_AuthorizedRequest_SuccessfullyGetAllDrones() {
         Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
 
         JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
@@ -59,9 +61,10 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void getDrone_DatabaseFilledWithDrones_SuccessfullyGetDrone() {
+    public void get_AuthorizedRequestWithValidId_SuccessfullyGetDrone() {
         Drone droneToGet = testDrones.get(testDrones.size()-1);
-        Result result = callAction(routes.ref.DroneController.get(droneToGet.id), authorizeRequest(fakeRequest(), getAdmin()));
+        Result result = callAction(routes.ref.DroneController.get(droneToGet.id),
+                authorizeRequest(fakeRequest(), getAdmin()));
 
         JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
         Drone d = Json.fromJson(node, Drone.class);
@@ -69,17 +72,20 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void getDrone_DatabaseFilledWithDrones_DroneIdNotAvailable() {
-        Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000), authorizeRequest(fakeRequest(), getAdmin()));
+    public void get_AuthorizedRequestWithInvalidId_NotFoundReturned() {
+        Result result = callAction(routes.ref.DroneController.get(testDrones.size()+1000),
+                authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(Http.Status.NOT_FOUND);
     }
 
     @Test
-    public void addDrone_DatabaseFilledWithDrones_ReturnedDroneIsCorrect() {
-        Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"ipAddress");
+    public void create_AuthorizedRequest_DroneCreated() {
+        Drone droneToBeAdded =
+                new Drone("newDrone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"ipAddress");
         JsonNode node = JsonHelper.addRootElement(Json.toJson(droneToBeAdded), Drone.class);
 
-        Result result = callAction(routes.ref.DroneController.create(), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
+        Result result = callAction(routes.ref.DroneController.create(),
+                authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
         JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
         Drone d = Json.fromJson(receivedNode, Drone.class);
         droneToBeAdded.id = d.id; // bypass id check, because droneToBeAdded has no id
@@ -90,13 +96,14 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void updateDrone_DatabaseFilledWithDrones_UpdatesAreCorrect() {
+    public void update_AuthorizedRequestWithValidId_DroneUpdated() {
         Drone d = new Drone("test1", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"address1");
         d.save();
         d.name = "test2";
         d.name = "address2";
         JsonNode node = JsonHelper.addRootElement(Json.toJson(d), Drone.class);
-        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
+        Result result = callAction(routes.ref.DroneController.update(d.id),
+                authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
         JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
         Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
@@ -107,20 +114,23 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-     public void deleteDrone_DatabaseFilledWithDrones_DroneIsDeleted() {
-        Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x");
+     public void delete_AuthorizedRequestWithValidId_DroneDeleted() {
+        Drone droneToBeRemoved =
+                new Drone("remove this drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "x.x.x.x");
         droneToBeRemoved.save();
 
-        callAction(routes.ref.DroneController.delete(droneToBeRemoved.id), authorizeRequest(fakeRequest(), getAdmin()));
+        callAction(routes.ref.DroneController.delete(droneToBeRemoved.id),
+                authorizeRequest(fakeRequest(), getAdmin()));
 
-        long amount = Drone.find.all().stream().filter(d -> d.id == droneToBeRemoved.id).count();
+        long amount = Drone.find.all().stream().filter(d -> d.id.equals(droneToBeRemoved.id)).count();
         assertThat(amount).isEqualTo(0);
     }
 
     @Test
-    public void testConnection_DatabaseFilledWithDrones_CorrectConnectionReceived() {
+    public void testConnection_AuthorizedRequest_CorrectConnectionReceived() {
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.testConnection(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            Result r = callAction(routes.ref.DroneController.testConnection(drone.id),
+                    authorizeRequest(fakeRequest(), getAdmin()));
             JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
             boolean status = node.get("connection").asBoolean();
@@ -129,9 +139,10 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void battery_DatabaseFilledWithDrones_CorrectBatteryStatusReceived() {
+    public void battery_AuthorizedRequest_CorrectBatteryStatusReceived() {
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.battery(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            Result r = callAction(routes.ref.DroneController.battery(drone.id),
+                    authorizeRequest(fakeRequest(), getAdmin()));
             JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
             int status = node.get("battery").intValue();
@@ -140,9 +151,10 @@ public class DroneControllerTest extends TestSuperclass {
     }
 
     @Test
-    public void cameraCapture_DatabaseFilledWithDrones_CorrectCaptureReceived() {
+    public void cameraCapture_AuthorizedRequest_CorrectCaptureReceived() {
         for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id), authorizeRequest(fakeRequest(), getAdmin()));
+            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.id),
+                    authorizeRequest(fakeRequest(), getAdmin()));
             JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
             String capture = node.get("cameraCapture").asText();

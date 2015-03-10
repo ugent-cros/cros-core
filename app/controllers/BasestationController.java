@@ -51,13 +51,13 @@ public class BasestationController {
         ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Basestation.class);
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
-        links.add(new ControllerHelper.Link("create", controllers.routes.BasestationController.add().url()));
+        links.add(new ControllerHelper.Link("create", controllers.routes.BasestationController.create().url()));
         node.put("links", (JsonNode) objectMapper.valueToTree(links));
         return ok(node);
     }
 
     @Authentication({User.Role.ADMIN})
-    public static Result add() {
+    public static Result create() {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);

@@ -68,14 +68,12 @@ public class Assignment extends Model {
             assignedDroneIsEqual = this.assignedDrone == other.assignedDrone;
         else
             assignedDroneIsEqual = this.assignedDrone.equals(other.assignedDrone);
-        boolean result = this.id.equals(other.id)
+        return this.id.equals(other.id)
                 && (other.priority == this.priority)
                 && (other.progress == this.progress)
                 && this.creator.equals(other.creator)
                 && assignedDroneIsEqual
                 && routesAreEqual;
-        System.out.println(result);
-        return result;
     }
 
     public static Finder<Long,Assignment> find = new Finder<>(Long.class, Assignment.class);
