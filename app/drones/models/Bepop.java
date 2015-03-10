@@ -18,7 +18,6 @@ import java.io.Serializable;
  */
 public class Bepop extends DroneActor {
 
-    private ActorRef discoveryProtocol;
     private ActorRef protocol;
 
     private final String ip;
@@ -77,9 +76,9 @@ public class Bepop extends DroneActor {
                 initPromise = p;
 
                 protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                        () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, self()))); // Initialize listening already before broadcasting itself
+                        () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, Bepop.this.self()))); // Initialize listening already before broadcasting itself
 
-                discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
+                getContext().actorOf(Props.create(ArDrone3Discovery.class,
                         () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT)));
             }
         }

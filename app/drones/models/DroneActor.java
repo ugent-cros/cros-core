@@ -38,14 +38,17 @@ public abstract class DroneActor extends AbstractActor {
                 // External -> drone
                 match(LocationRequestMessage.class, s -> handleMessage(location.getValue(), sender(), self())).
                 match(FlyingStateRequestMessage.class, s -> handleMessage(state.getValue(), sender(), self())).
-                match(BatteryPercentageRequestMessage.class, s -> handleMessage(state.getValue(), sender(), self())).
+                match(BatteryPercentageRequestMessage.class, s -> handleMessage(batteryPercentage.getValue(), sender(), self())).
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
 
                 // Drone -> external
-                        match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
-                match(BatteryPercentageChangedMessage.class, s -> batteryPercentage.setValue(s.getPercent())).
+                match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
+                match(BatteryPercentageChangedMessage.class, s -> {
+                    batteryPercentage.setValue(s.getPercent());
+                    log.info("Battery=[{}]", s.getPercent());
+                }).
                 match(FlyingStateChangedMessage.class, s -> state.setValue(s.getState())).
                 match(FlatTrimChangedMessage.class, s -> flatTrimStatus.setValue(null)).
                 matchAny(o -> log.info("received unknown message.")).build());
@@ -56,7 +59,7 @@ public abstract class DroneActor extends AbstractActor {
         value.onSuccess(new OnSuccess<T>() {
             @Override
             public void onSuccess(T result) throws Throwable {
-                sender.tell(new ExecutionResultMessage<>(result), self); // prevent message is null error
+                sender.tell(new ExecutionResultMessage(result), self); // prevent message is null error
             }
         }, ec);
         value.onFailure(new OnFailure() {

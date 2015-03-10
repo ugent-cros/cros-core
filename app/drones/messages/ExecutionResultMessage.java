@@ -5,14 +5,14 @@ import java.io.Serializable;
 /**
  * Created by Cedric on 3/10/2015.
  */
-public class ExecutionResultMessage<T> implements Serializable {
-    T value;
+public class ExecutionResultMessage implements Serializable {
+    private Object value;
 
-    public ExecutionResultMessage(T value) {
+    public ExecutionResultMessage(Object value) {
         this.value = value;
     }
 
-    public T getValue() {
+    public Object getValue() {
         return value;
     }
 }
