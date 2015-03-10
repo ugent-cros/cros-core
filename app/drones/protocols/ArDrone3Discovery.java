@@ -47,6 +47,7 @@ public class ArDrone3Discovery extends UntypedActor {
         ByteStringBuilder b = new ByteStringBuilder();
         String data = String.format(DISCOVERY_MSG, commandPort);
         b.putBytes(data.getBytes(Charset.forName("UTF-8")));
+        b.putByte((byte)0); //null terminated string
         sender.tell(TcpMessage.write(b.result()), getSelf());
         log.debug("Discovery message sent to drone.");
     }
@@ -54,7 +55,7 @@ public class ArDrone3Discovery extends UntypedActor {
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof Tcp.CommandFailed) {
-            log.error("Failed discovery protocol, TCP buffer is full.");
+            log.error("Failed discovery protocol. Connection timeout or buffer overflow.");
             listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
             getContext().stop(getSelf());
         } else if (msg instanceof Tcp.Connected) {

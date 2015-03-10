@@ -81,7 +81,7 @@ public class ArDrone3 extends UntypedActor {
         connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
     }
 
-    private void extractPacket(Frame frame) {
+    private Packet extractPacket(Frame frame) {
         ByteIterator it = frame.getData().iterator();
         byte type = it.getByte();
         byte cmdClass = it.getByte();
@@ -94,20 +94,25 @@ public class ArDrone3 extends UntypedActor {
             if (payloadLen > 0) {
                 payload = frame.getData().slice(4, payloadLen);
             }
-            Packet packet = new Packet(type, cmdClass, cmd, payload);
-            processPacket(packet);
+            return new Packet(type, cmdClass, cmd, payload);
         }
+        return null;
     }
 
     private void processPacket(Packet packet) {
+        if(packet == null)
+            return;
+
         CommandTypeProcessor p = processors.get(packet.getType());
         if (p == null) {
-            log.debug("No CommandTypeProcessor for [{}]", p.getType());
-        }
-        Object msg = p.handle(packet);
+            log.debug("No CommandTypeProcessor for [{}]", packet.getType());
+        } else {
+            log.debug("Dispatching packet to CommandTypeProcessor");
+            Object msg = p.handle(packet);
 
-        if (msg != null) {
-            listener.tell(msg, getSelf()); //Dispatch message
+            if (msg != null) {
+                listener.tell(msg, getSelf()); //Dispatch message back to droneactor
+            }
         }
     }
 
@@ -116,7 +121,9 @@ public class ArDrone3 extends UntypedActor {
         DataChannel ch = recvMap.get(frame.getId());
         if (ch != null) {
             if (ch.shouldAllowFrame(frame)) {
-                extractPacket(frame);
+                Packet packet = extractPacket(frame);
+                log.debug("Packet received, Proj=[{}], Class=[{}], Cmd=[{}]", packet.getType(), packet.getCommandClass(), packet.getCommand());
+                processPacket(packet);
             } else {
                 log.warning("Packet timed out in seq.");
             }
@@ -152,6 +159,7 @@ public class ArDrone3 extends UntypedActor {
 
     private void processAck(Frame frame) {
         byte realId = FrameHelper.getAckToServer(frame.getId());
+        log.debug("Ack received for ID [{}]", realId);
         Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_CONTROLLER);
         DataChannel ch = recvMap.get(realId);
         if (ch != null) {
@@ -285,6 +293,7 @@ public class ArDrone3 extends UntypedActor {
     private void dispatchCommand(DroneCommandMessage msg) {
         try {
             // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
+            //TODO: ReceiveBuilder
             Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
             handler.invoke(null, msg.getMessage());
         } catch (Exception e) {
