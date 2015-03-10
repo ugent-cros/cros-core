@@ -1,6 +1,4 @@
-package drones.models.ATCommand;
-
-import akka.util.ByteString;
+package drones.commands.ArDrone2.ATCommand;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;

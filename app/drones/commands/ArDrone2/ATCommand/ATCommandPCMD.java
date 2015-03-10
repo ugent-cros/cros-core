@@ -1,4 +1,4 @@
-package drones.models.ATCommand;
+package drones.commands.ArDrone2.ATCommand;
 
 /**
  * Created by brecht on 3/7/15.
@@ -27,6 +27,6 @@ public class ATCommandPCMD extends ATCommand {
      */
     @Override
     public String toString() {
-        return String.format("%s=%d,%d,%d,%d,%d,%d\r",TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
+        return String.format("%s=%d,%d,%d,%d,%d,%d\r", TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
     }
 }

@@ -1,4 +1,4 @@
-package drones.models.ATCommand;
+package drones.commands.ArDrone2.ATCommand;
 
 /**
  * @TODO see what this command does

@@ -8,12 +8,15 @@ import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.Procedure;
 import akka.util.ByteString;
-import drones.models.ATCommand.ATCommand;
+import drones.commands.EmergencyCommand;
+import drones.commands.LandCommand;
+import drones.commands.TakeOffCommand;
 import drones.models.DroneConnectionDetails;
+import drones.util.ardrone2.PacketCreator;
 
 import java.net.InetSocketAddress;
 
-// @TODO make abstract class, ArDrone2 & 3 will extend it
+// @TODO make abstract class (WiFi protocol class or something like that), ArDrone2 & 3 will extend it
 /**
  * Created by brecht on 3/7/15.
  */
@@ -25,11 +28,19 @@ public class ArDrone2 extends UntypedActor {
     private InetSocketAddress senderAddress;
     private ActorRef connectionMgrRef;
 
+    private ByteString recvBuffer;
+
+    private final ActorRef listener; //to respond messages to
+
     private int seq = 0;
 
-    public ArDrone2(DroneConnectionDetails details) {
+    public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
         this.details = details;
+        this.listener = listener;
+
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
+
+        //  initHandlers();
 
         final ActorRef mgr = Udp.get(getContext().system()).getManager();
         mgr.tell(
@@ -42,8 +53,6 @@ public class ArDrone2 extends UntypedActor {
     @Override
     public void preStart() {
         log.info("Starting ARDrone 2.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
-
-        // @TODO write startup code (https://projects.ardrone.org/attachments/318/ARDrone.java)
     }
 
     @Override
@@ -56,11 +65,8 @@ public class ArDrone2 extends UntypedActor {
         } else unhandled(msg);
     }
 
-    public void sendCommand(ATCommand command) {
-        seq++;
-        command.setSeq(seq);
-
-        connectionMgrRef.tell(UdpMessage.send(ByteString.fromString(command.toString()), senderAddress), getSelf());
+    public void sendData(ByteString data) {
+        connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
     }
 
 
@@ -79,6 +85,17 @@ public class ArDrone2 extends UntypedActor {
         };
     }
 
+    private void handle(TakeOffCommand cmd) {
+        sendData(PacketCreator.createTakeOffPacket());
+    }
+
+    private void handle(LandCommand cmd) {
+        sendData(PacketCreator.createLandingPacket());
+    }
+
+    private void handle(EmergencyCommand cmd) {
+        sendData(PacketCreator.createEmergencyPacket());
+    }
 
     public LoggingAdapter getLog(){
         return log;

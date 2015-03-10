@@ -1,4 +1,4 @@
-package drones.models.ATCommand;
+package drones.commands.ArDrone2.ATCommand;
 
 /**
  * Created by brecht on 3/8/15.

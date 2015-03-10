@@ -1,8 +1,8 @@
-package drones.models;
+package drones.commands.ArDrone2;
 
 /**
  * See https://code.google.com/p/ardroneme/source/browse/trunk/NavData.java
- *  Code is originally from MAPGPS
+ * Code is originally from MAPGPS
  *
  *
  * Created by brecht on 3/8/15.
