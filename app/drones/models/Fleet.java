@@ -23,11 +23,11 @@ public class Fleet {
         drones = new HashMap<>();
     }
 
-    public Drone createARDrone2(String name, String ip, boolean indoor){
+    public Drone createBepop(String name, String ip, boolean indoor){
         if(drones.containsKey(name))
             return null;
         else {
-            ActorRef ref = Akka.system().actorOf(Props.create(ArDrone2.class, () -> new ArDrone2(ip, indoor)));
+            ActorRef ref = Akka.system().actorOf(Props.create(Bepop.class, () -> new Bepop(ip, indoor)));
             Drone d = new Drone(ref);
             drones.put(name, d);
             return d;

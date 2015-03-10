@@ -49,7 +49,7 @@ public class ArDrone2 extends DroneActor {
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
         } else {
-            protocol.tell(new DroneCommandMessage<>(msg), self());
+            protocol.tell(new DroneCommandMessage(msg), self());
         }
     }
 
@@ -72,12 +72,12 @@ public class ArDrone2 extends DroneActor {
         p.success(null);
     }
 
-    @Override
-    protected void emergency(Promise<Void> p) {
-        // @TODO
-        sendMessage(new EmergencyCommand());
-        p.success(null);
-    }
+    //@Override
+    //protected void emergency(Promise<Void> p) {
+    //    // @TODO
+    //    sendMessage(new EmergencyCommand());
+    //    p.success(null);
+    //}
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {

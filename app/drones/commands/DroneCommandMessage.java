@@ -5,15 +5,16 @@ import java.io.Serializable;
 /**
  * Created by Cedric on 3/8/2015.
  */
-public class DroneCommandMessage<T extends Serializable> implements Serializable {
 
-    private T message;
+public class DroneCommandMessage implements Serializable {
 
-    public DroneCommandMessage(T message){
+    private Object message;
+
+    public DroneCommandMessage(Object message){
         this.message = message;
     }
 
-    public T getMessage(){
+    public Object getMessage(){
         return message;
     }
 }

@@ -28,7 +28,7 @@ public class LocationChangedMessage implements Serializable {
     }
 
     /**
-     * Gets the heigth in meters
+     * Gets the altitude in meters
      * @return
      */
     public double getGpsHeigth() {

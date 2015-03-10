@@ -9,5 +9,5 @@ public interface DroneControl {
     Future<Void> init();
     Future<Void> takeOff();
     Future<Void> land();
-    Future<Void> emergency();
+    //Future<Void> emergency(); // @TODO
 }

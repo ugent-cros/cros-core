@@ -22,36 +22,85 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Location> location;
     protected LazyProperty<Byte> batteryPercentage;
     protected LazyProperty<Void> flatTrimStatus;
+    protected LazyProperty<Rotation> rotation;
+    protected LazyProperty<Speed> speed;
+    protected LazyProperty<Double> altitude;
+    protected LazyProperty<DroneVersion> version;
 
     private boolean loaded = false;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public DroneActor(){
+        batteryPercentage = new LazyProperty<>();
+        state = new LazyProperty<>(FlyingState.LANDED); //TODO: request this on connect
+        flatTrimStatus = new LazyProperty<>();
+        location = new LazyProperty<>();
+        rotation = new LazyProperty<>();
+        speed = new LazyProperty<>();
+        altitude = new LazyProperty<>();
+        version = new LazyProperty<>();
+
         receive(createListeners(). //register specific handlers for implementation
 
-                // External -> drone
-                match(LocationRequestMessage.class, s -> handleMessage(location.getValue(), sender(), self())).
-                match(FlyingStateRequestMessage.class, s -> handleMessage(state.getValue(), sender(), self())).
-                match(BatteryPercentageRequestMessage.class, s -> handleMessage(state.getValue(), sender(), self())).
+                // General property requests
+                match(PropertyRequestMessage.class, this::handlePropertyRequest).
+
+                // General commands (can be converted to switch as well, depends on embedded data)
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
 
                 // Drone -> external
-                        match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
-                match(BatteryPercentageChangedMessage.class, s -> batteryPercentage.setValue(s.getPercent())).
+                match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
+                match(BatteryPercentageChangedMessage.class, s -> {
+                    batteryPercentage.setValue(s.getPercent());
+                    log.info("Battery=[{}]", s.getPercent());
+                }).
                 match(FlyingStateChangedMessage.class, s -> state.setValue(s.getState())).
                 match(FlatTrimChangedMessage.class, s -> flatTrimStatus.setValue(null)).
-                matchAny(o -> log.info("received unknown message.")).build());
+                match(AttitudeChangedMessage.class, s -> rotation.setValue(new Rotation(s.getRoll(), s.getPitch(), s.getYaw()))).
+                match(AltitudeChangedMessage.class, s -> altitude.setValue(s.getAltitude())).
+                match(SpeedChangedMessage.class, s -> speed.setValue(new Speed(s.getSpeedX(), s.getSpeedY(), s.getSpeedZ()))).
+                match(ProductVersionChangedMessage.class, s -> version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()))).
+                matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
         }
+
+    protected void handlePropertyRequest(PropertyRequestMessage msg){
+        switch(msg.getType()){
+            case LOCATION:
+                handleMessage(location.getValue(), sender(), self());
+                break;
+            case ALTITUDE:
+                handleMessage(altitude.getValue(), sender(), self());
+                break;
+            case BATTERY:
+                handleMessage(batteryPercentage.getValue(), sender(), self());
+                break;
+            case FLATTRIMSTATUS:
+                handleMessage(flatTrimStatus.getValue(), sender(), self());
+                break;
+            case FLYINGSTATE:
+                handleMessage(state.getValue(), sender(), self());
+                break;
+            case ROTATION:
+                handleMessage(rotation.getValue(), sender(), self());
+                break;
+            case SPEED:
+                handleMessage(speed.getValue(), sender(), self());
+                break;
+            case VERSION:
+                handleMessage(version.getValue(), sender(), self());
+                break;
+        }
+    }
 
     protected <T> void handleMessage(final Future<T> value, final ActorRef sender, final ActorRef self){
         final ExecutionContext ec = getContext().system().dispatcher();
         value.onSuccess(new OnSuccess<T>() {
             @Override
             public void onSuccess(T result) throws Throwable {
-                sender.tell(result, self);
+                sender.tell(new ExecutionResultMessage(result), self); // prevent message is null error
             }
         }, ec);
         value.onFailure(new OnFailure() {
@@ -98,7 +147,7 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void init(Promise<Void> p);
     protected abstract void takeOff(Promise<Void> p);
     protected abstract void land(Promise<Void> p);
-    protected abstract void emergency(Promise<Void> p);
+    //protected abstract void emergency(Promise<Void> p); // @TODO
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }
