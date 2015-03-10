@@ -28,9 +28,9 @@ GET           /assignments/:id                      controllers.AssignmentContro
 DELETE        /assignments/:id                      controllers.AssignmentController.delete(id: Long)
 
 # User mgmt
-GET           /users/                               controllers.UserController.getAll()
-POST          /users/                               controllers.UserController.create()
-DELETE        /users/                               controllers.UserController.deleteAll()
+GET           /users                                controllers.UserController.getAll()
+POST          /users                                controllers.UserController.create()
+DELETE        /users                                controllers.UserController.deleteAll()
 GET           /users/me                             controllers.UserController.currentUser()
 GET           /users/:id                            controllers.UserController.get(id: Long)
 PUT           /users/:id                            controllers.UserController.update(id: Long)
@@ -38,10 +38,9 @@ DELETE        /users/:id                            controllers.UserController.d
 GET           /users/:id/authToken                  controllers.UserController.getUserAuthToken(id: Long)
 GET           /users/:id/invalidateAuthToken        controllers.UserController.invalidateAuthToken(id: Long)
 
-
 #Basestation calls
-GET           /basestations/                        controllers.BasestationController.getAll()
-POST          /basestations/                        controllers.BasestationController.add()
+GET           /basestations                         controllers.BasestationController.getAll()
+POST          /basestations                         controllers.BasestationController.add()
 GET           /basestations/:id                     controllers.BasestationController.get(id: Long)
 PUT           /basestations/:id                     controllers.BasestationController.update(id: Long)
 DELETE        /basestations/:id                     controllers.BasestationController.delete(id: Long)
