@@ -101,7 +101,7 @@ public class ArDrone3 extends UntypedActor {
             log.warning("Command sign bit overflow.");
         } else {
             int payloadLen = frame.getData().length() - 4;
-          
+
             ByteString payload = null;
             if (payloadLen > 0) {
                 payload = frame.getData().slice(4, 4 + payloadLen);

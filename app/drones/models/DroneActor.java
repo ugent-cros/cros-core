@@ -28,6 +28,11 @@ public abstract class DroneActor extends AbstractActor {
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public DroneActor(){
+        batteryPercentage = new LazyProperty<>();
+        state = new LazyProperty<>();
+        flatTrimStatus = new LazyProperty<>();
+        location = new LazyProperty<>();
+
         receive(createListeners(). //register specific handlers for implementation
 
                 // External -> drone
