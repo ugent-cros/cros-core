@@ -6,6 +6,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.DroneDiscoveredMessage;
+import drones.messages.StopMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
 import scala.concurrent.Promise;
@@ -41,6 +42,7 @@ public class Bepop extends DroneActor {
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
+            protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
         } else {
             setupDrone(s);
@@ -53,18 +55,17 @@ public class Bepop extends DroneActor {
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
         } else {
-            protocol.tell(new DroneCommandMessage<>(msg), self());
+            protocol.tell(new DroneCommandMessage(msg), self());
         }
     }
 
     private void setupDrone(final DroneDiscoveredMessage details) {
         // Assumes the drone is on the ground
-        log.info("Discovery finished. Setting up protocol handlers");
-        protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()))); //TODO: passing self here might cause problems
+        log.info("Discovery finished, forwarding connection details to protocl");
+        protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()); //TODO: use forward here?
 
-     //   sendMessage(new RequestStatusCommand());
-      //  sendMessage(new OutdoorCommand(!indoor));
+        sendMessage(new RequestStatusCommand());
+        sendMessage(new OutdoorCommand(!indoor));
     }
 
     @Override
@@ -73,8 +74,12 @@ public class Bepop extends DroneActor {
         synchronized (lock) {
             if (initPromise == null) {
                 initPromise = p;
+
+                protocol = getContext().actorOf(Props.create(ArDrone3.class,
+                        () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, self()))); // Initialize listening already before broadcasting itself
+
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT))); //TODO: passing self here might cause problems
+                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT)));
             }
         }
     }

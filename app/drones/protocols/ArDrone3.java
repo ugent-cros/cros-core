@@ -12,6 +12,8 @@ import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
+import drones.messages.DroneDiscoveredMessage;
+import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
@@ -57,12 +59,10 @@ public class ArDrone3 extends UntypedActor {
     private ByteString recvBuffer;
 
     private final ActorRef listener; //to respond messages to
+    private final ActorRef udpManager;
 
-    public ArDrone3(DroneConnectionDetails details, final ActorRef listener) {
-        this.details = details;
+    public ArDrone3(int receivingPort, final ActorRef listener) {
         this.listener = listener;
-
-        this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
 
         this.channels = new EnumMap<>(FrameDirection.class);
         this.ackChannels = new ArrayList<>();
@@ -71,14 +71,25 @@ public class ArDrone3 extends UntypedActor {
         initChannels(); // Initialize channels
         initHandlers(); //TODO: static lazy loading
 
-        final ActorRef mgr = Udp.get(getContext().system()).getManager();
-        mgr.tell(
-                UdpMessage.bind(getSelf(), new InetSocketAddress("localhost", details.getReceivingPort())),
+        udpManager = Udp.get(getContext().system()).getManager();
+        udpManager.tell(
+                UdpMessage.bind(getSelf(), new InetSocketAddress("localhost", receivingPort)),
                 getSelf());
     }
 
-    public void sendData(ByteString data) {
-        connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
+    public boolean sendData(ByteString data) {
+        if(senderAddress != null){
+            connectionMgrRef.tell(UdpMessage.send(data, senderAddress), getSelf());
+            return true;
+        } else {
+            log.debug("Sending data without discovery data available.");
+            return false;
+        }
+    }
+
+    private void stop(){
+        udpManager.tell(UdpMessage.unbind(), self());
+        getContext().stop(self());
     }
 
     private Packet extractPacket(Frame frame) {
@@ -100,7 +111,7 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void processPacket(Packet packet) {
-        if(packet == null)
+        if (packet == null)
             return;
 
         CommandTypeProcessor p = processors.get(packet.getType());
@@ -275,10 +286,16 @@ public class ArDrone3 extends UntypedActor {
 
     @Override
     public void preStart() {
-        log.info("Starting ARDrone 3.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
+        log.info("Starting ARDrone 3.0 communication protocol.");
         getContext().system().scheduler().scheduleOnce(
                 Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
                 getSelf(), "tick", getContext().dispatcher(), null);
+    }
+
+    private void droneDiscovered(DroneConnectionDetails details) {
+        log.debug("Drone discovery received at protocol handler.");
+        this.details = details;
+        this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
     }
 
     @Override
@@ -287,7 +304,34 @@ public class ArDrone3 extends UntypedActor {
             this.connectionMgrRef = getSender();
             getContext().become(ready(connectionMgrRef));
             log.debug("Socket ARDRone 3.0 bound.");
-        } else unhandled(msg);
+        } else if (msg instanceof DroneDiscoveredMessage) {
+            droneDiscovered((DroneConnectionDetails) msg);
+        } else if(msg instanceof StopMessage){
+            stop();
+        } else {
+            unhandled(msg);
+        }
+    }
+
+    private Procedure<Object> ready(final ActorRef socket) {
+        return msg -> {
+            if (msg instanceof Udp.Received) {
+                final Udp.Received r = (Udp.Received) msg;
+                processRawData(r.data());
+            } else if (msg.equals("tick")) {
+                tick();
+            } else if (msg.equals(UdpMessage.unbind())) {
+                socket.tell(msg, getSelf());
+            } else if (msg instanceof Udp.Unbound) {
+                getContext().stop(getSelf());
+            } else if (msg instanceof DroneCommandMessage) {
+                dispatchCommand((DroneCommandMessage) msg);
+            } else if (msg instanceof DroneConnectionDetails) {
+                droneDiscovered((DroneConnectionDetails) msg);
+            } else if(msg instanceof StopMessage){
+                stop();
+            } else unhandled(msg);
+        };
     }
 
     private void dispatchCommand(DroneCommandMessage msg) {
@@ -316,22 +360,7 @@ public class ArDrone3 extends UntypedActor {
                 getSelf(), "tick", getContext().dispatcher(), null);
     }
 
-    private Procedure<Object> ready(final ActorRef socket) {
-        return msg -> {
-            if (msg instanceof Udp.Received) {
-                final Udp.Received r = (Udp.Received) msg;
-                processRawData(r.data());
-            } else if (msg.equals("tick")) {
-                tick();
-            } else if (msg.equals(UdpMessage.unbind())) {
-                socket.tell(msg, getSelf());
-            } else if (msg instanceof Udp.Unbound) {
-                getContext().stop(getSelf());
-            } else if (msg instanceof DroneCommandMessage) {
-                dispatchCommand((DroneCommandMessage) msg);
-            } else unhandled(msg);
-        };
-    }
+
 
     private void sendDataOnChannel(Packet packet, DataChannel channel) {
         ByteString data = PacketHelper.buildPacket(packet);
