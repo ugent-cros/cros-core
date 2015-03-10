@@ -43,10 +43,6 @@ public class DroneController {
 
                 List<ControllerHelper.Link> links = new ArrayList<>();
                 links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
-                links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-                links.add(new ControllerHelper.Link("add", controllers.routes.DroneController.add().url()));
-                links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(d.id).url()));
-                links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(d.id).url()));
                 links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(d.id).url()));
                 droneNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(droneNode);

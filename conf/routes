@@ -22,10 +22,10 @@ GET           /drones/:id/abort                     controllers.DroneController.
 POST          /login                                controllers.SecurityController.login()
 
 # Assignment calls
-GET           /assignments                      controllers.AssignmentController.getAllAssignments()
-POST          /assignments                      controllers.AssignmentController.createAssignment()
-GET           /assignments/:id                  controllers.AssignmentController.getAssignment(id: Long)
-DELETE        /assignments/:id                  controllers.AssignmentController.deleteAssigment(id: Long)
+GET           /assignments                          controllers.AssignmentController.getAll()
+POST          /assignments                          controllers.AssignmentController.create()
+GET           /assignments/:id                      controllers.AssignmentController.get(id: Long)
+DELETE        /assignments/:id                      controllers.AssignmentController.delete(id: Long)
 
 # User mgmt
 GET           /users/                               controllers.UserController.allUsers()
@@ -40,11 +40,11 @@ GET           /users/:id/invalidateAuthToken        controllers.UserController.i
 
 
 #Basestation calls
-GET           /basestations/                    controllers.BasestationController.getAll()
-POST          /basestations/                    controllers.BasestationController.add()
-GET           /basestations/:id                 controllers.BasestationController.get(id: Long)
-PUT           /basestations/:id                 controllers.BasestationController.update(id: Long)
-DELETE        /basestations/:id                 controllers.BasestationController.delete(id: Long)
+GET           /basestations/                        controllers.BasestationController.getAll()
+POST          /basestations/                        controllers.BasestationController.add()
+GET           /basestations/:id                     controllers.BasestationController.get(id: Long)
+PUT           /basestations/:id                     controllers.BasestationController.update(id: Long)
+DELETE        /basestations/:id                     controllers.BasestationController.delete(id: Long)
 
 # Map static resources from the /public folder to the /assets URL path
 GET           /assets/*file                         controllers.Assets.at(path="/public", file)

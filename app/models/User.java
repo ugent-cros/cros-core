@@ -123,6 +123,10 @@ public class User extends Model {
         this.lastName = lastName;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        return true;
+    }
 
     public static byte[] getSha512(String value) {
         try {
