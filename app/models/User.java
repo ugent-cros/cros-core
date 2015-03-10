@@ -143,6 +143,20 @@ public class User extends Model {
                 && this.role.equals(other.role);
     }
 
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (firstName != null ? firstName.hashCode() : 0);
+        result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
+        result = 31 * result + (creationDate != null ? creationDate.hashCode() : 0);
+        result = 31 * result + (email != null ? email.hashCode() : 0);
+        result = 31 * result + (role != null ? role.hashCode() : 0);
+        result = 31 * result + (shaPassword != null ? Arrays.hashCode(shaPassword) : 0);
+        result = 31 * result + (authToken != null ? authToken.hashCode() : 0);
+        return result;
+    }
+
     public static byte[] getSha512(String value) {
         try {
             return MessageDigest.getInstance("SHA-512").digest(value.getBytes("UTF-8"));

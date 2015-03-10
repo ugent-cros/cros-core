@@ -90,6 +90,18 @@ public class Drone extends Model {
                 && this.communicationType == other.communicationType;
     }
 
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + weightLimitation;
+        result = 31 * result + (status != null ? status.hashCode() : 0);
+        result = 31 * result + (address != null ? address.hashCode() : 0);
+        result = 31 * result + (communicationType != null ? communicationType.hashCode() : 0);
+        return result;
+    }
+
     public static Finder<Long,Drone> find = new Finder<>(Long.class, Drone.class);
 
     @JsonRootName("location")

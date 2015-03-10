@@ -66,5 +66,20 @@ public class Checkpoint extends Model {
                 && this.waitingTime == checkpoint.waitingTime;
     }
 
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        long temp;
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        temp = Double.doubleToLongBits(longitude);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lattitude);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(altitude);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + waitingTime;
+        return result;
+    }
+
     public static Finder<Long, Checkpoint> find = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
 }

@@ -76,6 +76,18 @@ public class Assignment extends Model {
                 && routesAreEqual;
     }
 
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (route != null ? route.hashCode() : 0);
+        result = 31 * result + progress;
+        result = 31 * result + priority;
+        result = 31 * result + (creator != null ? creator.hashCode() : 0);
+        result = 31 * result + (assignedDrone != null ? assignedDrone.hashCode() : 0);
+        return result;
+    }
+
     public static Finder<Long,Assignment> find = new Finder<>(Long.class, Assignment.class);
 
 }

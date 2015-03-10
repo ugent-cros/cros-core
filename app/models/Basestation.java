@@ -50,5 +50,14 @@ public class Basestation extends Model {
                 && this.checkpoint.equals(basestation.checkpoint);
     }
 
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (checkpoint != null ? checkpoint.hashCode() : 0);
+        return result;
+    }
+
     public static Finder<Long, Basestation> find = new Finder<>(Long.class, Basestation.class);
 }
