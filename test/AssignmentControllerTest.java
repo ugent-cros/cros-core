@@ -3,6 +3,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import controllers.routes;
 import models.Assignment;
+import models.Checkpoint;
 import models.User;
 import org.junit.*;
 import play.mvc.Http;
@@ -26,16 +27,19 @@ public class AssignmentControllerTest extends TestSuperclass {
     public static void initialiseAssignmentControllerTest() {
         // Start application
         startFakeApplication();
-
-        // Mock out some user
-        User john = new User("john@mail.com", "password123", "John", "Doe");
-        john.save();
-        User jane = new User("jane@mail.com", "123password", "Jane", "Doe");
-        jane.save();
+        // Create some checkpoints and add them to a list
+        Checkpoint chckpnt1 = new Checkpoint(1,2,3);
+        Checkpoint chckpnt2 = new Checkpoint(2,4,6);
+        Checkpoint chckpnt3 = new Checkpoint(3,6,9);
+        List<Checkpoint> list1 = new ArrayList<>();
+        List<Checkpoint> list2 = new ArrayList<>();
+        list1.add(chckpnt1);
+        list2.add(chckpnt2);
+        list2.add(chckpnt3);
 
         // Add assignments to the database
-        testAssignments.add(new Assignment(null, john));
-        testAssignments.add(new Assignment(null, jane));
+        testAssignments.add(new Assignment(list1, getUser()));
+        testAssignments.add(new Assignment(list2, getUser()));
         Ebean.save(testAssignments);
     }
 
@@ -47,12 +51,13 @@ public class AssignmentControllerTest extends TestSuperclass {
 
     @Test
     public void getAll_DatabaseFilledWithAssigments_SuccessfullyGetAllAssignments() {
-        Result result = callAction(routes.ref.AssignmentController.getAllAssignments(), authorizeRequest(new FakeRequest(), getUser()));
+        Result result = callAction(routes.ref.AssignmentController.getAllAssignments(),
+                authorizeRequest(new FakeRequest(), getUser()));
         String jsonString = contentAsString(result);
 
         System.out.println(jsonString);
         ObjectMapper mapper = new ObjectMapper();
-        try {
+            try {
             JsonNode node = mapper.readTree(jsonString).get("assignment");
             if(node.isArray()) {
                 for(int i = 0; i < node.size(); ++i) {

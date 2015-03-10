@@ -1,12 +1,10 @@
 package models;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
-import controllers.routes;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,7 +18,7 @@ public class Assignment extends Model {
     public Long id;
 
     @Constraints.Required
-    @ManyToMany
+    @ManyToMany(cascade = CascadeType.ALL)
     public List<Checkpoint> route;
 
     @Constraints.Required
@@ -29,11 +27,9 @@ public class Assignment extends Model {
     @Constraints.Required
     public int priority;
 
-    @Constraints.Required
     @OneToOne
     public User creator;
 
-    @Constraints.Required
     @OneToOne
     public Drone assignedDrone;
 

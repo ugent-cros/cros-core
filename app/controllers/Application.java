@@ -1,6 +1,8 @@
 package controllers;
 
 import com.avaje.ebean.Ebean;
+import models.Assignment;
+import models.Checkpoint;
 import models.Drone;
 import models.User;
 import play.mvc.Controller;
@@ -21,6 +23,7 @@ public class Application extends Controller {
 
     public static Result initDb() {
         Drone.find.all().forEach(d -> d.delete());
+        Assignment.find.all().forEach(d -> d.delete());
         User.find.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
@@ -32,10 +35,17 @@ public class Application extends Controller {
         Ebean.save(drones);
 
         List<User> users = new ArrayList<>();
-        users.add(new User("cros@test.be", "freddy", "cros", "tester"));
+        User user = new User("cros@test.be", "freddy", "cros", "tester");
+        users.add(user);
 		users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
 
         Ebean.save(users);
+
+        Checkpoint checkpoint = new Checkpoint(1,2,3);
+        List<Checkpoint> checkpoints = new ArrayList<>();
+        checkpoints.add(checkpoint);
+        Assignment assignment = new Assignment(checkpoints, user);
+        assignment.save();
 
         return ok();
     }

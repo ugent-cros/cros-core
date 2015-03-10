@@ -1,13 +1,19 @@
 package controllers;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import models.Assignment;
+import models.User;
 import play.data.Form;
 import play.libs.Json;
+import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
+import utilities.JsonHelper;
 
-import static play.mvc.Results.badRequest;
-import static play.mvc.Results.ok;
+import java.util.List;
+
+import static play.mvc.Results.*;
 
 /**
  * Created by Benjamin on 5/03/2015.
@@ -15,26 +21,38 @@ import static play.mvc.Results.ok;
 @Security.Authenticated(Secured.class)
 public class AssignmentController {
     public static Result getAllAssignments() {
-        return ok();
+        List<Assignment> all = Assignment.find.all();
+        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(all), Assignment.class);
+        return ok(nodeWithRoot);
     }
 
     public static Result createAssignment() {
-        Form<Assignment> assignmentForm = Form.form(Assignment.class).bindFromRequest();
+        JsonNode body = Controller.request().body().asJson();
+        JsonNode strippedBody = JsonHelper.removeRootElement(body, Assignment.class);
+        Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);
 
-        if (assignmentForm.hasErrors())
-            return badRequest(assignmentForm.errors().toString());
+        if (form.hasErrors())
+            return badRequest(form.errors().toString());
 
-        Assignment assignment = assignmentForm.get();
+        User user = (User) Http.Context.current().args.get("user");
+        if(user == null)
+            return unauthorized();
+
+        Assignment assignment = form.get();
+        assignment.creator = user;
+
         assignment.save();
-        return ok(Json.toJson(assignment));
+        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(assignment), Assignment.class);
+        return ok(nodeWithRoot);
     }
 
     public static Result getAssignment(long id) {
         Assignment assignment = Assignment.find.byId(id);
         if(assignment == null)
-            return badRequest("Requested assignment not found");
+            return notFound("Requested assignment not found");
 
-        return ok(Json.toJson(assignment));
+        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(assignment), Assignment.class);
+        return ok(nodeWithRoot);
     }
 
     public static Result deleteAssigment(long id) {
