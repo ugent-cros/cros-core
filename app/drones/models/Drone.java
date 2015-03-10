@@ -24,6 +24,7 @@ public class Drone implements DroneControl, DroneStatus {
         this.droneActor = droneActor;
     }
 
+    // Fix when merged with code Cedrid
     @Override
     public Future<Void> init() {
         //return ask(droneActor, new InitRequestMessage(), TIMEOUT).map(s -> (Void) s, Akka.system().dispatcher());
