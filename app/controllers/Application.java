@@ -42,13 +42,13 @@ public class Application extends Controller {
             ObjectNode result = Json.newObject();
             result.put("long", v.getLongtitude());
             result.put("lat", v.getLatitude());
-            result.put("heigth", v.getHeigth());
+            result.put("altitude", v.getHeigth());
             return ok(result);
         });
     }
 
     public static F.Promise<Result> takeOff(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+       Drone d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");

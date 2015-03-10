@@ -90,6 +90,8 @@ public class PilotingStateHandler extends CommandProcessor {
             lat = 0d;
         if(longit == 500.0d)
             longit = 0d;
+        if(alt == 500.0d)
+            alt = 0d;
 
         return new LocationChangedMessage(longit, lat, alt);
 

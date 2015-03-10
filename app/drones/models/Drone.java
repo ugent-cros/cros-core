@@ -55,7 +55,7 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<FlyingState> getFlyingState() {
-        return ask(droneActor, new FlyingStateRequestMessage(), TIMEOUT).map(new Mapper<Object, FlyingState>() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {
                 return (FlyingState) ((ExecutionResultMessage) s).getValue();
             }
@@ -64,7 +64,7 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<Location> getLocation() {
-        return ask(droneActor, new LocationRequestMessage(), TIMEOUT).map(new Mapper<Object, Location>() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.LOCATION), TIMEOUT).map(new Mapper<Object, Location>() {
             public Location apply(Object s) {
                 return (Location) ((ExecutionResultMessage) s).getValue();
             }
@@ -73,9 +73,36 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<Byte> getBatteryPercentage() {
-        return ask(droneActor, new BatteryPercentageRequestMessage(), TIMEOUT).map(new Mapper<Object, Byte>() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.BATTERY), TIMEOUT).map(new Mapper<Object, Byte>() {
             public Byte apply(Object s) {
                 return (Byte) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Double> getAltitude() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.ALTITUDE), TIMEOUT).map(new Mapper<Object, Double>() {
+            public Double apply(Object s) {
+                return (Double) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Rotation> getRotation() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.ROTATION), TIMEOUT).map(new Mapper<Object, Rotation>() {
+            public Rotation apply(Object s) {
+                return (Rotation) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Speed> getSpeed() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.SPEED), TIMEOUT).map(new Mapper<Object, Speed>() {
+            public Speed apply(Object s) {
+                return (Speed) ((ExecutionResultMessage) s).getValue();
             }
         }, Akka.system().dispatcher());
     }

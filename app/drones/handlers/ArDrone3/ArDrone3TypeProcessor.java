@@ -53,6 +53,6 @@ public class ArDrone3TypeProcessor extends CommandTypeProcessor {
 
     @Override
     protected void initHandlers() {
-        addCommandClassHandler(ArDrone3Class.PILOTING.getVal(), new PilotingStateHandler());
+        addCommandClassHandler(ArDrone3Class.PILOTINGSTATE.getVal(), new PilotingStateHandler());
     }
 }
