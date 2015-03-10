@@ -73,7 +73,7 @@ public class FrameHelper {
         b.putByte(frame.getId());
         b.putByte(frame.getSeq());
 
-        b.putInt(frame.getData().length(), BYTE_ORDER);
+        b.putInt(frame.getData().length() + 7, BYTE_ORDER);
 
         return b.result().concat(frame.getData());
     }

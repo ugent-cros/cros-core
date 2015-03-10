@@ -337,9 +337,25 @@ public class ArDrone3 extends UntypedActor {
     private void dispatchCommand(DroneCommandMessage msg) {
         try {
             // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
-            //TODO: ReceiveBuilder
-            Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
-            handler.invoke(null, msg.getMessage());
+            //TODO: abstract class, receivebuilder
+            //TODO: remove this hack
+           // Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
+           // handler.invoke(null, msg.getMessage());
+
+            //HORRIBLE HACK, WILL BE FIXED LATER
+            if(msg.getMessage() instanceof FlatTrimCommand){
+                handle((FlatTrimCommand)msg.getMessage());
+            } else if(msg.getMessage() instanceof TakeOffCommand){
+                handle((TakeOffCommand)msg.getMessage());
+            } else if(msg.getMessage() instanceof LandCommand){
+                handle((LandCommand)msg.getMessage());
+            } else if(msg.getMessage() instanceof RequestStatusCommand){
+                handle((RequestStatusCommand)msg.getMessage());
+            } else if(msg.getMessage() instanceof OutdoorCommand){
+                handle((OutdoorCommand)msg.getMessage());
+            } else {
+                log.warning("No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
+            }
         } catch (Exception e) {
             log.warning("No command dispatch for [{}] command.", msg.getMessage().getClass().getCanonicalName());
         }
@@ -413,7 +429,7 @@ public class ArDrone3 extends UntypedActor {
         sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
     }
 
-    private void handle(OutdoorCommand cmd) {
+    public void handle(OutdoorCommand cmd) {
         sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
     }
 }
