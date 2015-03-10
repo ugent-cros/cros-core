@@ -69,8 +69,8 @@ public class ArDrone3Discovery extends UntypedActor {
 
     private Procedure<Object> connected(final ActorRef connection) {
         return msg -> {
-            if (msg instanceof ByteString) {
-                ByteString b = (ByteString) msg;
+            if (msg instanceof Tcp.Received) {
+                ByteString b = ((Tcp.Received) msg).data();
                 String data = b.decodeString("UTF-8");
 
                 ObjectMapper m = new ObjectMapper();
