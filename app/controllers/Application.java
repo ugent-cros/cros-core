@@ -47,6 +47,37 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> getAltitude(){
+        Drone d = Fleet.getFleet().getDrone("bepop");
+        return F.Promise.wrap(d.getAltitude()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("altitude", v);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> getSpeed(){
+        Drone d = Fleet.getFleet().getDrone("bepop");
+        return F.Promise.wrap(d.getSpeed()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("vx", v.getVx());
+            result.put("vy", v.getVy());
+            result.put("vz", v.getVz());
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> getRotation(){
+        Drone d = Fleet.getFleet().getDrone("bepop");
+        return F.Promise.wrap(d.getRotation()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("yaw", v.getYaw());
+            result.put("pitch", v.getPitch());
+            result.put("roll", v.getRoll());
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> takeOff(){
        Drone d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.takeOff()).map(v -> {

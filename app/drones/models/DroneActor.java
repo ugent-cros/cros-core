@@ -82,6 +82,7 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case ROTATION:
                 handleMessage(rotation.getValue(), sender(), self());
+                break;
             case SPEED:
                 handleMessage(speed.getValue(), sender(), self());
                 break;
