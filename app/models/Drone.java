@@ -1,6 +1,6 @@
 package models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
@@ -9,6 +9,7 @@ import utilities.ControllerHelper;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import java.beans.Transient;
 
 /**
  * Created by matthias on 19/02/2015.
@@ -16,9 +17,8 @@ import javax.persistence.Id;
 
 @Entity
 @JsonRootName("drone")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Drone extends Model {
-
-
 
     @JsonView(ControllerHelper.Summary.class)
     @Id
@@ -51,12 +51,13 @@ public class Drone extends Model {
         this.communicationType = communicationType;
     }
 
+    @Transient
     public int getBatteryStatus() {
         return -1;
     }
 
-    @JsonIgnore
-    public Location location() {
+    @Transient
+    public Location getLocation() {
         return new Location();
     }
 
@@ -72,8 +73,26 @@ public class Drone extends Model {
         // TODO: implement
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(obj == null)
+            return false;
+        if(obj == this)
+            return true;
+        if(!(obj instanceof Drone))
+            return false;
+        Drone other = (Drone) obj;
+        return this.id.equals(other.id)
+                && this.name.equals(other.name)
+                && this.weightLimitation == other.weightLimitation
+                && this.status == other.status
+                && this.address.equals(other.address)
+                && this.communicationType == other.communicationType;
+    }
+
     public static Finder<Long,Drone> find = new Finder<>(Long.class, Drone.class);
 
+    @JsonRootName("location")
     public class Location {
         @Constraints.Required
         public double longitude;
