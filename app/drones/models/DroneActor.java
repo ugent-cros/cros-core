@@ -29,7 +29,7 @@ public abstract class DroneActor extends AbstractActor {
 
     public DroneActor(){
         batteryPercentage = new LazyProperty<>();
-        state = new LazyProperty<>();
+        state = new LazyProperty<>(FlyingState.LANDED); //TODO: request this on connect
         flatTrimStatus = new LazyProperty<>();
         location = new LazyProperty<>();
 
