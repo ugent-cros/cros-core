@@ -1,18 +1,15 @@
-import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.routes;
 import models.User;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Result;
-import play.test.FakeApplication;
 import play.test.FakeRequest;
-import controllers.routes;
-
-
-import java.util.HashMap;
-import java.util.Map;
+import utilities.JsonHelper;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
@@ -58,48 +55,38 @@ public class UserTest extends TestSuperclass {
 
         FakeRequest create = fakeRequest().withJsonBody(Json.toJson(user));
 
-        Result result = callAction(routes.ref.UserController.createUser(), create);
+        Result result = callAction(routes.ref.UserController.create(), create);
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
 
-        result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getUser()));
+        result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getUser()));
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
 
-        result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getReadOnlyAdmin()));
+        result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getReadOnlyAdmin()));
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
     }
 
     @Test
     public void userCreation_ByAdmin_AddsUserToDB() {
-
-        //User info
-        String firstName = "Yasser";
-        String lastName = "Deceukelier";
         String email = "unauthorized.usercreation@user.tests.cros.com";
-        String password = "testtest";
+        User u = new User(email,"testtest","Yasser","Deceukelier");
+        ObjectNode objectNode = (ObjectNode) Json.toJson(u);
+        objectNode.put("password", "testtest");
 
         // Create json representation
-        ObjectMapper jsonMapper = new ObjectMapper();
+        JsonNode node = JsonHelper.addRootElement(objectNode, User.class);
 
-        ObjectNode userNode = jsonMapper.createObjectNode();
-        userNode.put("firstName", firstName);
-        userNode.put("lastName", lastName);
-        userNode.put("email", email);
-        userNode.put("password", password);
+        FakeRequest create = fakeRequest().withJsonBody(node);
 
-        ObjectNode root = jsonMapper.createObjectNode();
-        root.put("User", userNode);
-
-        FakeRequest create = fakeRequest().withJsonBody(root);
-
-        Result result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getAdmin()));
-        System.err.println(contentAsString(result));
+        Result result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getAdmin()));
         assertThat(status(result)).isEqualTo(CREATED);
 
+        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
+        u.id = receivedUser.id; // bypass id because u has no id yet
+        assertThat(u).isEqualTo(receivedUser);
+
         User createdUser = User.findByEmail(email);
-        assertThat(createdUser).isNotNull();
-        assertThat(createdUser.firstName).isEqualTo(firstName);
-        assertThat(createdUser.lastName).isEqualTo(lastName);
-        assertThat(createdUser.checkPassword(password)).isTrue();
+        System.out.println("COMPARED2: " + createdUser);
+        assertThat(u).isEqualTo(createdUser);
 
         createdUser.delete();
     }
@@ -132,54 +119,40 @@ public class UserTest extends TestSuperclass {
 
     @Test
     public void updateUser_ByAdmin_UpdatesDBEntry() {
-
-        // Create original user
-        String firstName = "John";
-        String lastName = "Doe";
-        String email = "admin.userupdate@user.tests.cros.com";
-
-        User u = new User(email, "password", firstName, lastName);
+        User u = new User("admin.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
 
         // Send request to update this user
-        String newFirstName = "Jane";
-        u.firstName = newFirstName;
-        JsonNode data = Json.toJson(u);
+        u.firstName = "Jane";
+        JsonNode data = JsonHelper.addRootElement(Json.toJson(u), User.class);
 
         Result result = updateUser(u.id, data, getAdmin());
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(newFirstName);
-
-        u.delete();
+        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+        assertThat(receivedUser).isEqualTo(u);
+        User fetchedUser = User.find.byId(u.id);
+        assertThat(fetchedUser).isEqualTo(u);
     }
 
     @Test
     public void updateUser_ByUserHimself_UpdatesDBEntry() {
-
-        // Create original user
-        String firstName = "John";
-        String lastName = "Doe";
-        String email = "himself.userupdate@user.tests.cros.com";
-
-        User u = new User(email, "password", firstName, lastName);
+        User u = new User("himself.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
 
         // Send request to update this user
-        String newFirstName = "Jane";
-        u.firstName = newFirstName;
-        JsonNode data = Json.toJson(u);
+        u.firstName = "Jane";
+        JsonNode data = JsonHelper.addRootElement(Json.toJson(u), User.class);
 
         Result result = updateUser(u.id, data, u);
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(newFirstName);
-
-        u.delete();
+        User receivedUser = Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+        assertThat(receivedUser).isEqualTo(u);
+        User fetchedUser = User.find.byId(u.id);
+        assertThat(fetchedUser).isEqualTo(u);
     }
 
     private Result updateUser(Long id, JsonNode data, User requester) {
@@ -187,7 +160,7 @@ public class UserTest extends TestSuperclass {
         if(requester != null) {
             update = authorizeRequest(update, requester);
         }
-        Result result = callAction(routes.ref.UserController.updateUser(id), update);
+        Result result = callAction(routes.ref.UserController.update(id), update);
         return result;
     }
 
@@ -195,10 +168,10 @@ public class UserTest extends TestSuperclass {
     @Test
     public void allUsers_ByUnpriviledgedUser_ReturnsUnauthorized() {
 
-        Result result = callAction(routes.ref.UserController.allUsers(), fakeRequest());
+        Result result = callAction(routes.ref.UserController.getAll(), fakeRequest());
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
 
-        result = callAction(routes.ref.UserController.allUsers(), authorizeRequest(fakeRequest(), getUser()));
+        result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getUser()));
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
     }
 
@@ -206,10 +179,10 @@ public class UserTest extends TestSuperclass {
     @Test
     public void allUsers_ByPriviledgedUser_ReturnsListOfUsers() {
 
-        Result result = callAction(routes.ref.UserController.allUsers(), authorizeRequest(fakeRequest(), getAdmin()));
+        Result result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(OK);
 
-        result = callAction(routes.ref.UserController.allUsers(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+        result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
         assertThat(status(result)).isEqualTo(OK);
 
         // TODO: compare with list given by User class

@@ -1,6 +1,8 @@
 package models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
@@ -14,6 +16,8 @@ import java.util.*;
 
 @Entity
 @Table(name="useraccount")
+@JsonRootName("user")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User extends Model {
 
     public static enum Role {
@@ -51,7 +55,7 @@ public class User extends Model {
     @Constraints.MaxLength(256)
     public String lastName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Date creationDate;
 
     public Date getCreationDate() {
@@ -124,8 +128,19 @@ public class User extends Model {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return true;
+    public boolean equals(Object obj) {
+        if(obj == null)
+            return false;
+        if(obj == this)
+            return true;
+        if(!(obj instanceof User))
+            return false;
+        User other = (User) obj;
+        return this.id.equals(other.id)
+                && this.firstName.equals(other.firstName)
+                && this.lastName.equals(other.lastName)
+                && this.email.equals(other.email)
+                && this.role.equals(other.role);
     }
 
     public static byte[] getSha512(String value) {
