@@ -51,7 +51,7 @@ public abstract class DroneActor extends AbstractActor {
         value.onSuccess(new OnSuccess<T>() {
             @Override
             public void onSuccess(T result) throws Throwable {
-                sender.tell(result, self);
+                sender.tell(new ExecutionResultMessage<>(result), self); // prevent message is null error
             }
         }, ec);
         value.onFailure(new OnFailure() {

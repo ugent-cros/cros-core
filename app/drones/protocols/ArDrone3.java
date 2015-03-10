@@ -232,7 +232,7 @@ public class ArDrone3 extends UntypedActor {
 
     private void addSendChannel(FrameType type, byte id) {
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
-        DataChannel ch = new DataChannel(id, type);
+        DataChannel ch = new DataChannel(id, type, 0, 100, 3);
         if (type == FrameType.DATA_WITH_ACK) {
             ackChannels.add(ch);
         }

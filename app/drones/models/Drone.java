@@ -22,13 +22,13 @@ public class Drone implements DroneControl, DroneStatus {
 
     private final ActorRef droneActor;
 
-    public Drone(final ActorRef droneActor){
+    public Drone(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }
 
     @Override
     public Future<Void> init() {
-        return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>(){
+        return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
             }
@@ -37,7 +37,7 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> takeOff() {
-        return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>(){
+        return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
             }
@@ -55,27 +55,27 @@ public class Drone implements DroneControl, DroneStatus {
 
     @Override
     public Future<FlyingState> getFlyingState() {
-        return ask(droneActor, new FlyingStateRequestMessage(), TIMEOUT).map(new Mapper<Object, FlyingState>(){
+        return ask(droneActor, new FlyingStateRequestMessage(), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {
-                return (FlyingState)s;
+                return (FlyingState) ((ExecutionResultMessage) s).getValue();
             }
         }, Akka.system().dispatcher());
     }
 
     @Override
     public Future<Location> getLocation() {
-        return ask(droneActor, new LocationRequestMessage(), TIMEOUT).map(new Mapper<Object, Location>(){
+        return ask(droneActor, new LocationRequestMessage(), TIMEOUT).map(new Mapper<Object, Location>() {
             public Location apply(Object s) {
-                return (Location)s;
+                return (Location) ((ExecutionResultMessage) s).getValue();
             }
         }, Akka.system().dispatcher());
     }
 
     @Override
     public Future<Byte> getBatteryPercentage() {
-        return ask(droneActor, new BatteryPercentageRequestMessage(), TIMEOUT).map(new Mapper<Object, Byte>(){
+        return ask(droneActor, new BatteryPercentageRequestMessage(), TIMEOUT).map(new Mapper<Object, Byte>() {
             public Byte apply(Object s) {
-                return (Byte)s;
+                return (Byte) ((ExecutionResultMessage) s).getValue();
             }
         }, Akka.system().dispatcher());
     }

@@ -63,8 +63,8 @@ public class Bepop extends DroneActor {
         protocol = getContext().actorOf(Props.create(ArDrone3.class,
                 () -> new ArDrone3(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()))); //TODO: passing self here might cause problems
 
-        sendMessage(new RequestStatusCommand());
-        sendMessage(new OutdoorCommand(!indoor));
+     //   sendMessage(new RequestStatusCommand());
+      //  sendMessage(new OutdoorCommand(!indoor));
     }
 
     @Override
