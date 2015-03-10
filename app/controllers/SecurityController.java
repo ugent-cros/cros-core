@@ -8,7 +8,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
-import play.mvc.Security;
 import utilities.annotations.Authenticator;
 
 /**
@@ -45,15 +44,8 @@ public class SecurityController extends Controller {
         String authToken = user.getAuthToken();
         ObjectNode authTokenJson = Json.newObject();
         authTokenJson.put(AUTH_TOKEN, authToken);
-        response().setCookie(AUTH_TOKEN, authToken);
 
         return ok(authTokenJson);
-    }
-
-    @Security.Authenticated(Secured.class)
-    public static Result logout() {
-        response().discardCookie(AUTH_TOKEN);
-        return ok();
     }
 
     public static class Login {

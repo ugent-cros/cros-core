@@ -37,7 +37,8 @@ public class Application extends Controller {
         List<User> users = new ArrayList<>();
         User user = new User("cros@test.be", "freddy", "cros", "tester");
         users.add(user);
-		users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.get(0).role = User.Role.ADMIN;
 
         Ebean.save(users);
 

@@ -1,24 +1,22 @@
 import com.avaje.ebean.Ebean;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import controllers.routes;
 import models.Drone;
-import org.junit.*;
-
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import play.libs.Json;
 import play.mvc.Http;
 import play.mvc.Result;
-import scala.tools.nsc.typechecker.Analyzer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
-import static org.fest.assertions.Assertions.*;
 
 /**
  * Created by Benjamin on 4/03/2015.
@@ -86,53 +84,54 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void addDrone_DatabaseFilledWithDrones_ReturnedDroneIsCorrect() {
-        Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("name", "super drone");
-        parameters.put("address", "192.168.0.15");
-        parameters.put("communicationType", "DEFAULT");
-        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
-        ObjectMapper mapper = new ObjectMapper();
+        Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"ipAddress");
+        System.out.println(Json.toJson(droneToBeAdded).asText());
+        JsonNode node = Json.toJson(droneToBeAdded).get("drone");
+
+        Result result = callAction(routes.ref.DroneController.add(), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
         try {
-            JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
-            assertThat(node.get("name").asText()).isEqualTo("super drone");
-            assertThat(node.get("address").asText()).isEqualTo("192.168.0.15");
-            assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
-
-            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
-            assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
-
-            // remove drone afterwards
-            Drone d = Drone.find.byId(node.get("id").asLong());
-            d.delete();
+            Drone d = new ObjectMapper().readValue(contentAsString(result), Drone.class);
+            System.out.println(d);
         } catch (IOException e) {
-            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
+            e.printStackTrace();
         }
+        System.out.println(Json.toJson(contentAsString(result)));
+        Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
+
+        assertThat(droneToBeAdded.id).equals(receivedDrone.id);
+        assertThat(droneToBeAdded.address).equals(receivedDrone.address);
+        assertThat(droneToBeAdded.communicationType).equals(receivedDrone.communicationType);
+        assertThat(droneToBeAdded.name).equals(receivedDrone.name);
+
+        Drone fetchedDrone = Drone.find.where().eq("name", droneToBeAdded.name).findUnique();
+
+        assertThat(droneToBeAdded.id).equals(fetchedDrone.id);
+        assertThat(droneToBeAdded.address).equals(fetchedDrone.address);
+        assertThat(droneToBeAdded.communicationType).equals(fetchedDrone.communicationType);
+        assertThat(droneToBeAdded.name).equals(fetchedDrone.name);
     }
 
     @Test
     public void updateDrone_DatabaseFilledWithDrones_UpdatesAreCorrect() {
         Drone d = new Drone("test1", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT,"address1");
         d.save();
-        Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("name", "test2");
-        parameters.put("address", "address2");
-        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withFormUrlEncodedBody(parameters), getAdmin()));
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode node = mapper.readTree(contentAsString(result)).get("drone");
-            assertThat(node.get("name").asText()).isEqualTo("test2");
-            assertThat(node.get("address").asText()).isEqualTo("address2");
-            assertThat(node.get("communicationType").asText()).isEqualTo("DEFAULT");
-            assertThat(node.get("status").asText()).isEqualTo("AVAILABLE");
+        d.name = "test2";
+        d.name = "address2";
+        JsonNode node = Json.toJson(d).get("drone");
+        Result result = callAction(routes.ref.DroneController.update(d.id), authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
-            Result result2 = callAction(routes.ref.DroneController.get(node.get("id").asInt()), authorizeRequest(fakeRequest(), getAdmin()));
-            assertThat(contentAsString(result2)).isEqualTo(contentAsString(result));
+        Drone receivedDrone = Json.fromJson(Json.toJson(contentAsString(result)), Drone.class);
+        assertThat(d.id).equals(receivedDrone.id);
+        assertThat(d.address).equals(receivedDrone.address);
+        assertThat(d.communicationType).equals(receivedDrone.communicationType);
+        assertThat(d.name).equals(receivedDrone.name);
 
-            // remove drone afterwards
-            d.delete();
-        } catch (IOException e) {
-            Assert.fail("Cast failed: invalid JSON string\nError message: " + e);
-        }
+        Drone fetchedDrone = Drone.find.byId(d.id);
+
+        assertThat(d.id).equals(fetchedDrone.id);
+        assertThat(d.address).equals(fetchedDrone.address);
+        assertThat(d.communicationType).equals(fetchedDrone.communicationType);
+        assertThat(d.name).equals(fetchedDrone.name);
     }
 
     @Test

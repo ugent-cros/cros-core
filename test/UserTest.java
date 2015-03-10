@@ -1,6 +1,10 @@
 import com.avaje.ebean.Ebean;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.User;
 import org.junit.*;
+import play.libs.Json;
 import play.mvc.Result;
 import play.test.FakeApplication;
 import play.test.FakeRequest;
@@ -50,13 +54,9 @@ public class UserTest extends TestSuperclass {
     @Test
     public void userCreation_ByUnpriviledgedUser_ReturnsUnauthorized() {
 
-        Map<String, String> data = new HashMap<>();
-        data.put("email", "unauthorized.usercreation@user.tests.cros.com");
-        data.put("password", "testtest");
-        data.put("firstName", "Yasser");
-        data.put("lastName", "Deceukelier");
+        User user = new User("unauthorized.usercreation@user.tests.cros.com", "testtest", "Yasser", "Deceukelier");
 
-        FakeRequest create = fakeRequest().withFormUrlEncodedBody(data);
+        FakeRequest create = fakeRequest().withJsonBody(Json.toJson(user));
 
         Result result = callAction(routes.ref.UserController.createUser(), create);
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
@@ -71,24 +71,35 @@ public class UserTest extends TestSuperclass {
     @Test
     public void userCreation_ByAdmin_AddsUserToDB() {
 
-        Map<String, String> data = new HashMap<>();
-        String email = "authorized.usercreation@user.tests.cros.com";
+        //User info
         String firstName = "Yasser";
         String lastName = "Deceukelier";
-        data.put("email", email);
-        data.put("password", "testtest");
-        data.put("firstName", firstName);
-        data.put("lastName", lastName);
+        String email = "unauthorized.usercreation@user.tests.cros.com";
+        String password = "testtest";
 
-        FakeRequest create = fakeRequest().withFormUrlEncodedBody(data);
+        // Create json representation
+        ObjectMapper jsonMapper = new ObjectMapper();
+
+        ObjectNode userNode = jsonMapper.createObjectNode();
+        userNode.put("firstName", firstName);
+        userNode.put("lastName", lastName);
+        userNode.put("email", email);
+        userNode.put("password", password);
+
+        ObjectNode root = jsonMapper.createObjectNode();
+        root.put("User", userNode);
+
+        FakeRequest create = fakeRequest().withJsonBody(root);
 
         Result result = callAction(routes.ref.UserController.createUser(), authorizeRequest(create, getAdmin()));
+        System.err.println(contentAsString(result));
         assertThat(status(result)).isEqualTo(CREATED);
 
         User createdUser = User.findByEmail(email);
         assertThat(createdUser).isNotNull();
         assertThat(createdUser.firstName).isEqualTo(firstName);
         assertThat(createdUser.lastName).isEqualTo(lastName);
+        assertThat(createdUser.checkPassword(password)).isTrue();
 
         createdUser.delete();
     }
@@ -105,11 +116,9 @@ public class UserTest extends TestSuperclass {
         u.save();
 
         // Send request to update this user
-        Map<String, String> data = new HashMap<>();
-        firstName = "Jane";
-        data.put("firstName", firstName);
-        data.put("lastName", lastName);
-        data.put("email", email);
+        String newFirstName = "Jane";
+        u.firstName = newFirstName;
+        JsonNode data = Json.toJson(u);
 
         Result result = updateUser(u.id, data, null);
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
@@ -133,18 +142,16 @@ public class UserTest extends TestSuperclass {
         u.save();
 
         // Send request to update this user
-        Map<String, String> data = new HashMap<>();
-        firstName = "Jane";
-        data.put("firstName", firstName);
-        data.put("lastName", lastName);
-        data.put("email", email);
+        String newFirstName = "Jane";
+        u.firstName = newFirstName;
+        JsonNode data = Json.toJson(u);
 
         Result result = updateUser(u.id, data, getAdmin());
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(firstName);
+        assertThat(u.firstName).isEqualTo(newFirstName);
 
         u.delete();
     }
@@ -161,24 +168,22 @@ public class UserTest extends TestSuperclass {
         u.save();
 
         // Send request to update this user
-        Map<String, String> data = new HashMap<>();
-        firstName = "Jane";
-        data.put("firstName", firstName);
-        data.put("lastName", lastName);
-        data.put("email", email);
+        String newFirstName = "Jane";
+        u.firstName = newFirstName;
+        JsonNode data = Json.toJson(u);
 
         Result result = updateUser(u.id, data, u);
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         u = User.find.byId(u.id);
-        assertThat(u.firstName).isEqualTo(firstName);
+        assertThat(u.firstName).isEqualTo(newFirstName);
 
         u.delete();
     }
 
-    private Result updateUser(Long id, Map<String, String> data, User requester) {
-        FakeRequest update = fakeRequest().withFormUrlEncodedBody(data);
+    private Result updateUser(Long id, JsonNode data, User requester) {
+        FakeRequest update = fakeRequest().withJsonBody(data);
         if(requester != null) {
             update = authorizeRequest(update, requester);
         }

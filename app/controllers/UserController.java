@@ -1,26 +1,20 @@
 package controllers;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.User;
-import play.data.DynamicForm;
 import play.data.Form;
-import play.data.validation.ValidationError;
 import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static play.mvc.Controller.request;
-import static play.mvc.Controller.session;
 import static play.mvc.Results.*;
 
 /**
@@ -34,6 +28,7 @@ public class UserController {
     public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.allUsers().url());
 
     private static Form<User> form = Form.form(User.class);
+    private static final String PASSWORD_FIELD_KEY = "password";
 
     public static Result allUsers() {
 
@@ -42,9 +37,9 @@ public class UserController {
         ObjectNode root = jsonMapper.createObjectNode();
 
         // Add users list
-        ArrayNode usersNode = root.putArray("users");
+        ArrayNode usersNode = root.putArray("resource");
         for(User user : allUsers) {
-            JsonNode userNode = shortUserToJson(user);
+            JsonNode userNode = ControllerHelper.objectToJsonWithView(user, ControllerHelper.Summary.class);
             usersNode.add(userNode);
         }
 
@@ -59,11 +54,14 @@ public class UserController {
     @Authentication({User.Role.ADMIN})
     public static Result createUser() {
 
-        Form<User> filledForm = form.bindFromRequest();
+        JsonNode postData = request().body().asJson();
+        Form<User> filledForm = form.bind(postData.get("User"));
 
         // Check password
-        if(!User.PasswordValidator.isValid(filledForm.field("password").value())) {
-            filledForm.reject("password", (String)User.PasswordValidator.getErrorMessageKey()._1);
+        Form.Field passwordField = filledForm.field(PASSWORD_FIELD_KEY);
+        String passwordError = User.validatePassword(passwordField.value());
+        if(passwordError != null) {
+            filledForm.reject(PASSWORD_FIELD_KEY, passwordError);
         }
 
         if(filledForm.hasErrors()) {
@@ -95,12 +93,21 @@ public class UserController {
     }
 
     @Authentication({User.Role.ADMIN})
+    public static Result deleteAll() {
+
+        User client = SecurityController.getUser();
+        User.find.where().ne("id", client.id).findList().forEach(u -> u.delete());
+
+        return allUsers();
+    }
+
+    @Authentication({User.Role.ADMIN})
     public static Result deleteUser(Long id) {
 
         // Check if user exists
         User userToDelete = User.find.byId(id);
         if(userToDelete == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Delete the user
@@ -127,7 +134,7 @@ public class UserController {
 
         User user = User.find.byId(id);
         if(user == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Add user to result
@@ -195,16 +202,20 @@ public class UserController {
         // Check if user exists
         User user = User.find.byId(id);
         if(user == null) {
-            return notFound("No such user");
+            return notFound();
         }
 
         // Check input
-        Form<User> filledForm = form.bindFromRequest();
+        JsonNode postData = request().body().asJson();
+        Form<User> filledForm = form.bind(postData.get("User"));
 
         // Check if password is long enough in filled form
-        String password = filledForm.field("password").value();
-        if(password != null && !User.PasswordValidator.isValid(password)) {
-            filledForm.reject("password", (String)User.PasswordValidator.getErrorMessageKey()._1);
+        String password = filledForm.field(PASSWORD_FIELD_KEY).value();
+        if(password != null) {
+            String error = User.validatePassword(password);
+            if(error != null) {
+                filledForm.reject(PASSWORD_FIELD_KEY, error);
+            }
         }
         // Check rest of input
         if(filledForm.hasErrors()) {
@@ -236,13 +247,5 @@ public class UserController {
             return notFound();
         }
         return redirect(controllers.routes.UserController.getUser(client.id));
-    }
-
-    private static JsonNode shortUserToJson(User user) {
-
-        ObjectNode root = jsonMapper.createObjectNode();
-        root.put("email", user.getEmail());
-        root.put("href", controllers.routes.UserController.getUser(user.id).url());
-        return root;
     }
 }
