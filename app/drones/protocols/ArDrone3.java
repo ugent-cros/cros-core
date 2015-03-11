@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.Procedure;
+import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
@@ -307,7 +308,27 @@ public class ArDrone3 extends UntypedActor {
             log.debug("Socket ARDRone 3.0 bound.");
 
             senderRef = getSender();
-            getContext().become(ready(senderRef));
+
+            // Setup handlers
+            getContext().become(ReceiveBuilder
+                    .match(String.class, "tick"::equals, s -> tick())
+                    .match(Udp.Received.class, s -> processRawData(s.data()))
+                    .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
+                    .match(StopMessage.class, s -> stop())
+
+                     // Drone commands
+                    .match(FlatTrimCommand.class, s -> handleFlatTrim())
+                    .match(TakeOffCommand.class, s -> handleTakeoff())
+                    .match(LandCommand.class, s -> handleLand())
+                    .match(RequestStatusCommand.class, s -> handleRequestStatus())
+                    .match(OutdoorCommand.class, s -> handleOutdoor(s))
+                    .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .matchAny(s -> {
+                        log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        unhandled(s);
+                    })
+                    .build());
         } else if (msg instanceof DroneConnectionDetails) {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
@@ -317,55 +338,7 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private Procedure<Object> ready(final ActorRef socket) {
-        return msg -> {
-            if (msg instanceof Udp.Received) {
-                final Udp.Received r = (Udp.Received) msg;
-                processRawData(r.data());
-            } else if (msg.equals("tick")) {
-                tick();
-            } else if (msg.equals(UdpMessage.unbind())) {
-                socket.tell(msg, getSelf());
-            } else if (msg instanceof Udp.Unbound) {
-                getContext().stop(getSelf());
-            } else if (msg instanceof DroneCommandMessage) {
-                dispatchCommand((DroneCommandMessage) msg);
-            } else if (msg instanceof DroneConnectionDetails) {
-                droneDiscovered((DroneConnectionDetails) msg);
-            } else if (msg instanceof StopMessage) {
-                stop();
-            } else unhandled(msg);
-        };
-    }
 
-    private void dispatchCommand(DroneCommandMessage msg) {
-        try {
-            // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
-            //TODO: abstract class, receivebuilder
-            //TODO: remove this hack
-            // Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
-            // handler.invoke(null, msg.getMessage());
-
-            //HORRIBLE HACK, WILL BE FIXED LATER
-            if (msg.getMessage() instanceof FlatTrimCommand) {
-                handleFlatTrim();
-            } else if (msg.getMessage() instanceof TakeOffCommand) {
-                handleTakeoff();
-            } else if (msg.getMessage() instanceof LandCommand) {
-                handleLand();
-            } else if (msg.getMessage() instanceof RequestStatusCommand) {
-                handleRequestStatus();
-            } else if (msg.getMessage() instanceof OutdoorCommand) {
-                handleOutdoor((OutdoorCommand) msg.getMessage());
-            } else if (msg.getMessage() instanceof RequestSettingsCommand) {
-                handleRequestSettings();
-            } else {
-                log.warning("No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
-            }
-        } catch (Exception e) {
-            log.warning("No command dispatch for [{}] command.", msg.getMessage().getClass().getCanonicalName());
-        }
-    }
 
     private void tick() {
         long time = System.currentTimeMillis();

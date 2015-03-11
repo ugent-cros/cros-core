@@ -52,10 +52,13 @@ public class Bepop extends DroneActor {
     }
 
     private <T extends Serializable> void sendMessage(T msg) {
+        if(msg == null)
+            return;
+
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
         } else {
-            protocol.tell(new DroneCommandMessage(msg), self());
+            protocol.tell(msg, self());
         }
     }
 
