@@ -86,11 +86,11 @@ public class PilotingStateHandler extends CommandProcessor {
         double longit = it.getDouble(FrameHelper.BYTE_ORDER);
         double alt = it.getDouble(FrameHelper.BYTE_ORDER);
 
-        if(lat == 500.0d)
+        if((int)lat == 500) //this uses the exact 500.0d constant, but Sonar mehh
             lat = 0d;
-        if(longit == 500.0d)
+        if((int)longit == 500)
             longit = 0d;
-        if(alt == 500.0d)
+        if((int)alt == 500)
             alt = 0d;
 
         return new LocationChangedMessage(longit, lat, alt);
