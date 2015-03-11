@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
+import utilities.ModelHelper;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -60,9 +61,9 @@ public class Checkpoint extends Model {
             return false;
         Checkpoint checkpoint = (Checkpoint) obj;
         return this.id.equals(checkpoint.id)
-                && this.longitude == checkpoint.longitude
-                && this.lattitude == checkpoint.lattitude
-                && this.altitude == checkpoint.altitude
+                && ModelHelper.compareFloatingPoints(this.longitude, checkpoint.longitude)
+                && ModelHelper.compareFloatingPoints(this.lattitude, checkpoint.lattitude)
+                && ModelHelper.compareFloatingPoints(this.altitude, checkpoint.altitude)
                 && this.waitingTime == checkpoint.waitingTime;
     }
 
