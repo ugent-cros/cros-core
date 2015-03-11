@@ -7,11 +7,27 @@ public class ControllerHelper {
 
     public static class Link {
 
-        public String rel;
-        public String path;
+        private String rel;
+        private String path;
 
         public Link(String rel, String path) {
             this.rel = rel;
+            this.path = path;
+        }
+
+        public String getRel() {
+            return rel;
+        }
+
+        public void setRel(String rel) {
+            this.rel = rel;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
             this.path = path;
         }
     }

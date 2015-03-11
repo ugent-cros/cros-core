@@ -142,11 +142,10 @@ public class User extends Model {
             return MessageDigest.getInstance("SHA-512").digest(value.getBytes("UTF-8"));
         } catch (NoSuchAlgorithmException e) {
             play.Logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
         } catch (UnsupportedEncodingException e) {
             play.Logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
         }
+        return value.getBytes();
     }
 
     public boolean checkPassword(String password) {

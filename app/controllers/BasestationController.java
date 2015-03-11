@@ -26,8 +26,6 @@ import static play.mvc.Results.*;
  */
 public class BasestationController {
 
-    private static Form<Basestation> form = Form.form(Basestation.class);
-
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ObjectMapper objectMapper = new ObjectMapper();
