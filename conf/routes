@@ -5,6 +5,16 @@
 # Home page
 GET           /                                     controllers.Application.index()
 GET           /initDB                               controllers.Application.initDb()
+GET           /init                                 controllers.Application.initDrone()
+GET           /battery                              controllers.Application.getBatteryPercentage()
+GET           /location                             controllers.Application.getLocation()
+GET           /rotation                             controllers.Application.getRotation()
+GET           /speed                                controllers.Application.getSpeed()
+GET           /altitude                             controllers.Application.getAltitude()
+GET           /version                              controllers.Application.getVersion()
+
+#GET          /takeoff                              controllers.Application.takeOff()
+GET           /land                                 controllers.Application.land()
 
 # Drone calls
 GET           /drones                               controllers.DroneController.getAll()
