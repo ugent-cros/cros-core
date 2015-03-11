@@ -24,9 +24,9 @@ public class Fleet {
     }
 
     public DroneCommander createBepop(String name, String ip, boolean indoor){
-        if(drones.containsKey(name))
-            return null;
-        else {
+        if(drones.containsKey(name)) {
+            return drones.get(name); //TODO: check with others about this behaviour
+        }  else {
             ActorRef ref = Akka.system().actorOf(Props.create(Bepop.class, () -> new Bepop(ip, indoor)));
             DroneCommander d = new DroneCommander(ref);
             drones.put(name, d);
