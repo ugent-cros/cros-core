@@ -13,6 +13,7 @@ import akka.util.ByteStringBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import drones.messages.DroneDiscoveredMessage;
+import drones.messages.StopMessage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -67,8 +68,11 @@ public class ArDrone3Discovery extends UntypedActor {
             getContext().become(ReceiveBuilder
                     .match(Tcp.Received.class, b -> processData(b.data()))
                     .match(Tcp.CommandFailed.class, m -> commandFailed())
+                    .match(StopMessage.class, m -> getContext().stop(getSelf()))
                     .match(Tcp.ConnectionClosed.class, m -> connectionClosed()).build());
             sendDiscoveryMsg(getSender());
+        } else if(msg instanceof StopMessage){
+            getContext().stop(getSelf());
         }
     }
 

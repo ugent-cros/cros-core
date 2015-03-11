@@ -28,6 +28,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<DroneVersion> version;
 
     private boolean loaded = false;
+    private boolean loading = false;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -113,10 +114,27 @@ public abstract class DroneActor extends AbstractActor {
     }
 
     private void initInternal(final ActorRef sender, final ActorRef self){
-        if(!loaded){
-            loaded = true;
+        if(!loading && !loaded){
+            loading = true;
+            final ExecutionContext ec = getContext().system().dispatcher();
+
             log.debug("Attempting init.");
+
             Promise<Void> p = Futures.promise();
+            p.future().onFailure(new OnFailure() {
+                @Override
+                public void onFailure(Throwable failure) throws Throwable {
+                    loading = false;
+                    loaded = false;
+                }
+            }, ec);
+            p.future().onSuccess(new OnSuccess<Void>(){
+                @Override
+                public void onSuccess(Void result) throws Throwable {
+                    loaded = true;
+                    loading = false;
+                }
+            }, ec);
             handleMessage(p.future(), sender, self);
             init(p);
         }

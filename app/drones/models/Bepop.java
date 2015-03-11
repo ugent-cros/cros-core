@@ -19,6 +19,7 @@ import java.io.Serializable;
 public class Bepop extends DroneActor {
 
     private ActorRef protocol;
+    private ActorRef discoveryProtocol;
 
     private final String ip;
     private final boolean indoor;
@@ -43,12 +44,12 @@ public class Bepop extends DroneActor {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
             protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
-            initPromise = null;
         } else {
             setupDrone(s);
 
             initPromise.success(null);
         }
+        initPromise = null;
     }
 
     private <T extends Serializable> void sendMessage(T msg) {
@@ -65,7 +66,7 @@ public class Bepop extends DroneActor {
     private void setupDrone(final DroneDiscoveredMessage details) {
         // Assumes the drone is on the ground
         log.info("Discovery finished, forwarding connection details to protocl");
-        protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()); //TODO: use forward here?
+        protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
 
         sendMessage(new OutdoorCommand(!indoor));
@@ -80,10 +81,17 @@ public class Bepop extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
+                if(protocol != null){
+                    protocol.tell(new StopMessage(), self());
+                }
                 protocol = getContext().actorOf(Props.create(ArDrone3.class,
                         () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, Bepop.this.self()))); // Initialize listening already before broadcasting itself
 
-                getContext().actorOf(Props.create(ArDrone3Discovery.class,
+
+                if(discoveryProtocol != null){
+                    discoveryProtocol.tell(new StopMessage(), self());
+                }
+                discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
                         () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT)));
             }
         }
