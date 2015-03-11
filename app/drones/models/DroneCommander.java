@@ -15,14 +15,14 @@ import static akka.pattern.Patterns.ask;
 /**
  * Created by Cedric on 3/9/2015.
  */
-public class Drone implements DroneControl, DroneStatus {
+public class DroneCommander implements DroneControl, DroneStatus {
 
     private static final Timeout TIMEOUT = new Timeout(Duration.create(2, TimeUnit.SECONDS));
     private static final Timeout INIT_TIMEOUT = new Timeout(Duration.create(100, TimeUnit.SECONDS));
 
     private final ActorRef droneActor;
 
-    public Drone(final ActorRef droneActor) {
+    public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }
 

@@ -17,24 +17,24 @@ public class Fleet {
         return fleet;
     }
 
-    private Map<String, Drone> drones;
+    private Map<String, DroneCommander> drones;
 
     public Fleet(){
         drones = new HashMap<>();
     }
 
-    public Drone createBepop(String name, String ip, boolean indoor){
+    public DroneCommander createBepop(String name, String ip, boolean indoor){
         if(drones.containsKey(name))
             return null;
         else {
             ActorRef ref = Akka.system().actorOf(Props.create(Bepop.class, () -> new Bepop(ip, indoor)));
-            Drone d = new Drone(ref);
+            DroneCommander d = new DroneCommander(ref);
             drones.put(name, d);
             return d;
         }
     }
 
-    public Drone getDrone(String name){
+    public DroneCommander getDrone(String name){
         return drones.get(name);
     }
 }
