@@ -145,6 +145,7 @@ public class User extends Model {
         } catch (UnsupportedEncodingException e) {
             play.Logger.error(e.getMessage(), e);
         }
+        // TODO: fix exception handling
         return value.getBytes();
     }
 
