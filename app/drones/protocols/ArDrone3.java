@@ -53,14 +53,12 @@ public class ArDrone3 extends UntypedActor {
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
     private ActorRef senderRef;
 
     private ByteString recvBuffer;
 
     private final ActorRef listener; //to respond messages to
-    private final ActorRef udpManager;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
         this.listener = listener;
@@ -72,8 +70,8 @@ public class ArDrone3 extends UntypedActor {
         initChannels(); // Initialize channels
         initHandlers(); //TODO: static lazy loading
 
-        udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
+        final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
+        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
 
@@ -89,7 +87,10 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void stop() {
-        udpManager.tell(UdpMessage.unbind(), self());
+        log.debug("Unbinding ARDrone 3 UDP listener.");
+        if(senderRef != null) {
+            senderRef.tell(UdpMessage.unbind(), self());
+        }
         getContext().stop(self());
     }
 
@@ -297,7 +298,6 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
-        this.details = details;
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }

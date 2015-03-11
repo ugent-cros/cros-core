@@ -64,6 +64,7 @@ public class ArDrone3Discovery extends UntypedActor {
         } else if (msg instanceof Tcp.Connected) {
             log.info("Discovery protocol connected to [{}]", remote);
 
+            //TODO: add timeout for receiving data when no response
             getSender().tell(TcpMessage.register(getSelf()), getSelf());
             getContext().become(ReceiveBuilder
                     .match(Tcp.Received.class, b -> processData(b.data()))

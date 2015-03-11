@@ -42,7 +42,8 @@ public class Bepop extends DroneActor {
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
-            protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
+           //TODO: https://github.com/akka/akka/issues/15882 fix unbound when failed
+           // protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
         } else {
             setupDrone(s);
@@ -81,11 +82,12 @@ public class Bepop extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
-                if(protocol != null){
-                    protocol.tell(new StopMessage(), self());
+                if(protocol == null){
+                    //TODO: randomize listening port for multiple drones later
+                    //TODO: dispose each time when udp bound is fixed
+                    protocol = getContext().actorOf(Props.create(ArDrone3.class,
+                            () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, Bepop.this.self()))); // Initialize listening already before broadcasting itself
                 }
-                protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                        () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, Bepop.this.self()))); // Initialize listening already before broadcasting itself
 
 
                 if(discoveryProtocol != null){
