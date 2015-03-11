@@ -7,12 +7,14 @@ import akka.event.LoggingAdapter;
 import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.Procedure;
+import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import drones.messages.DroneDiscoveredMessage;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
@@ -62,49 +64,51 @@ public class ArDrone3Discovery extends UntypedActor {
             log.info("Discovery protocol connected to [{}]", remote);
 
             getSender().tell(TcpMessage.register(getSelf()), getSelf());
-            getContext().become(connected(getSender()));
+            getContext().become(ReceiveBuilder
+                    .match(Tcp.Received.class, b -> processData(b.data()))
+                    .match(Tcp.CommandFailed.class, m -> commandFailed())
+                    .match(Tcp.ConnectionClosed.class, m -> connectionClosed()).build());
             sendDiscoveryMsg(getSender());
         }
     }
 
-    private Procedure<Object> connected(final ActorRef connection) {
-        return msg -> {
-            if (msg instanceof Tcp.Received) {
-                ByteString b = ((Tcp.Received) msg).data();
-                String data = b.decodeString("UTF-8");
+    private void processData(ByteString b) throws IOException {
+        String data = b.decodeString("UTF-8");
 
-                ObjectMapper m = new ObjectMapper();
-                JsonNode node = m.readTree(data);
+        ObjectMapper m = new ObjectMapper();
+        JsonNode node = m.readTree(data);
 
-                int status = node.path("status").intValue();
-                if(status != 0){
-                    log.error("Drone did not acknowledge our discovery. Other controller might be in control.");
-                    listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
-                } else {
-                    int c2d_port = node.path("c2d_port").intValue();
-                    int arstream_fragment_size = node.path("arstream_fragment_size").intValue();
-                    int arstream_fragment_maximum_number = node.path("arstream_fragment_maximum_number").intValue();
-                    int arstream_max_ack_interval = node.path("arstream_max_ack_interval").intValue();
-                    int c2d_update_port = node.path("c2d_update_port").intValue();
-                    int c2d_user_port = node.path("c2d_user_port").intValue();
-                    log.info("Discovery succes, c2d port = [{}]", c2d_port);
-                    listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.SUCCESS, c2d_port, commandPort,
-                            arstream_fragment_size, arstream_fragment_maximum_number, arstream_max_ack_interval,
-                            c2d_update_port, c2d_user_port ), getSelf());
-                }
-                sentResult = true;
-            } else if (msg instanceof Tcp.CommandFailed) {
-                log.error("Failed discovery protocol after connection, TCP buffer is full.");
-                listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
-                sentResult = true;
-                getContext().stop(getSelf());
-            } else if (msg instanceof Tcp.ConnectionClosed) {
-                if(!sentResult){
-                    log.error("Drone closed connection before result.");
-                    listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
-                }
-                getContext().stop(getSelf());
-            }
-        };
+        int status = node.path("status").intValue();
+        if(status != 0){
+            log.error("Drone did not acknowledge our discovery. Other controller might be in control.");
+            listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
+        } else {
+            int c2d_port = node.path("c2d_port").intValue();
+            int arstream_fragment_size = node.path("arstream_fragment_size").intValue();
+            int arstream_fragment_maximum_number = node.path("arstream_fragment_maximum_number").intValue();
+            int arstream_max_ack_interval = node.path("arstream_max_ack_interval").intValue();
+            int c2d_update_port = node.path("c2d_update_port").intValue();
+            int c2d_user_port = node.path("c2d_user_port").intValue();
+            log.info("Discovery succes, c2d port = [{}]", c2d_port);
+            listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.SUCCESS, c2d_port, commandPort,
+                    arstream_fragment_size, arstream_fragment_maximum_number, arstream_max_ack_interval,
+                    c2d_update_port, c2d_user_port ), getSelf());
+        }
+        sentResult = true;
+    }
+
+    private void connectionClosed(){
+        if(!sentResult){
+            log.error("Drone closed connection before result.");
+            listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
+        }
+        getContext().stop(getSelf());
+    }
+
+    private void commandFailed(){
+        log.error("Failed discovery protocol after connection, TCP buffer is full.");
+        listener.tell(new DroneDiscoveredMessage(DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED), getSelf());
+        sentResult = true;
+        getContext().stop(getSelf());
     }
 }
