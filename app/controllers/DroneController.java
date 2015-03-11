@@ -34,16 +34,16 @@ public class DroneController {
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
 
         ArrayNode array = objectMapper.createArrayNode();
-        for(Drone d : Drone.find.all()) {
+        for(Drone drone : Drone.FIND.all()) {
             try {
-                ObjectNode droneNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(d));
+                ObjectNode droneNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(drone));
 
                 List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(d.id).url()));
+                links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(drone.getId()).url()));
                 droneNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(droneNode);
             } catch (JsonProcessingException e) {
-                e.printStackTrace();
+                play.Logger.error(e.getMessage(), e);
                 return internalServerError();
             }
         }
@@ -59,18 +59,18 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result get(long i) {
-        Drone d = Drone.find.byId(i);
+        Drone drone = Drone.FIND.byId(i);
 
-        if (d == null)
+        if (drone == null)
             return notFound();
 
         ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = (ObjectNode) Json.toJson(d);
+        ObjectNode node = (ObjectNode) Json.toJson(drone);
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(d.id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.getId()).url()));
         links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(d.id).url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(d.id).url()));
+        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.getId()).url()));
+        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.getId()).url()));
         node.put("links", (JsonNode) mapper.valueToTree(links));
 
         return ok(JsonHelper.addRootElement(node, Drone.class));
@@ -92,10 +92,10 @@ public class DroneController {
 
         // Add links to result
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.getId()).url()));
         links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.id).url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.id).url()));
+        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.getId()).url()));
+        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.getId()).url()));
         responseNode.put("links", (JsonNode) new ObjectMapper().valueToTree(links));
 
         return created(JsonHelper.addRootElement(responseNode, Drone.class));
@@ -103,7 +103,7 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     public static Result update(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -114,14 +114,14 @@ public class DroneController {
             return badRequest(f.errors().toString());
 
         Drone updatedDrone = f.get();
-        updatedDrone.id = drone.id;
+        updatedDrone.setId(drone.getId());
         updatedDrone.update();
-        return get(updatedDrone.id);
+        return get(updatedDrone.getId());
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result location(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -131,7 +131,7 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result testConnection(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -142,7 +142,7 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result battery(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -153,7 +153,7 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result cameraCapture(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -164,7 +164,7 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     public static Result emergency(Long id) {
-        Drone drone = Drone.find.byId(id);
+        Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
 
@@ -174,13 +174,13 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     public static Result deleteAll() {
-        Drone.find.all().forEach(d -> d.delete());
+        Drone.FIND.all().forEach(d -> d.delete());
         return ok();
     }
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long i) {
-        Drone d = Drone.find.byId(i);
+        Drone d = Drone.FIND.byId(i);
         if (d == null)
             return notFound();
 

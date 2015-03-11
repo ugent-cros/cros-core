@@ -19,15 +19,15 @@ public class Application extends Controller {
     }
 
     public static Result initDb() {
-        Drone.find.all().forEach(d -> d.delete());
-        Assignment.find.all().forEach(d -> d.delete());
-        User.find.all().forEach(d -> d.delete());
+        Drone.FIND.all().forEach(d -> d.delete());
+        Assignment.FIND.all().forEach(d -> d.delete());
+        User.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
-        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "192.168.0.7"));
-        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "192.168.0.8"));
-        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "192.168.0.9"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "192.168.0.10"));
+        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address1"));
+        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address2"));
+        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address3"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address4"));
 
         Ebean.save(drones);
 
@@ -35,7 +35,7 @@ public class Application extends Controller {
         User user = new User("cros@test.be", "freddy", "cros", "tester");
         users.add(user);
         users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
-        users.get(0).role = User.Role.ADMIN;
+        users.get(0).setRole(User.Role.ADMIN);
 
         Ebean.save(users);
 

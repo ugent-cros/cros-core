@@ -27,13 +27,13 @@ public class TestSuperclass {
 
         // Create a user of each role to test with
         admin = new User("admin@test.cros", "password", "Admin", "Tester");
-        admin.role = User.Role.ADMIN;
+        admin.setRole(User.Role.ADMIN);
         admin.save();
         roAdmin = new User("ro-admin@test.cros", "password", "Readonly-Admin", "Tester");
-        roAdmin.role = User.Role.READONLY_ADMIN;
+        roAdmin.setRole(User.Role.READONLY_ADMIN);
         roAdmin.save();
         user = new User("user@test.cros", "password", "User", "Tester");
-        user.role = User.Role.USER;
+        user.setRole(User.Role.USER);
         user.save();
     }
 

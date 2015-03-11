@@ -63,7 +63,7 @@ public class AssignmentControllerTest extends TestSuperclass {
             for (int i = 0; i < testAssignments.size(); ++i) {
                 Assignment testAssignment = testAssignments.get(i);
                 Assignment receivedAssignment = Json.fromJson(node.get(i), Assignment.class);
-                assertThat(testAssignment.id).isEqualTo(receivedAssignment.id);
+                assertThat(testAssignment.getId()).isEqualTo(receivedAssignment.getId());
             }
         } else
             Assert.fail("Returned JSON is not an array");
@@ -73,7 +73,7 @@ public class AssignmentControllerTest extends TestSuperclass {
     public void get_AuthorizedRequestWithValidId_SuccessfullyGetAssignment() {
         int index = testAssignments.size()-1;
         Assignment testAssignment = testAssignments.get(index);
-        Result result = callAction(routes.ref.AssignmentController.get(testAssignment.id),
+        Result result = callAction(routes.ref.AssignmentController.get(testAssignment.getId()),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
@@ -102,12 +102,12 @@ public class AssignmentControllerTest extends TestSuperclass {
 
         Assignment assignment = Json.fromJson(receivedNode, Assignment.class);
         // bypass id, creator check and checkpoint id check
-        assignmentToBeAdded.id = assignment.id;
-        assignmentToBeAdded.creator = assignment.creator;
-        assignmentToBeAdded.route.get(0).id = assignment.route.get(0).id;
+        assignmentToBeAdded.setId(assignment.getId());
+        assignmentToBeAdded.setCreator(assignment.getCreator());
+        assignmentToBeAdded.getRoute().get(0).setId(assignment.getRoute().get(0).getId());
         assertThat(assignment).isEqualTo(assignmentToBeAdded);
 
-        Assignment fetchedAssignment = Assignment.find.byId(assignment.id);
+        Assignment fetchedAssignment = Assignment.FIND.byId(assignment.getId());
         assertThat(fetchedAssignment).isEqualTo(assignmentToBeAdded);
     }
 
@@ -118,11 +118,11 @@ public class AssignmentControllerTest extends TestSuperclass {
         Assignment assignmentToBeRemoved = new Assignment(route, null);
         assignmentToBeRemoved.save();
 
-        callAction(routes.ref.AssignmentController.delete(assignmentToBeRemoved.id),
+        callAction(routes.ref.AssignmentController.delete(assignmentToBeRemoved.getId()),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
-        long amount = Assignment.find.all().stream().filter(assignment ->
-                assignment.id.equals(assignmentToBeRemoved.id)).count();
+        long amount = Assignment.FIND.all().stream().filter(assignment ->
+                assignment.getId().equals(assignmentToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
     }
 }

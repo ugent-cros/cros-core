@@ -3,7 +3,6 @@ package utilities.annotations;
 import controllers.SecurityController;
 import models.User;
 import play.libs.F;
-import play.libs.Json;
 import play.mvc.Action;
 import play.mvc.Http;
 import play.mvc.Result;
@@ -14,7 +13,7 @@ import play.mvc.Result;
 
 public class Authenticator extends Action<Authentication> {
 
-    public F.Promise<Result> call(Http.Context context) {
+    public F.Promise<Result> call(Http.Context context) throws Throwable {
 
         User user = checkAuthentication(context);
 
@@ -23,13 +22,8 @@ public class Authenticator extends Action<Authentication> {
             // Check if user has an allowed role
             User.Role[] allowedRoles = configuration.value();
             for(User.Role role : allowedRoles)  {
-                if (role.equals(user.role)) {
-                    try {
-                        return delegate.call(context);
-                    } catch (Throwable throwable) {
-                        play.Logger.error(throwable.getMessage(), throwable);
-                        return F.Promise.pure(internalServerError());
-                    }
+                if (role.equals(user.getRole())) {
+                    return delegate.call(context);
                 }
             }
         }

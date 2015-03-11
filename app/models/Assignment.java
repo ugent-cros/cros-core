@@ -18,25 +18,27 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Assignment extends Model {
 
+    public static final Finder<Long,Assignment> FIND = new Finder<>(Long.class, Assignment.class);
+
     @JsonView(ControllerHelper.Summary.class)
     @Id
-    public Long id;
+    private Long id;
 
     @Constraints.Required
     @ManyToMany(cascade = CascadeType.ALL)
-    public List<Checkpoint> route;
+    private List<Checkpoint> route;
 
     @Constraints.Required
-    public int progress;
+    private int progress;
 
     @Constraints.Required
-    public int priority;
+    private int priority;
 
     @OneToOne
-    public User creator;
+    private User creator;
 
     @OneToOne
-    public Drone assignedDrone;
+    private Drone assignedDrone;
 
     public Assignment(List<Checkpoint> route, User creator) {
         this();
@@ -49,31 +51,81 @@ public class Assignment extends Model {
         progress = 0;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public List<Checkpoint> getRoute() {
+        return route;
+    }
+
+    public void setRoute(List<Checkpoint> route) {
+        this.route = route;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    public User getCreator() {
+        return creator;
+    }
+
+    public void setCreator(User creator) {
+        this.creator = creator;
+    }
+
+    public Drone getAssignedDrone() {
+        return assignedDrone;
+    }
+
+    public void setAssignedDrone(Drone assignedDrone) {
+        this.assignedDrone = assignedDrone;
+    }
+
     @Override
     public boolean equals(Object obj) {
-        if(obj == null)
-            return false;
         if(obj == this)
             return true;
-        if(!(obj instanceof Assignment))
+        if(obj == null || !(obj instanceof Assignment))
             return false;
         Assignment other = (Assignment) obj;
-        boolean routesAreEqual;
+        boolean isEqual = this.id.equals(other.id);
+        isEqual &= (other.priority == this.priority);
+        isEqual &= (other.progress == this.progress);
+        isEqual &= this.creator.equals(other.creator);
+        isEqual &= assignedDroneIsEqual(other);
+        return isEqual && routesAreEqual(other);
+    }
+
+    private boolean routesAreEqual(Assignment other) {
         if(this.route == null || other.route == null)
-            routesAreEqual = this.route == other.route;
+            return this.route == other.route;
         else
-            routesAreEqual = this.route.equals(other.route);
-        boolean assignedDroneIsEqual;
+            return this.route.equals(other.route);
+    }
+
+    private boolean assignedDroneIsEqual(Assignment other) {
         if(this.assignedDrone == null || other.assignedDrone == null)
-            assignedDroneIsEqual = this.assignedDrone == other.assignedDrone;
+            return this.assignedDrone == other.assignedDrone;
         else
-            assignedDroneIsEqual = this.assignedDrone.equals(other.assignedDrone);
-        return this.id.equals(other.id)
-                && (other.priority == this.priority)
-                && (other.progress == this.progress)
-                && this.creator.equals(other.creator)
-                && assignedDroneIsEqual
-                && routesAreEqual;
+            return this.assignedDrone.equals(other.assignedDrone);
     }
 
     @Override
@@ -87,7 +139,5 @@ public class Assignment extends Model {
         result = 31 * result + (assignedDrone != null ? assignedDrone.hashCode() : 0);
         return result;
     }
-
-    public static Finder<Long,Assignment> find = new Finder<>(Long.class, Assignment.class);
 
 }

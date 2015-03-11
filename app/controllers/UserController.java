@@ -39,16 +39,16 @@ public class UserController {
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
 
         ArrayNode array = objectMapper.createArrayNode();
-        for(User user : User.find.all()) {
+        for(User user : User.FIND.all()) {
             try {
                 ObjectNode userNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(user));
 
                 List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("details", controllers.routes.UserController.get(user.id).url()));
+                links.add(new ControllerHelper.Link("details", controllers.routes.UserController.get(user.getId()).url()));
                 userNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(userNode);
             } catch (JsonProcessingException e) {
-                e.printStackTrace();
+                play.Logger.error(e.getMessage(), e);
                 return internalServerError();
             }
         }
@@ -104,7 +104,7 @@ public class UserController {
     @Authentication({User.Role.ADMIN})
     public static Result deleteAll() {
         User client = SecurityController.getUser();
-        User.find.where().ne("id", client.id).findList().forEach(u -> u.delete());
+        User.FIND.where().ne("id", client.getId()).findList().forEach(u -> u.delete());
 
         return getAll();
     }
@@ -112,7 +112,7 @@ public class UserController {
     @Authentication({User.Role.ADMIN})
     public static Result delete(Long id) {
         // Check if user exists
-        User userToDelete = User.find.byId(id);
+        User userToDelete = User.FIND.byId(id);
         if(userToDelete == null) {
             return notFound();
         }
@@ -134,10 +134,10 @@ public class UserController {
     public static Result get(Long id) {
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(User.Role.USER.equals(client.role) && client.id != id)
+        if(User.Role.USER.equals(client.getRole()) && client.getId() != id)
             return unauthorized();
 
-        User user = User.find.byId(id);
+        User user = User.FIND.byId(id);
         if(user == null)
             return notFound();
 
@@ -156,7 +156,7 @@ public class UserController {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(client.id != id) {
+        if(client.getId() != id) {
             return unauthorized();
         }
 
@@ -168,12 +168,12 @@ public class UserController {
 
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!User.Role.ADMIN.equals(client.role)
-                && client.id != userId) {
+        if(!User.Role.ADMIN.equals(client.getRole())
+                && client.getId() != userId) {
             return unauthorized();
         }
 
-        User user = User.find.byId(userId);
+        User user = User.FIND.byId(userId);
         if(user == null) {
 
             // Return possible links
@@ -195,11 +195,11 @@ public class UserController {
     public static Result update(Long id) {
         // Check if user has correct privileges
         User client = SecurityController.getUser();
-        if(!User.Role.ADMIN.equals(client.role) && client.id != id)
+        if(!User.Role.ADMIN.equals(client.getRole()) && client.getId() != id)
             return unauthorized();
 
         // Check if user exists
-        User user = User.find.byId(id);
+        User user = User.FIND.byId(id);
         if(user == null)
             return notFound();
 
@@ -224,7 +224,7 @@ public class UserController {
         User updatedUser = filledForm.get();
         updatedUser.update(id);
 
-        return get(updatedUser.id);
+        return get(updatedUser.getId());
     }
 
     // no check needed
@@ -234,6 +234,6 @@ public class UserController {
         if(client == null) {
             return notFound();
         }
-        return redirect(controllers.routes.UserController.get(client.id));
+        return redirect(controllers.routes.UserController.get(client.getId()));
     }
 }

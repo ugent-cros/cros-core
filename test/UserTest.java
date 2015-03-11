@@ -79,7 +79,7 @@ public class UserTest extends TestSuperclass {
 
         User receivedUser =
                 Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
-        u.id = receivedUser.id; // bypass id because u has no id yet
+        u.setId(receivedUser.getId()); // bypass id because u has no id yet
         assertThat(u).isEqualTo(receivedUser);
 
         User createdUser = User.findByEmail(email);
@@ -101,16 +101,16 @@ public class UserTest extends TestSuperclass {
 
         // Send request to update this user
         String newFirstName = "Jane";
-        u.firstName = newFirstName;
+        u.setFirstName(newFirstName);
         JsonNode data = Json.toJson(u);
 
-        Result result = updateUser(u.id, data, null);
+        Result result = updateUser(u.getId(), data, null);
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
 
-        result = updateUser(u.id, data, getUser());
+        result = updateUser(u.getId(), data, getUser());
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
 
-        result = updateUser(u.id, data, getReadOnlyAdmin());
+        result = updateUser(u.getId(), data, getReadOnlyAdmin());
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
     }
 
@@ -120,17 +120,17 @@ public class UserTest extends TestSuperclass {
         u.save();
 
         // Send request to update this user
-        u.firstName = "Jane";
+        u.setFirstName("Jane");
         JsonNode data = JsonHelper.addRootElement(Json.toJson(u), User.class);
 
-        Result result = updateUser(u.id, data, getAdmin());
+        Result result = updateUser(u.getId(), data, getAdmin());
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         User receivedUser =
                 Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.find.byId(u.id);
+        User fetchedUser = User.FIND.byId(u.getId());
         assertThat(fetchedUser).isEqualTo(u);
     }
 
@@ -140,17 +140,17 @@ public class UserTest extends TestSuperclass {
         u.save();
 
         // Send request to update this user
-        u.firstName = "Jane";
+        u.setFirstName("Jane");
         JsonNode data = JsonHelper.addRootElement(Json.toJson(u), User.class);
 
-        Result result = updateUser(u.id, data, u);
+        Result result = updateUser(u.getId(), data, u);
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
         User receivedUser =
                 Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.find.byId(u.id);
+        User fetchedUser = User.FIND.byId(u.getId());
         assertThat(fetchedUser).isEqualTo(u);
     }
 

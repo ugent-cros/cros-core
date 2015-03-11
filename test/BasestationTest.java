@@ -58,7 +58,7 @@ public class BasestationTest extends TestSuperclass {
             for (int i = 0; i < testBasestations.size(); ++i) {
                 Basestation testBasestation = testBasestations.get(i);
                 Basestation receivedBasestation = Json.fromJson(node.get(i), Basestation.class);
-                assertThat(testBasestation.id).isEqualTo(receivedBasestation.id);
+                assertThat(testBasestation.getId()).isEqualTo(receivedBasestation.getId());
             }
         } else
             Assert.fail("Returned JSON is not an array");
@@ -68,7 +68,7 @@ public class BasestationTest extends TestSuperclass {
     public void get_AuthorizedRequestWithValidId_SuccessfullyGetBasestation(){
         int index = testBasestations.size()-1;
         Basestation testBasestation = testBasestations.get(index);
-        Result result = callAction(routes.ref.BasestationController.get(testBasestation.id),
+        Result result = callAction(routes.ref.BasestationController.get(testBasestation.getId()),
                 authorizeRequest(new FakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
@@ -97,11 +97,11 @@ public class BasestationTest extends TestSuperclass {
         Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
 
         // bypass id check because basestationToBeAdded isn't saved
-        basestationToBeAdded.id = receivedBasestation.id;
-        basestationToBeAdded.checkpoint.id = receivedBasestation.checkpoint.id;
+        basestationToBeAdded.setId(receivedBasestation.getId());
+        basestationToBeAdded.getCheckpoint().setId(receivedBasestation.getCheckpoint().getId());
         assertThat(basestationToBeAdded).isEqualTo(receivedBasestation);
 
-        Basestation fetchedBasestation = Basestation.find.byId(receivedBasestation.id);
+        Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
         assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
     }
 
@@ -109,18 +109,18 @@ public class BasestationTest extends TestSuperclass {
     public void update_AuthorizedRequestWithValidId_BasestationUpdated() {
         Basestation basestation = new Basestation("Another basestation", new Checkpoint(3, 2, 1));
         basestation.save();
-        basestation.name = "Changed name";
+        basestation.setName("Changed name");
         JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestation), Basestation.class);
-        Result result = callAction(routes.ref.BasestationController.update(basestation.id),
+        Result result = callAction(routes.ref.BasestationController.update(basestation.getId()),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
         JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
         Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
-        assertThat(basestation.id).isEqualTo(receivedBasestation.id);
-        assertThat(basestation.checkpoint).isEqualTo(receivedBasestation.checkpoint);
+        assertThat(basestation.getId()).isEqualTo(receivedBasestation.getId());
+        assertThat(basestation.getCheckpoint()).isEqualTo(receivedBasestation.getCheckpoint());
 
-        Basestation fetchedBasestation = Basestation.find.byId(receivedBasestation.id);
+        Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
         assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
     }
     @Test
@@ -128,10 +128,10 @@ public class BasestationTest extends TestSuperclass {
         Basestation basestationToBeRemoved = new Basestation("remove this drone", new Checkpoint(7,8,9));
         basestationToBeRemoved.save();
 
-        callAction(routes.ref.BasestationController.delete(basestationToBeRemoved.id),
+        callAction(routes.ref.BasestationController.delete(basestationToBeRemoved.getId()),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
-        long amount = Basestation.find.all().stream().filter(d -> d.id.equals(basestationToBeRemoved.id)).count();
+        long amount = Basestation.FIND.all().stream().filter(d -> d.getId().equals(basestationToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
     }
 }

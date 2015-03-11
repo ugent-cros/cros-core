@@ -17,17 +17,19 @@ import javax.persistence.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Basestation extends Model {
 
+    public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
+
     @JsonView(ControllerHelper.Summary.class)
     @Id
-    public Long id;
+    private Long id;
 
     @JsonView(ControllerHelper.Summary.class)
     @Constraints.Required
     @Column(length = 256, unique = true, nullable = false)
-    public String name;
+    private String name;
 
     @OneToOne(cascade = CascadeType.ALL)
-    public Checkpoint checkpoint;
+    private Checkpoint checkpoint;
 
     public Basestation(String name, Checkpoint checkpoint){
         this.name = name;
@@ -35,6 +37,30 @@ public class Basestation extends Model {
     }
 
     public Basestation() { }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Checkpoint getCheckpoint() {
+        return checkpoint;
+    }
+
+    public void setCheckpoint(Checkpoint checkpoint) {
+        this.checkpoint = checkpoint;
+    }
 
     @Override
     public boolean equals(Object obj) {
@@ -58,6 +84,4 @@ public class Basestation extends Model {
         result = 31 * result + (checkpoint != null ? checkpoint.hashCode() : 0);
         return result;
     }
-
-    public static Finder<Long, Basestation> find = new Finder<>(Long.class, Basestation.class);
 }

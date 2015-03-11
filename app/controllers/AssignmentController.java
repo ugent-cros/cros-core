@@ -36,16 +36,16 @@ public class AssignmentController {
 
         ArrayNode array = objectMapper.createArrayNode();
         ObjectWriter writer = objectMapper.writerWithView(ControllerHelper.Summary.class);
-        for(Assignment assignment : Assignment.find.all()) {
+        for(Assignment assignment : Assignment.FIND.all()) {
             try {
                 ObjectNode assigmentNode = (ObjectNode) Json.parse(writer.writeValueAsString(assignment));
 
                 List<Link> links = new ArrayList<>();
-                links.add(new Link("details", controllers.routes.AssignmentController.get(assignment.id).url()));
+                links.add(new Link("details", controllers.routes.AssignmentController.get(assignment.getId()).url()));
                 assigmentNode.put("links", (JsonNode) objectMapper.valueToTree(links));
                 array.add(assigmentNode);
             } catch (JsonProcessingException e) {
-                e.printStackTrace();
+                play.Logger.error(e.getMessage(), e);
                 return internalServerError();
             }
         }
@@ -71,7 +71,7 @@ public class AssignmentController {
             return unauthorized();
 
         Assignment assignment = form.get();
-        assignment.creator = user;
+        assignment.setCreator(user);
 
         assignment.save();
         JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(assignment), Assignment.class);
@@ -80,16 +80,16 @@ public class AssignmentController {
 
     @Authentication({User.Role.READONLY_ADMIN, User.Role.ADMIN})
     public static Result get(long id) {
-        Assignment assignment = Assignment.find.byId(id);
+        Assignment assignment = Assignment.FIND.byId(id);
         if(assignment == null)
             return notFound("Requested assignment not found");
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = (ObjectNode) Json.toJson(assignment);
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(assignment.id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(assignment.getId()).url()));
         links.add(new ControllerHelper.Link("all", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.AssignmentController.delete(assignment.id).url()));
+        links.add(new ControllerHelper.Link("delete", controllers.routes.AssignmentController.delete(assignment.getId()).url()));
         node.put("links", (JsonNode) mapper.valueToTree(links));
 
         JsonNode nodeWithRoot = JsonHelper.addRootElement(node, Assignment.class);
@@ -98,7 +98,7 @@ public class AssignmentController {
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long id) {
-        Assignment assignment = Assignment.find.byId(id);
+        Assignment assignment = Assignment.FIND.byId(id);
 
         if(assignment == null)
             return notFound("Requested assignment not found");

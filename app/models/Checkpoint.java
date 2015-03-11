@@ -18,20 +18,22 @@ import javax.persistence.Id;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Checkpoint extends Model {
 
+    public final static Finder<Long, Checkpoint> FIND = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
+
     @Id
-    public Long id;
+    private Long id;
 
     @Constraints.Required
-    public double longitude;
+    private double longitude;
 
     @Constraints.Required
-    public double lattitude;
+    private double lattitude;
 
     @Constraints.Required
-    public double altitude;
+    private double altitude;
 
     @Constraints.Required
-    public int waitingTime;
+    private int waitingTime;
 
     public Checkpoint (double longitude, double lattitude, double altitude){
         this.longitude = longitude;
@@ -47,24 +49,62 @@ public class Checkpoint extends Model {
         this.waitingTime = waitingTime;
     }
 
+    public int getWaitingTime() {
+        return waitingTime;
+    }
+
+    public void setWaitingTime(int waitingTime) {
+        this.waitingTime = waitingTime;
+    }
+
+    public double getAltitude() {
+        return altitude;
+    }
+
+    public void setAltitude(double altitude) {
+        this.altitude = altitude;
+    }
+
+    public double getLattitude() {
+        return lattitude;
+    }
+
+    public void setLattitude(double lattitude) {
+        this.lattitude = lattitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public Checkpoint() {
         this(0,0,0);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof Checkpoint))
+        if (obj == null || !(obj instanceof Checkpoint))
             return false;
         Checkpoint checkpoint = (Checkpoint) obj;
-        return this.id.equals(checkpoint.id)
-                && ModelHelper.compareFloatingPoints(this.longitude, checkpoint.longitude)
-                && ModelHelper.compareFloatingPoints(this.lattitude, checkpoint.lattitude)
-                && ModelHelper.compareFloatingPoints(this.altitude, checkpoint.altitude)
-                && this.waitingTime == checkpoint.waitingTime;
+        boolean isEqual = this.id.equals(checkpoint.id);
+        isEqual &= ModelHelper.compareFloatingPoints(this.longitude, checkpoint.longitude);
+        isEqual &= ModelHelper.compareFloatingPoints(this.lattitude, checkpoint.lattitude);
+        isEqual &= ModelHelper.compareFloatingPoints(this.altitude, checkpoint.altitude);
+        return isEqual && this.waitingTime == checkpoint.waitingTime;
     }
 
     @Override
@@ -81,6 +121,4 @@ public class Checkpoint extends Model {
         result = 31 * result + waitingTime;
         return result;
     }
-
-    public static Finder<Long, Checkpoint> find = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
 }
