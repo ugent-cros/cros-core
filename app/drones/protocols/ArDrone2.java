@@ -7,16 +7,18 @@ import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.Procedure;
+import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.EmergencyCommand;
+import drones.commands.InitDroneCommand;
 import drones.commands.LandCommand;
 import drones.commands.TakeOffCommand;
+import drones.commands.ardrone2.atcommand.*;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
 
 import java.net.InetSocketAddress;
 
-// @TODO make abstract class (WiFi protocol class or something like that), ArDrone2 & 3 will extend it
 /**
  * Created by brecht on 3/7/15.
  */
@@ -74,8 +76,7 @@ public class ArDrone2 extends UntypedActor {
         return msg -> {
             if (msg instanceof Udp.Received) {
                 final Udp.Received r = (Udp.Received) msg;
-                //socket.tell(UdpMessage.send(r.data(), r.sender()), getSelf());
-                //processRawData(r.data());
+                processRawData(r.data());
             } else if (msg.equals(UdpMessage.unbind())) {
                 socket.tell(msg, getSelf());
             } else if (msg instanceof Udp.Unbound) {
@@ -83,6 +84,15 @@ public class ArDrone2 extends UntypedActor {
 
             } else unhandled(msg);
         };
+    }
+
+    private void processRawData(ByteString data) {
+        ByteString current = recvBuffer == null ? data : recvBuffer.concat(data); //immutable rolling buffer
+
+        ByteIterator it = current.iterator();
+        while(it.hasNext()) {
+            System.out.println("");
+        }
     }
 
     private void handle(TakeOffCommand cmd) {
@@ -95,6 +105,20 @@ public class ArDrone2 extends UntypedActor {
 
     private void handle(EmergencyCommand cmd) {
         sendData(PacketCreator.createEmergencyPacket());
+    }
+
+    /**
+     * For the init code see: https://github.com/puku0x/cvdrone/blob/master/src/ardrone/command.cpp
+     *
+     * @param cmd
+     */
+    private void handle(InitDroneCommand cmd) {
+        sendData(PacketCreator.createPacket(new ATCommandPMODE(2))); // Undocumented command
+        sendData(PacketCreator.createPacket(new ATCommandMISC(2,20,2000,3000))); // Undocumented command
+        sendData(PacketCreator.createPacket(new ATCommandFTRIM()));
+        sendData(PacketCreator.createPacket(new ATCommandCOMWDG()));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG("control:altitude_max", "10000"))); // 10m max height
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG("general:navdata_demo", "TRUE")));
     }
 
     public LoggingAdapter getLog(){

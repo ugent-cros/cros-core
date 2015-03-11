@@ -1,4 +1,4 @@
-package drones.commands.ArDrone2.ATCommand;
+package drones.commands.ardrone2.atcommand;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;

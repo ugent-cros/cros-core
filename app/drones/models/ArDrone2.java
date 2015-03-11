@@ -6,10 +6,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.commands.DroneCommandMessage;
-import drones.commands.EmergencyCommand;
-import drones.commands.LandCommand;
-import drones.commands.TakeOffCommand;
+import drones.commands.*;
 import drones.messages.BatteryPercentageChangedMessage;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.PositionChangedMessage;
@@ -55,29 +52,21 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void init(Promise<Void> p) {
-
+        sendMessage(new InitDroneCommand());
+        p.success(null);
     }
 
     @Override
     protected void takeOff(Promise<Void> p) {
-        // @TODO
         sendMessage(new TakeOffCommand());
         p.success(null);
     }
 
     @Override
     protected void land(Promise<Void> p) {
-        // @TODO
         sendMessage(new LandCommand());
         p.success(null);
     }
-
-    //@Override
-    //protected void emergency(Promise<Void> p) {
-    //    // @TODO
-    //    sendMessage(new EmergencyCommand());
-    //    p.success(null);
-    //}
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {

@@ -1,4 +1,4 @@
-package drones.commands.ArDrone2;
+package drones.commands.ardrone2;
 
 /**
  * See https://code.google.com/p/ardroneme/source/browse/trunk/NavData.java
