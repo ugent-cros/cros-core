@@ -167,6 +167,9 @@ public class ArDrone3 extends UntypedActor {
                     processDataFrame(frame);
                     sendAck(frame); //ALWAYS send ack, even when seq is ignored
                     break;
+                default:
+                    log.warning("Invalid frame type handler; [{}]", frame.getType());
+                    break;
             }
         }
     }

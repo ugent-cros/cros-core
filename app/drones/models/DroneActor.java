@@ -93,6 +93,9 @@ public abstract class DroneActor extends AbstractActor {
             case VERSION:
                 handleMessage(version.getValue(), sender(), self());
                 break;
+            default:
+                log.warning("No property handler for: [{}]", msg.getType());
+                break;
         }
     }
 
