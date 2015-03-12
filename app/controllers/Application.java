@@ -11,12 +11,14 @@ import views.html.index;
 
 public class Application extends Controller {
 
+    private static final String DRONE = "ardrone2";
+
     public static Result index() {
         return ok(index.render("Your new application is ready."));
     }
 
     public static F.Promise<Result> initDrone() {
-        Drone d = Fleet.getFleet().createBepop("bepop", "192.168.42.1", true);
+        Drone d = Fleet.getFleet().createArDrone2(DRONE, "192.168.42.1", true);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -86,7 +88,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> takeOff(){
-       Drone d = Fleet.getFleet().getDrone("bepop");
+       Drone d = Fleet.getFleet().getDrone(DRONE);
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -95,7 +97,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> land(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        Drone d = Fleet.getFleet().getDrone(DRONE);
         return F.Promise.wrap(d.land()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");

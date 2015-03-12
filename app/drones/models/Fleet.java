@@ -34,6 +34,17 @@ public class Fleet {
         }
     }
 
+    public Drone createArDrone2(String name, String ip, boolean indoor){
+        if(drones.containsKey(name))
+            return null;
+        else {
+            ActorRef ref = Akka.system().actorOf(Props.create(ArDrone2.class, () -> new ArDrone2(ip, indoor)));
+            Drone d = new Drone(ref);
+            drones.put(name, d);
+            return d;
+        }
+    }
+
     public Drone getDrone(String name){
         return drones.get(name);
     }

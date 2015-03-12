@@ -1,16 +1,11 @@
 package drones.models;
 
 import akka.actor.ActorRef;
-import akka.dispatch.Futures;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.BatteryPercentageChangedMessage;
-import drones.messages.FlyingStateChangedMessage;
-import drones.messages.PositionChangedMessage;
-import scala.concurrent.Future;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -21,37 +16,29 @@ import java.io.Serializable;
 public class ArDrone2 extends DroneActor {
 
     private ActorRef protocol;
-
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
     private final String ip;
     private final boolean indoor;
-
     private final Object lock = new Object();
-
-    private Promise<Boolean> initPromise;
+    private Promise<Void> initPromise;
 
     public ArDrone2(String ip, boolean indoor) {
         this.ip = ip;
         this.indoor = indoor;
     }
 
-    private void handlePositionChangedMessage(PositionChangedMessage msg){
-        location.setValue(new Location(msg.getLatitude() != PositionChangedMessage.UNAVAILABLE ? msg.getLatitude() : 0d,
-                msg.getLongitude() != PositionChangedMessage.UNAVAILABLE ? msg.getLongitude() : 0d,
-                msg.getGpsHeigth()));
-    }
-
-    private <T extends Serializable> void sendMessage(T msg) {
-        if (protocol == null) {
-            log.warning("Trying to send message to uninitialized drone: [{}]", ip);
-        } else {
-            protocol.tell(new DroneCommandMessage(msg), self());
-        }
-    }
-
     @Override
     protected void init(Promise<Void> p) {
+        // Setup actor
+        synchronized (lock) {
+            if (initPromise == null) {
+                initPromise = p;
+
+                protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.class,
+                        () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5556, 5556), ArDrone2.this.self()))); //@TODO
+            }
+        }
+
         sendMessage(new InitDroneCommand());
         p.success(null);
     }
@@ -71,5 +58,13 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return null;
+    }
+
+    private <T extends Serializable> void sendMessage(T msg) {
+        if (protocol == null) {
+            log.warning("Trying to send message to uninitialized drone: [{}]", ip);
+        } else {
+            protocol.tell(new DroneCommandMessage(msg), self());
+        }
     }
 }
