@@ -1,7 +1,7 @@
 package drones.util.ardrone2;
 
 import akka.util.ByteString;
-import drones.commands.ArDrone2.ATCommand.ATCommand;
+import drones.commands.ardrone2.atcommand.ATCommand;
 
 /**
  * Created by brecht on 3/9/15.
