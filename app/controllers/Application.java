@@ -18,7 +18,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> initDrone() {
-        Drone d = Fleet.getFleet().createArDrone2(DRONE, "192.168.42.1", true);
+        Drone d = Fleet.getFleet().createArDrone2("ardrone2", "192.168.1.2", true);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");

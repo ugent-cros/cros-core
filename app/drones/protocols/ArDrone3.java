@@ -305,7 +305,6 @@ public class ArDrone3 extends UntypedActor {
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
             log.debug("Socket ARDRone 3.0 bound.");
-
             senderRef = getSender();
             getContext().become(ready(senderRef));
         } else if (msg instanceof DroneConnectionDetails) {

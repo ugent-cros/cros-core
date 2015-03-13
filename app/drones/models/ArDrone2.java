@@ -4,8 +4,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import com.typesafe.config.ConfigException;
 import drones.commands.*;
+import drones.messages.DroneDiscoveredMessage;
+import drones.messages.PingMessage;
+import drones.messages.StopMessage;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -29,18 +34,34 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void init(Promise<Void> p) {
+        log.info("Starting ARDrone 2.0 INIT - In ACTOR");
+
         // Setup actor
         synchronized (lock) {
             if (initPromise == null) {
                 initPromise = p;
 
+                // @TODO
                 protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.class,
                         () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5556, 5556), ArDrone2.this.self()))); //@TODO
             }
         }
 
-        sendMessage(new InitDroneCommand());
         p.success(null);
+    }
+
+    private void handlePingResponse(PingMessage s) {
+        log.info("ArDrone Ping message received");
+        setupDrone();
+    }
+
+    private void setupDrone() {
+        log.info("Forwarding connection details to protocol");
+        protocol.tell(new DroneConnectionDetails(ip, 5556, 5556), self()); //TODO: use ports
+
+        sendMessage(new OutdoorCommand(!indoor));
+        sendMessage(new InitDroneCommand());
+        sendMessage(new RequestSettingsCommand());
     }
 
     @Override
@@ -55,15 +76,20 @@ public class ArDrone2 extends DroneActor {
         p.success(null);
     }
 
+
+
+    // Try to return empty listener
     @Override
     protected UnitPFBuilder<Object> createListeners() {
-        return null;
+        return ReceiveBuilder.
+                match(PingMessage.class, this::handlePingResponse);
     }
 
     private <T extends Serializable> void sendMessage(T msg) {
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
         } else {
+            log.info("Message send [In ArDrone2]");
             protocol.tell(new DroneCommandMessage(msg), self());
         }
     }

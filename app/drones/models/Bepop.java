@@ -64,7 +64,6 @@ public class Bepop extends DroneActor {
         log.info("Discovery finished, forwarding connection details to protocl");
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self()); //TODO: use forward here?
 
-
         sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());

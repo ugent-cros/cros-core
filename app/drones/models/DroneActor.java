@@ -147,7 +147,6 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void init(Promise<Void> p);
     protected abstract void takeOff(Promise<Void> p);
     protected abstract void land(Promise<Void> p);
-    //protected abstract void emergency(Promise<Void> p); // @TODO
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

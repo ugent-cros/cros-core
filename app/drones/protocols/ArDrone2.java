@@ -11,6 +11,7 @@ import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.commands.ardrone2.atcommand.*;
+import drones.messages.PingMessage;
 import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
@@ -40,7 +41,9 @@ public class ArDrone2 extends UntypedActor {
         this.listener = listener;
 
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), senderAddress), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getSendingPort())), getSelf());
+
+        log.info("Starting ARDrone 2.0 Protocol");
     }
 
     @Override
@@ -51,15 +54,24 @@ public class ArDrone2 extends UntypedActor {
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
-            log.debug("Socket ARDRone 2.0 bound.");
+            log.info("Socket ARDRone 2.0 bound.");
 
             senderRef = getSender();
             getContext().become(ready(senderRef));
+
+            listener.tell(new PingMessage(), getSelf());
+        } else if (msg instanceof DroneConnectionDetails) {
+            log.info("DroneConnectionDetails received");
+            droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
+            log.info("Stop message received - ArDrone2 protocol");
             stop();
         } else {
+            log.info("Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+
+
     }
 
     private Procedure<Object> ready(final ActorRef socket) {
@@ -75,16 +87,31 @@ public class ArDrone2 extends UntypedActor {
                 dispatchCommand((DroneCommandMessage) msg);
             } else if (msg instanceof StopMessage) {
                 stop();
-            } else unhandled(msg);
+            } else if (msg instanceof DroneConnectionDetails) {
+                log.info("DroneConnectionDetails received");
+                droneDiscovered((DroneConnectionDetails) msg);
+            }else {
+                log.info("Unknown message received - ArDrone2 protocol");
+                unhandled(msg);
+            }
         };
+    }
+
+    private void droneDiscovered(DroneConnectionDetails details) {
+        this.details = details;
+        this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
+        log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
     private void dispatchCommand(DroneCommandMessage msg) {
         if (msg.getMessage() instanceof TakeOffCommand) {
+            log.info("TakeOff Command Received - ArDrone2 Protocol");
             handleTakeoff();
         } else if (msg.getMessage() instanceof LandCommand) {
+            log.info("Land Command Received - ArDrone2 Protocol");
             handleLand();
         } else if (msg.getMessage() instanceof InitDroneCommand) {
+            log.info("Starting ARDrone 2.0 - ArDrone2 Protocol");
             handleInit();
         } else {
             log.warning("No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
@@ -98,23 +125,16 @@ public class ArDrone2 extends UntypedActor {
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {
-            log.debug("Sending RAW data.");
+            log.info("Sending RAW data to: [{}] - [{}]", senderAddress.getAddress().getHostAddress(), senderAddress.getPort());
             senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
             return true;
         } else {
-            log.debug("Sending data without discovery data available.");
+            log.debug("Sending data failed (senderAddress or senderRef is null).");
             return false;
         }
     }
 
     private void processRawData(ByteString data) {
-        /*ByteString current = recvBuffer == null ? data : recvBuffer.concat(data); //immutable rolling buffer
-
-        ByteIterator it = current.iterator();
-        while(it.hasNext()) {
-            System.out.println("");
-        }*/
-        // Do something
 
     }
 
@@ -142,6 +162,8 @@ public class ArDrone2 extends UntypedActor {
      * For the init code see: https://github.com/puku0x/cvdrone/blob/master/src/ardrone/command.cpp
      */
     private void handleInit() {
+        log.info("INIT CODE ARDRONE 2");
+
         sendData(PacketCreator.createPacket(new ATCommandPMODE(2))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandMISC(2,20,2000,3000))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandFTRIM()));
