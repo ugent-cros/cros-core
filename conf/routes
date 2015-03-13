@@ -3,7 +3,57 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.index()
+GET           /                                     controllers.Application.index()
+GET           /initDB                               controllers.Application.initDb()
+GET           /init                                 controllers.Application.initDrone()
+GET           /battery                              controllers.Application.getBatteryPercentage()
+GET           /location                             controllers.Application.getLocation()
+GET           /rotation                             controllers.Application.getRotation()
+GET           /speed                                controllers.Application.getSpeed()
+GET           /altitude                             controllers.Application.getAltitude()
+GET           /version                              controllers.Application.getVersion()
+
+GET           /takeoff                              controllers.Application.takeOff()
+GET           /land                                 controllers.Application.land()
+
+# Drone calls
+GET           /drones                               controllers.DroneController.getAll()
+POST          /drones                               controllers.DroneController.create()
+DELETE        /drones                               controllers.DroneController.deleteAll()
+GET           /drones/:id                           controllers.DroneController.get(id: Long)
+DELETE        /drones/:id                           controllers.DroneController.delete(id: Long)
+PUT           /drones/:id                           controllers.DroneController.update(id: Long)
+GET           /drones/:id/testConnection            controllers.DroneController.testConnection(id: Long)
+GET           /drones/:id/battery                   controllers.DroneController.battery(id: Long)
+GET           /drones/:id/cameraCapture             controllers.DroneController.cameraCapture(id: Long)
+GET           /drones/:id/location                  controllers.DroneController.location(id: Long)
+GET           /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
+
+POST          /login                                controllers.SecurityController.login()
+
+# Assignment calls
+GET           /assignments                          controllers.AssignmentController.getAll()
+POST          /assignments                          controllers.AssignmentController.create()
+GET           /assignments/:id                      controllers.AssignmentController.get(id: Long)
+DELETE        /assignments/:id                      controllers.AssignmentController.delete(id: Long)
+
+# User mgmt
+GET           /users                                controllers.UserController.getAll()
+POST          /users                                controllers.UserController.create()
+DELETE        /users                                controllers.UserController.deleteAll()
+GET           /users/me                             controllers.UserController.currentUser()
+GET           /users/:id                            controllers.UserController.get(id: Long)
+PUT           /users/:id                            controllers.UserController.update(id: Long)
+DELETE        /users/:id                            controllers.UserController.delete(id: Long)
+GET           /users/:id/authToken                  controllers.UserController.getUserAuthToken(id: Long)
+GET           /users/:id/invalidateAuthToken        controllers.UserController.invalidateAuthToken(id: Long)
+
+#Basestation calls
+GET           /basestations                         controllers.BasestationController.getAll()
+POST          /basestations                         controllers.BasestationController.create()
+GET           /basestations/:id                     controllers.BasestationController.get(id: Long)
+PUT           /basestations/:id                     controllers.BasestationController.update(id: Long)
+DELETE        /basestations/:id                     controllers.BasestationController.delete(id: Long)
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET           /assets/*file                         controllers.Assets.at(path="/public", file)
