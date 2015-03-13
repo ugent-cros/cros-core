@@ -34,6 +34,7 @@ public class UserController {
     private static Form<User> form = Form.form(User.class);
     private static final String PASSWORD_FIELD_KEY = "password";
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
@@ -65,6 +66,9 @@ public class UserController {
     @Authentication({User.Role.ADMIN})
     public static Result create() {
         JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
+        if (postData == null) {
+            return badRequest();
+        }
         Form<User> filledForm = form.bind(postData);
 
         // Check password
@@ -205,6 +209,9 @@ public class UserController {
 
         // Check input
         JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
+        if (postData == null) {
+            return badRequest();
+        }
         Form<User> filledForm = form.bind(postData);
 
         // Check if password is long enough in filled form

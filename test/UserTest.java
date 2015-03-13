@@ -63,6 +63,22 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
+    public void create_AuthorizedInvalidRequest_BadRequestReturned() {
+        String email = "unauthorized.usercreation@user.tests.cros.com";
+        User u = new User(email,"testtest","Yasser","Deceukelier");
+        ObjectNode objectNode = (ObjectNode) Json.toJson(u);
+
+        // Create json representation
+        JsonNode node = JsonHelper.addRootElement(objectNode, User.class);
+
+        JsonNode empty = Json.toJson("lol");
+        FakeRequest create = fakeRequest().withJsonBody(empty);
+
+        Result result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getAdmin()));
+        assertThat(status(result)).isEqualTo(BAD_REQUEST);
+    }
+
+    @Test
     public void create_AuthorizedRequest_UserCreated() {
         String email = "unauthorized.usercreation@user.tests.cros.com";
         User u = new User(email,"testtest","Yasser","Deceukelier");
@@ -115,6 +131,18 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
+    public void update_AuthorizedInvalidRequest_BadRequestReturned() {
+        User u = new User("admin.invaliduserupdate@user.tests.cros.com", "password", "John", "Doe");
+        u.save();
+
+        JsonNode emptyNode = Json.toJson("invalid");
+
+        FakeRequest update = fakeRequest().withJsonBody(emptyNode);
+        Result result = callAction(routes.ref.UserController.update(u.getId()), authorizeRequest(update, getAdmin()));
+        assertThat(status(result)).isEqualTo(BAD_REQUEST);
+    }
+
+    @Test
     public void update_AuthorizedRequest_UserUpdated() {
         User u = new User("admin.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
@@ -163,7 +191,6 @@ public class UserTest extends TestSuperclass {
         return result;
     }
 
-    @Ignore
     @Test
     public void getAll_UnauthorizedRequest_UnauthorizedReturned() {
 
@@ -174,15 +201,14 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(UNAUTHORIZED);
     }
 
-    @Ignore
     @Test
     public void getAll_AuthorizedRequest_SuccessfullyGetAllUsers() {
         Result result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(OK);
 
+        System.err.println(Json.parse(contentAsString(result)));
+
         result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
         assertThat(status(result)).isEqualTo(OK);
-
-        // TODO: compare with list given by User class
     }
 }
