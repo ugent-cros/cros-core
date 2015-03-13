@@ -1,24 +1,63 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
+import drones.models.DroneCommander;
+import models.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.Drone;
 import drones.models.Fleet;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utilities.ControllerHelper;
 import views.html.index;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Application extends Controller {
 
-    private static final String DRONE = "ardrone2";
+    public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().url());
 
     public static Result index() {
         return ok(index.render("Your new application is ready."));
     }
 
+    public static Result initDb() {
+        Drone.FIND.all().forEach(d -> d.delete());
+        Assignment.FIND.all().forEach(d -> d.delete());
+        User.FIND.all().forEach(d -> d.delete());
+
+        List<Drone> drones = new ArrayList<>();
+        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address1"));
+        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address2"));
+        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address3"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address4"));
+
+        Ebean.save(drones);
+
+        List<User> users = new ArrayList<>();
+        User user = new User("cros@test.be", "freddy", "cros", "tester");
+        users.add(user);
+        users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.get(0).setRole(User.Role.ADMIN);
+
+        Ebean.save(users);
+
+        Checkpoint checkpoint = new Checkpoint(1,2,3);
+        List<Checkpoint> checkpoints = new ArrayList<>();
+        checkpoints.add(checkpoint);
+        Assignment assignment = new Assignment(checkpoints, user);
+        assignment.save();
+
+        new Basestation("testing", new Checkpoint(5, 6, 7)).save();
+
+        return ok();
+    }
+
     public static F.Promise<Result> initDrone() {
-        Drone d = Fleet.getFleet().createArDrone2("ardrone2", "192.168.1.2", true);
+        // Drone d = Fleet.getFleet().createArDrone2("ardrone2", "192.168.1.2", true);
+        DroneCommander d = Fleet.getFleet().createArDrone2("ardrone2", "localhost", true);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -27,7 +66,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getBatteryPercentage(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
@@ -36,7 +75,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getLocation(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getLocation()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("long", v.getLongtitude());
@@ -47,7 +86,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getAltitude(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getAltitude()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("altitude", v);
@@ -56,7 +95,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getVersion(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getVersion()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("softwareVersion", v.getSoftware());
@@ -66,7 +105,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getSpeed(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getSpeed()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("vx", v.getVx());
@@ -77,7 +116,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getRotation(){
-        Drone d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
         return F.Promise.wrap(d.getRotation()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("yaw", v.getYaw());
@@ -88,7 +127,8 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> takeOff(){
-       Drone d = Fleet.getFleet().getDrone(DRONE);
+       // Drone d = Fleet.getFleet().getDrone(DRONE);
+       DroneCommander d = Fleet.getFleet().getDrone("ardrone2");
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -97,7 +137,8 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> land(){
-        Drone d = Fleet.getFleet().getDrone(DRONE);
+        // Drone d = Fleet.getFleet().getDrone(DRONE);
+        DroneCommander d = Fleet.getFleet().getDrone("ardrone2");
         return F.Promise.wrap(d.land()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");

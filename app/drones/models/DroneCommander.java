@@ -1,6 +1,7 @@
 package drones.models;
 
 import akka.actor.ActorRef;
+import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
@@ -15,7 +16,7 @@ import static akka.pattern.Patterns.ask;
 /**
  * Created by Cedric on 3/9/2015.
  */
-public class Drone implements DroneControl, DroneStatus {
+public class DroneCommander implements DroneControl, DroneStatus {
 
     private static final Timeout TIMEOUT = new Timeout(Duration.create(2, TimeUnit.SECONDS));
 
@@ -23,18 +24,22 @@ public class Drone implements DroneControl, DroneStatus {
 
     private final ActorRef droneActor;
 
-    public Drone(final ActorRef droneActor) {
+    private boolean initialized = false;
+
+    public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }
 
     @Override
     public Future<Void> init() {
-        return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
-
+        if(!initialized) {
+            return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    initialized = true;
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return Futures.failed(new DroneException("Drone already initialized."));
     }
 
     @Override
