@@ -12,13 +12,11 @@ import java.nio.IntBuffer;
 public abstract class ATCommand {
     protected int seq;
 
-    public ATCommand() {
+    public ATCommand(int seq) {
         ByteBuffer bb = ByteBuffer.allocate(4);
         fb = bb.asFloatBuffer();
         ib = bb.asIntBuffer();
-    }
 
-    public ATCommand(int seq) {
         this.seq = seq;
     }
 

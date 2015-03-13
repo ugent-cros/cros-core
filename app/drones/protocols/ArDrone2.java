@@ -139,23 +139,23 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void handle(TakeOffCommand cmd) {
-        sendData(PacketCreator.createTakeOffPacket());
+        sendData(PacketCreator.createTakeOffPacket(seq++));
     }
 
     private void handleTakeoff() {
-        sendData(PacketCreator.createTakeOffPacket());
+        sendData(PacketCreator.createTakeOffPacket(seq++));
     }
 
     private void handle(LandCommand cmd) {
-        sendData(PacketCreator.createLandingPacket());
+        sendData(PacketCreator.createLandingPacket(seq++));
     }
 
     private void handleLand() {
-        sendData(PacketCreator.createLandingPacket());
+        sendData(PacketCreator.createLandingPacket(seq++));
     }
 
     private void handle(EmergencyCommand cmd) {
-        sendData(PacketCreator.createEmergencyPacket());
+        sendData(PacketCreator.createEmergencyPacket(seq++));
     }
 
     /**
@@ -164,12 +164,12 @@ public class ArDrone2 extends UntypedActor {
     private void handleInit() {
         log.info("INIT CODE ARDRONE 2");
 
-        sendData(PacketCreator.createPacket(new ATCommandPMODE(2))); // Undocumented command
-        sendData(PacketCreator.createPacket(new ATCommandMISC(2,20,2000,3000))); // Undocumented command
-        sendData(PacketCreator.createPacket(new ATCommandFTRIM()));
-        sendData(PacketCreator.createPacket(new ATCommandCOMWDG()));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG("control:altitude_max", "10000"))); // 10m max height
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG("general:navdata_demo", "TRUE")));
+        sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
+        sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
+        sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "10000"))); // 10m max height
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
     }
 
     public LoggingAdapter getLog(){

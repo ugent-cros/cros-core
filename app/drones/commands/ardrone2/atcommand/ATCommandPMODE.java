@@ -10,7 +10,8 @@ public class ATCommandPMODE extends ATCommand {
 
     private int param1;
 
-    public ATCommandPMODE(int param1) {
+    public ATCommandPMODE(int seq, int param1) {
+        super(seq);
         this.param1 = param1;
     }
 

@@ -13,7 +13,8 @@ public class ATCommandPCMD extends ATCommand {
     private float gaz;
     private float yaw;
 
-    public ATCommandPCMD(int flag, float roll, float pitch, float gaz, float yaw) {
+    public ATCommandPCMD(int seq, int flag, float roll, float pitch, float gaz, float yaw) {
+        super(seq);
         this.flag = flag;
         this.roll = roll;
         this.pitch = pitch;

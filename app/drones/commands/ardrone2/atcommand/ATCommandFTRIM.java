@@ -6,6 +6,10 @@ package drones.commands.ardrone2.atcommand;
 public class ATCommandFTRIM extends ATCommand {
     private static final String TYPE = "AT*FTRIM";
 
+    public ATCommandFTRIM(int seq) {
+        super(seq);
+    }
+
     @Override
     public String toString() {
         return String.format("%s=%d\r",TYPE, seq);

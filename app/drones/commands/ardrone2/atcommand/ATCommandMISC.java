@@ -10,7 +10,8 @@ public class ATCommandMISC extends ATCommand {
 
     private int param1, param2, param3, param4;
 
-    public ATCommandMISC(int param1, int param2, int param3, int param4) {
+    public ATCommandMISC(int seq, int param1, int param2, int param3, int param4) {
+        super(seq);
         this.param1 = param1;
         this.param2 = param2;
         this.param3 = param3;

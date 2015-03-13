@@ -8,6 +8,10 @@ package drones.commands.ardrone2.atcommand;
 public class ATCommandCOMWDG extends ATCommand {
     private static final String TYPE = "AT*COMWDG";
 
+    public ATCommandCOMWDG(int seq) {
+        super(seq);
+    }
+
     @Override
     public String toString() {
         return String.format("%s=%d\r",TYPE, seq);

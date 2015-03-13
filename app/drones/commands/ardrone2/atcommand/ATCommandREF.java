@@ -9,11 +9,13 @@ public class ATCommandREF extends ATCommand {
     // Params command REF
     private int input;
 
-    public ATCommandREF(float input) {
+    public ATCommandREF(int seq, float input) {
+        super(seq);
         this.input = intOfFloat(input);
     }
 
-    public ATCommandREF(int input) {
+    public ATCommandREF(int seq, int input) {
+        super(seq);
         this.input = input;
     }
 
