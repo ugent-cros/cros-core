@@ -43,7 +43,7 @@ public class ArDrone2 extends DroneActor {
 
                 // @TODO
                 protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.class,
-                        () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5556, 5556), ArDrone2.this.self()))); //@TODO
+                        () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5554, 5556), ArDrone2.this.self())));
             }
         }
 
@@ -57,7 +57,7 @@ public class ArDrone2 extends DroneActor {
 
     private void setupDrone() {
         log.info("Forwarding connection details to protocol");
-        protocol.tell(new DroneConnectionDetails(ip, 5556, 5556), self()); //TODO: use ports
+        protocol.tell(new DroneConnectionDetails(ip, 5554, 5556), self());
 
         sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new InitDroneCommand());
@@ -76,9 +76,6 @@ public class ArDrone2 extends DroneActor {
         p.success(null);
     }
 
-
-
-    // Try to return empty listener
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
