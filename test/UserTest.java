@@ -1,18 +1,23 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import controllers.routes;
 import models.User;
+import controllers.routes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
+import static utilities.JsonHelper.removeRootElement;
 
 /**
  * Created by yasser on 4/03/15.
@@ -94,7 +99,7 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(CREATED);
 
         User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
+                Json.fromJson(removeRootElement(contentAsString(result), User.class),User.class);
         u.setId(receivedUser.getId()); // bypass id because u has no id yet
         assertThat(u).isEqualTo(receivedUser);
 
@@ -156,7 +161,7 @@ public class UserTest extends TestSuperclass {
 
         // Check if update was executed
         User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+                Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
         User fetchedUser = User.FIND.byId(u.getId());
         assertThat(fetchedUser).isEqualTo(u);
@@ -176,7 +181,7 @@ public class UserTest extends TestSuperclass {
 
         // Check if update was executed
         User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+                Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
         assertThat(receivedUser).isEqualTo(u);
         User fetchedUser = User.FIND.byId(u.getId());
         assertThat(fetchedUser).isEqualTo(u);
@@ -206,7 +211,23 @@ public class UserTest extends TestSuperclass {
         Result result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
         assertThat(status(result)).isEqualTo(OK);
 
-        System.err.println(Json.parse(contentAsString(result)));
+        JsonNode response = Json.parse(contentAsString(result));
+        ArrayNode list = (ArrayNode) removeRootElement(response, User.class);
+        List<User> usersFromDB = User.FIND.all();
+
+        // Assure equality
+        assertThat(usersFromDB.size()).isEqualTo(list.size());
+
+        Map<Long, String> userMap = new HashMap<>(usersFromDB.size());
+        for(User user : usersFromDB) {
+            userMap.put(user.getId(), user.getEmail());
+        }
+
+        for(JsonNode userNode : list) {
+            Long key = userNode.findValue("id").asLong();
+            String email = userNode.findValue("email").asText();
+            assertThat(userMap.get(key)).isEqualTo(email);
+        }
 
         result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
         assertThat(status(result)).isEqualTo(OK);
