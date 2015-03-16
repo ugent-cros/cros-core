@@ -60,7 +60,12 @@ public class AssignmentController {
     @Authentication({User.Role.ADMIN, User.Role.USER})
     public static Result create() {
         JsonNode body = request().body().asJson();
-        JsonNode strippedBody = JsonHelper.removeRootElement(body, Assignment.class);
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, Assignment.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
         Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);
 
         if (form.hasErrors())

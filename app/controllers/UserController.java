@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Drone;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
@@ -34,6 +33,7 @@ public class UserController {
     private static Form<User> form = Form.form(User.class);
     private static final String PASSWORD_FIELD_KEY = "password";
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
@@ -53,7 +53,7 @@ public class UserController {
             }
         }
 
-        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Drone.class);
+        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, User.class);
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("create", controllers.routes.UserController.create().url()));
@@ -64,8 +64,14 @@ public class UserController {
 
     @Authentication({User.Role.ADMIN})
     public static Result create() {
-        JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
-        Form<User> filledForm = form.bind(postData);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, User.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<User> filledForm = form.bind(strippedBody);
 
         // Check password
         Form.Field passwordField = filledForm.field(PASSWORD_FIELD_KEY);
@@ -160,7 +166,12 @@ public class UserController {
             return unauthorized();
         }
 
-        return ok(Json.toJson(client.getAuthToken()));
+        // Return auth token to the client
+        String authToken = client.getAuthToken();
+        ObjectNode authTokenJson = Json.newObject();
+        authTokenJson.put(SecurityController.AUTH_TOKEN, authToken);
+
+        return ok(authTokenJson);
     }
 
     @Authentication({User.Role.ADMIN, User.Role.USER})
@@ -187,6 +198,7 @@ public class UserController {
         }
 
         user.invalidateAuthToken();
+        user.save();
 
         return ok();
     }
@@ -204,8 +216,14 @@ public class UserController {
             return notFound();
 
         // Check input
-        JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
-        Form<User> filledForm = form.bind(postData);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, User.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<User> filledForm = form.bind(strippedBody);
 
         // Check if password is long enough in filled form
         String password = filledForm.field(PASSWORD_FIELD_KEY).value();
@@ -232,7 +250,7 @@ public class UserController {
 
         User client = SecurityController.getUser();
         if(client == null) {
-            return notFound();
+            return unauthorized();
         }
         return redirect(controllers.routes.UserController.get(client.getId()));
     }

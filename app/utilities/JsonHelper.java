@@ -10,13 +10,16 @@ import play.libs.Json;
  */
 public class JsonHelper {
 
-    public static JsonNode removeRootElement(JsonNode node, Class clazz) {
+    public static JsonNode removeRootElement(JsonNode node, Class clazz) throws InvalidJSONException {
         JsonRootName annotation = (JsonRootName) clazz.getAnnotation(JsonRootName.class);
         String rootElement = annotation.value();
-        return node.get(rootElement);
+        JsonNode rootNode = node.get(rootElement);
+        if(rootNode == null)
+            throw new InvalidJSONException("Invalid json: no such root element (" + annotation.value() + ")");
+        return rootNode;
     }
 
-    public static JsonNode removeRootElement(String jsonString, Class clazz) {
+    public static JsonNode removeRootElement(String jsonString, Class clazz) throws InvalidJSONException {
         JsonNode node = Json.parse(jsonString);
         return removeRootElement(node, clazz);
     }
@@ -27,5 +30,14 @@ public class JsonHelper {
         ObjectNode nodeWithRoot = Json.newObject();
         nodeWithRoot.put(rootElement, node);
         return nodeWithRoot;
+    }
+
+    public static class InvalidJSONException extends Exception {
+
+        public InvalidJSONException(String message) {
+            super(message);
+        }
+
+        public InvalidJSONException() { }
     }
 }
