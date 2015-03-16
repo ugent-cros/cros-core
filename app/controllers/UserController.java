@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Drone;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
@@ -54,7 +53,7 @@ public class UserController {
             }
         }
 
-        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Drone.class);
+        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, User.class);
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("create", controllers.routes.UserController.create().url()));
