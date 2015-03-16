@@ -98,18 +98,6 @@ public class ArDrone2 extends UntypedActor {
 
     }
 
-    private void handleRequestStatus() {
-    }
-
-    private void handleFlatTrim() {
-    }
-
-    private void handleOutdoor(OutdoorCommand cmd) {
-    }
-
-    private void handleRequestSettings() {
-    }
-
     /*private Procedure<Object> ready(final ActorRef socket) {
         return msg -> {
             if (msg instanceof Udp.Received) {
@@ -186,6 +174,9 @@ public class ArDrone2 extends UntypedActor {
         log.debug("Hey, It looks like ya got a message!");
     }
 
+    // Bytes to be sent to enable navdata
+    private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
+
     private static final int NAV_STATE_OFFSET   =  4;
     private static final int NAV_BATTERY_OFFSET = 24;
     private static final int NAV_PITCH_OFFSET   = 28;
@@ -203,6 +194,7 @@ public class ArDrone2 extends UntypedActor {
 
 
     private void processData(byte[] navdata) {
+        int state       = PacketHelper.getInt(navdata, NAV_STATE_OFFSET);
         int battery     = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET);
         float altitude  = ((float)PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET)) / 1000;
         float pitch     = ((float) PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET)) / 1000;
@@ -217,24 +209,12 @@ public class ArDrone2 extends UntypedActor {
 
     }
 
-    private void handle(TakeOffCommand cmd) {
-        sendData(PacketCreator.createTakeOffPacket(seq++));
-    }
-
     private void handleTakeoff() {
         sendData(PacketCreator.createTakeOffPacket(seq++));
     }
 
-    private void handle(LandCommand cmd) {
-        sendData(PacketCreator.createLandingPacket(seq++));
-    }
-
     private void handleLand() {
         sendData(PacketCreator.createLandingPacket(seq++));
-    }
-
-    private void handle(EmergencyCommand cmd) {
-        sendData(PacketCreator.createEmergencyPacket(seq++));
     }
 
     /**
@@ -249,6 +229,20 @@ public class ArDrone2 extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "10000"))); // 10m max height
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
+
+        sendData(ByteString.fromArray(TRIGGER_NAV_BYTES));
+    }
+
+    private void handleRequestStatus() {
+    }
+
+    private void handleFlatTrim() {
+    }
+
+    private void handleOutdoor(OutdoorCommand cmd) {
+    }
+
+    private void handleRequestSettings() {
     }
 
     public LoggingAdapter getLog(){
