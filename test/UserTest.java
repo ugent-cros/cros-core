@@ -232,4 +232,42 @@ public class UserTest extends TestSuperclass {
         result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
         assertThat(status(result)).isEqualTo(OK);
     }
+
+    @Test
+    public void delete_UnauthorizedRequest_UnauthorizedReturned() {
+
+        User user = new User("unauthorized.delete@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.delete(user.getId()), fakeRequest());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.delete(user.getId()), authorizeRequest(fakeRequest(), getUser()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.delete(user.getId()), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        assertThat(User.FIND.byId(user.getId())).isNotNull();
+    }
+
+    @Test
+    public void delete_AuthorizedRequestNonExistingUser_NotFoundReturned() {
+
+        Long nonExistingId = (long)-1;
+        Result result = callAction(routes.ref.UserController.delete(nonExistingId), authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(NOT_FOUND);
+    }
+
+    @Test
+    public void delete_AuthorizedRequest_UserDeleted() {
+
+        User user = new User("authorized.delete@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.delete(user.getId()), authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(OK);
+
+        assertThat(User.FIND.byId(user.getId())).isNull();
+    }
 }
