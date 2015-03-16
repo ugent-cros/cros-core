@@ -5,6 +5,7 @@ import controllers.SecurityController;
 import models.User;
 import controllers.routes;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import play.libs.Json;
@@ -99,15 +100,19 @@ public class UserTest extends TestSuperclass {
         Result result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getAdmin()));
         assertThat(status(result)).isEqualTo(CREATED);
 
-        User receivedUser =
-                Json.fromJson(removeRootElement(contentAsString(result), User.class),User.class);
-        u.setId(receivedUser.getId()); // bypass id because u has no id yet
-        assertThat(u).isEqualTo(receivedUser);
+        try {
+            User receivedUser =
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+            u.setId(receivedUser.getId()); // bypass id because u has no id yet
+            assertThat(u).isEqualTo(receivedUser);
 
-        User createdUser = User.findByEmail(email);
-        assertThat(u).isEqualTo(createdUser);
+            User createdUser = User.findByEmail(email);
+            assertThat(u).isEqualTo(createdUser);
 
-        createdUser.delete();
+            createdUser.delete();
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid Json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -161,11 +166,15 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser =
-                Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
-        assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.FIND.byId(u.getId());
-        assertThat(fetchedUser).isEqualTo(u);
+        try {
+            User receivedUser =
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+            assertThat(receivedUser).isEqualTo(u);
+            User fetchedUser = User.FIND.byId(u.getId());
+            assertThat(fetchedUser).isEqualTo(u);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid Json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -181,11 +190,15 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser =
-                Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
-        assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.FIND.byId(u.getId());
-        assertThat(fetchedUser).isEqualTo(u);
+        try {
+            User receivedUser =
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+            assertThat(receivedUser).isEqualTo(u);
+            User fetchedUser = User.FIND.byId(u.getId());
+            assertThat(fetchedUser).isEqualTo(u);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid Json exception: " + ex.getMessage());
+        }
     }
 
     private Result updateUser(Long id, JsonNode data, User requester) {
@@ -213,25 +226,29 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         JsonNode response = Json.parse(contentAsString(result));
-        ArrayNode list = (ArrayNode) removeRootElement(response, User.class);
-        List<User> usersFromDB = User.FIND.all();
+        try {
+            ArrayNode list = (ArrayNode) removeRootElement(response, User.class);
+            List<User> usersFromDB = User.FIND.all();
 
-        // Assure equality
-        assertThat(usersFromDB.size()).isEqualTo(list.size());
+            // Assure equality
+            assertThat(usersFromDB.size()).isEqualTo(list.size());
 
-        Map<Long, String> userMap = new HashMap<>(usersFromDB.size());
-        for(User user : usersFromDB) {
-            userMap.put(user.getId(), user.getEmail());
+            Map<Long, String> userMap = new HashMap<>(usersFromDB.size());
+            for (User user : usersFromDB) {
+                userMap.put(user.getId(), user.getEmail());
+            }
+
+            for (JsonNode userNode : list) {
+                Long key = userNode.findValue("id").asLong();
+                String email = userNode.findValue("email").asText();
+                assertThat(userMap.get(key)).isEqualTo(email);
+            }
+
+            result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+            assertThat(status(result)).isEqualTo(OK);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid Json exception: " + ex.getMessage());
         }
-
-        for(JsonNode userNode : list) {
-            Long key = userNode.findValue("id").asLong();
-            String email = userNode.findValue("email").asText();
-            assertThat(userMap.get(key)).isEqualTo(email);
-        }
-
-        result = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
-        assertThat(status(result)).isEqualTo(OK);
     }
 
     @Test

@@ -57,7 +57,12 @@ public class BasestationController {
     @Authentication({User.Role.ADMIN})
     public static Result create() {
         JsonNode body = request().body().asJson();
-        JsonNode strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
 
         if (form.hasErrors())
@@ -95,8 +100,14 @@ public class BasestationController {
         if (basestation == null)
             return notFound();
 
-        JsonNode node = JsonHelper.removeRootElement(request().body().asJson(), Basestation.class);
-        Form<Basestation> form = Form.form(Basestation.class).bind(node);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
 
         if (form.hasErrors())
             return badRequest(form.errors().toString());
