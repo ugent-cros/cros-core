@@ -64,8 +64,14 @@ public class UserController {
 
     @Authentication({User.Role.ADMIN})
     public static Result create() {
-        JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
-        Form<User> filledForm = form.bind(postData);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, User.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<User> filledForm = form.bind(strippedBody);
 
         // Check password
         Form.Field passwordField = filledForm.field(PASSWORD_FIELD_KEY);
@@ -204,8 +210,14 @@ public class UserController {
             return notFound();
 
         // Check input
-        JsonNode postData = JsonHelper.removeRootElement(request().body().asJson(), User.class);
-        Form<User> filledForm = form.bind(postData);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, User.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<User> filledForm = form.bind(strippedBody);
 
         // Check if password is long enough in filled form
         String password = filledForm.field(PASSWORD_FIELD_KEY).value();

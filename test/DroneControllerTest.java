@@ -48,15 +48,19 @@ public class DroneControllerTest extends TestSuperclass {
     public void getAll_AuthorizedRequest_SuccessfullyGetAllDrones() {
         Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(), getAdmin()));
 
-        JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
-        if (node.isArray()) {
-            for (int i = 0; i < testDrones.size(); ++i) {
-                Drone testDrone = testDrones.get(i);
-                Drone receivedDrone = Json.fromJson(node.get(i), Drone.class);
-                assertThat(testDrone.getId()).isEqualTo(receivedDrone.getId());
-            }
-        } else
-            Assert.fail("Returned JSON is not an array");
+        try {
+            JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            if (node.isArray()) {
+                for (int i = 0; i < testDrones.size(); ++i) {
+                    Drone testDrone = testDrones.get(i);
+                    Drone receivedDrone = Json.fromJson(node.get(i), Drone.class);
+                    assertThat(testDrone.getId()).isEqualTo(receivedDrone.getId());
+                }
+            } else
+                Assert.fail("Returned JSON is not an array");
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -65,9 +69,13 @@ public class DroneControllerTest extends TestSuperclass {
         Result result = callAction(routes.ref.DroneController.get(droneToGet.getId()),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
-        JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
-        Drone d = Json.fromJson(node, Drone.class);
-        assertThat(d).isEqualTo(droneToGet);
+        try {
+            JsonNode node = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            Drone d = Json.fromJson(node, Drone.class);
+            assertThat(d).isEqualTo(droneToGet);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -85,13 +93,18 @@ public class DroneControllerTest extends TestSuperclass {
 
         Result result = callAction(routes.ref.DroneController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
-        JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
-        Drone d = Json.fromJson(receivedNode, Drone.class);
-        droneToBeAdded.setId(d.getId()); // bypass id check, because droneToBeAdded has no id
-        assertThat(d).isEqualTo(droneToBeAdded);
 
-        Drone fetchedDrone = Drone.FIND.byId(d.getId());
-        assertThat(fetchedDrone).isEqualTo(droneToBeAdded);
+        try {
+            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            Drone d = Json.fromJson(receivedNode, Drone.class);
+            droneToBeAdded.setId(d.getId()); // bypass id check, because droneToBeAdded has no id
+            assertThat(d).isEqualTo(droneToBeAdded);
+
+            Drone fetchedDrone = Drone.FIND.byId(d.getId());
+            assertThat(fetchedDrone).isEqualTo(droneToBeAdded);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -104,12 +117,16 @@ public class DroneControllerTest extends TestSuperclass {
         Result result = callAction(routes.ref.DroneController.update(d.getId()),
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
-        JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
-        Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
-        assertThat(receivedDrone).isEqualTo(d);
+        try {
+            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
+            assertThat(receivedDrone).isEqualTo(d);
 
-        Drone fetchedDrone = Drone.FIND.byId(d.getId());
-        assertThat(fetchedDrone).isEqualTo(d);
+            Drone fetchedDrone = Drone.FIND.byId(d.getId());
+            assertThat(fetchedDrone).isEqualTo(d);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -130,10 +147,15 @@ public class DroneControllerTest extends TestSuperclass {
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.testConnection(drone.getId()),
                     authorizeRequest(fakeRequest(), getAdmin()));
-            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+            try {
+                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
-            boolean status = node.get("connection").asBoolean();
-            assertThat(status).isEqualTo(drone.testConnection());
+                boolean status = node.get("connection").asBoolean();
+                assertThat(status).isEqualTo(drone.testConnection());
+            } catch(JsonHelper.InvalidJSONException ex) {
+                Assert.fail("Invalid json exception: " + ex.getMessage());
+                break;
+            }
         }
     }
 
@@ -142,10 +164,15 @@ public class DroneControllerTest extends TestSuperclass {
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.battery(drone.getId()),
                     authorizeRequest(fakeRequest(), getAdmin()));
-            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+            try {
+                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
-            int status = node.get("battery").intValue();
-            assertThat(status).isEqualTo(drone.getBatteryStatus());
+                int status = node.get("battery").intValue();
+                assertThat(status).isEqualTo(drone.getBatteryStatus());
+            } catch(JsonHelper.InvalidJSONException ex) {
+                Assert.fail("Invalid json exception: " + ex.getMessage());
+                break;
+            }
         }
     }
 
@@ -154,10 +181,15 @@ public class DroneControllerTest extends TestSuperclass {
         for(Drone drone : testDrones) {
             Result r = callAction(routes.ref.DroneController.cameraCapture(drone.getId()),
                     authorizeRequest(fakeRequest(), getAdmin()));
-            JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
+            try {
+                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
-            String capture = node.get("cameraCapture").asText();
-            assertThat(capture).isEqualTo(drone.getCameraCapture());
+                String capture = node.get("cameraCapture").asText();
+                assertThat(capture).isEqualTo(drone.getCameraCapture());
+            } catch(JsonHelper.InvalidJSONException ex) {
+                Assert.fail("Invalid json exception: " + ex.getMessage());
+                break;
+            }
         }
     }
 

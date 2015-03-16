@@ -2,10 +2,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import controllers.routes;
 import models.User;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import play.libs.Json;
 import play.mvc.Result;
 import play.test.FakeRequest;
@@ -77,15 +74,19 @@ public class UserTest extends TestSuperclass {
         Result result = callAction(routes.ref.UserController.create(), authorizeRequest(create, getAdmin()));
         assertThat(status(result)).isEqualTo(CREATED);
 
-        User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class),User.class);
-        u.setId(receivedUser.getId()); // bypass id because u has no id yet
-        assertThat(u).isEqualTo(receivedUser);
+        try {
+            User receivedUser =
+                    Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+            u.setId(receivedUser.getId()); // bypass id because u has no id yet
+            assertThat(u).isEqualTo(receivedUser);
 
-        User createdUser = User.findByEmail(email);
-        assertThat(u).isEqualTo(createdUser);
+            User createdUser = User.findByEmail(email);
+            assertThat(u).isEqualTo(createdUser);
 
-        createdUser.delete();
+            createdUser.delete();
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -127,11 +128,15 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
-        assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.FIND.byId(u.getId());
-        assertThat(fetchedUser).isEqualTo(u);
+        try {
+            User receivedUser =
+                    Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+            assertThat(receivedUser).isEqualTo(u);
+            User fetchedUser = User.FIND.byId(u.getId());
+            assertThat(fetchedUser).isEqualTo(u);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -147,11 +152,15 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         // Check if update was executed
-        User receivedUser =
-                Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
-        assertThat(receivedUser).isEqualTo(u);
-        User fetchedUser = User.FIND.byId(u.getId());
-        assertThat(fetchedUser).isEqualTo(u);
+        try {
+            User receivedUser =
+                    Json.fromJson(JsonHelper.removeRootElement(contentAsString(result), User.class), User.class);
+            assertThat(receivedUser).isEqualTo(u);
+            User fetchedUser = User.FIND.byId(u.getId());
+            assertThat(fetchedUser).isEqualTo(u);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     private Result updateUser(Long id, JsonNode data, User requester) {
