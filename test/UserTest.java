@@ -378,4 +378,31 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(SEE_OTHER);
         assertThat(redirectLocation(result)).isEqualTo(controllers.routes.UserController.get(user.getId()).url());
     }
+
+    @Test
+    public void deleteAll_UnauthorizedRequest_UnauthorizedReturned() {
+
+        Result result = callAction(routes.ref.UserController.deleteAll(),fakeRequest());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.deleteAll(),
+                authorizeRequest(fakeRequest(), getUser()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.deleteAll(),
+                authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Test
+    public void deleteAll_AuthorizedRequest_AllButUserDeleted() {
+
+        Result result = callAction(routes.ref.UserController.deleteAll(),
+                authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(OK);
+
+        List<User> allUsers = User.FIND.all();
+        assertThat(allUsers).hasSize(1);
+        assertThat(allUsers).contains(getAdmin()); // Equality check
+    }
 }
