@@ -1,6 +1,7 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import controllers.routes;
+import exceptions.IncompatibleSystemException;
 import models.User;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -32,14 +33,16 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void checkPassword_PasswordIsCorrect_TrueReturned() {
+    // Exceptions should not be thrown
+    public void checkPassword_PasswordIsCorrect_TrueReturned() throws IncompatibleSystemException {
         String password = "lolcats1";
         User u = new User("correct.password@user.tests.cros.com", password, "test", "student");
         assertThat(u.checkPassword(password)).isTrue();
     }
 
     @Test
-    public void checkPassword_PasswordIsWrong_FalseReturned() {
+    // Exceptions should not be thrown
+    public void checkPassword_PasswordIsWrong_FalseReturned() throws IncompatibleSystemException {
         String password = "lolcats1";
         User u = new User("wrong.password@user.tests.cros.com", password, "test", "student");
         assertThat(u.checkPassword("lol")).isFalse();
