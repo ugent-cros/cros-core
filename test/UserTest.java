@@ -359,4 +359,23 @@ public class UserTest extends TestSuperclass {
         user.refresh();
         assertThat(oldToken).isNotEqualTo(user.getAuthToken());
     }
+
+    @Test
+    public void currentUser_UnauthorizedRequest_UnauthorizedReturned() {
+
+        Result result = callAction(routes.ref.UserController.currentUser(),fakeRequest());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Test
+    public void currentUser_AuthorizedRequest_Redirect() {
+
+        User user = new User("authorized.currentuser@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.currentUser(),
+                authorizeRequest(fakeRequest(), user));
+        assertThat(status(result)).isEqualTo(SEE_OTHER);
+        assertThat(redirectLocation(result)).isEqualTo(controllers.routes.UserController.get(user.getId()).url());
+    }
 }

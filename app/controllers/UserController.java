@@ -244,7 +244,7 @@ public class UserController {
 
         User client = SecurityController.getUser();
         if(client == null) {
-            return notFound();
+            return unauthorized();
         }
         return redirect(controllers.routes.UserController.get(client.getId()));
     }
