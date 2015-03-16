@@ -163,7 +163,12 @@ public class UserController {
             return unauthorized();
         }
 
-        return ok(Json.toJson(client.getAuthToken()));
+        // Return auth token to the client
+        String authToken = client.getAuthToken();
+        ObjectNode authTokenJson = Json.newObject();
+        authTokenJson.put(SecurityController.AUTH_TOKEN, authToken);
+
+        return ok(authTokenJson);
     }
 
     @Authentication({User.Role.ADMIN, User.Role.USER})
@@ -190,6 +195,7 @@ public class UserController {
         }
 
         user.invalidateAuthToken();
+        user.save();
 
         return ok();
     }

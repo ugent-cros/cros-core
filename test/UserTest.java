@@ -1,6 +1,7 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.SecurityController;
 import models.User;
 import controllers.routes;
 import org.junit.AfterClass;
@@ -269,5 +270,93 @@ public class UserTest extends TestSuperclass {
         assertThat(status(result)).isEqualTo(OK);
 
         assertThat(User.FIND.byId(user.getId())).isNull();
+    }
+
+    @Test
+    public void getAuthToken_UnauthorizedRequest_UnauthorizedReturned() {
+
+        User user = new User("unauthorized.token@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.getUserAuthToken(user.getId()), fakeRequest());
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.getUserAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getUser()));
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.getUserAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.getUserAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Test
+    public void getAuthToken_AuthorizedRequest_TokenReturned() {
+
+        User user = new User("authorized.token@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.getUserAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), user));
+        assertThat(status(result)).isEqualTo(OK);
+
+        JsonNode response = Json.parse(contentAsString(result));
+        String token = response.findValue(SecurityController.AUTH_TOKEN).asText();
+        assertThat(token).isEqualTo(user.getAuthToken());
+    }
+
+    @Test
+    public void invalidateAuthToken_UnauthorizedRequest_UnauthorizedReturned() {
+
+        User user = new User("unauthorized.invalidatetoken@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        Result result = callAction(routes.ref.UserController.invalidateAuthToken(user.getId()), fakeRequest());
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.invalidateAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getUser()));
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+
+        result = callAction(routes.ref.UserController.invalidateAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getReadOnlyAdmin()));
+        assertThat(contentAsString(result)).doesNotContain(user.getAuthToken());
+        assertThat(status(result)).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Test
+    public void invalidateAuthToken_AuthorizedRequest_TokenInvalidated() {
+
+        User user = new User("authorized.invalidatetoken@user.tests.cros.com", "password", "John", "Doe");
+        user.save();
+
+        String oldToken = user.getAuthToken();
+
+        Result result = callAction(routes.ref.UserController.invalidateAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), user));
+        assertThat(status(result)).isEqualTo(OK);
+
+        user.refresh();
+        assertThat(oldToken).isNotEqualTo(user.getAuthToken());
+
+        oldToken = user.getAuthToken();
+
+        callAction(routes.ref.UserController.invalidateAuthToken(user.getId()),
+                authorizeRequest(fakeRequest(), getAdmin()));
+        assertThat(status(result)).isEqualTo(OK);
+
+        // getAuthToken should return a new generated token
+        user.refresh();
+        assertThat(oldToken).isNotEqualTo(user.getAuthToken());
     }
 }
