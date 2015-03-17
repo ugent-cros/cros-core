@@ -41,7 +41,7 @@ public class UserController {
         ArrayNode array = objectMapper.createArrayNode();
         for(User user : User.FIND.all()) {
             try {
-                ObjectNode userNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(user));
+                ObjectNode userNode = (ObjectNode) Json.parse(objectMapper.writerWithView(JsonHelper.Summary.class).writeValueAsString(user));
 
                 List<ControllerHelper.Link> links = new ArrayList<>();
                 links.add(new ControllerHelper.Link("details", controllers.routes.UserController.get(user.getId()).url()));

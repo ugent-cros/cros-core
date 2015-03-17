@@ -11,7 +11,6 @@ import models.Assignment;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
-import play.mvc.Http;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.ControllerHelper.Link;
@@ -21,8 +20,8 @@ import utilities.annotations.Authentication;
 import java.util.ArrayList;
 import java.util.List;
 
-import static play.mvc.Results.*;
 import static play.mvc.Controller.request;
+import static play.mvc.Results.*;
 
 /**
  * Created by Benjamin on 5/03/2015.
@@ -35,7 +34,7 @@ public class AssignmentController {
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
 
         ArrayNode array = objectMapper.createArrayNode();
-        ObjectWriter writer = objectMapper.writerWithView(ControllerHelper.Summary.class);
+        ObjectWriter writer = objectMapper.writerWithView(JsonHelper.Summary.class);
         for(Assignment assignment : Assignment.FIND.all()) {
             try {
                 ObjectNode assigmentNode = (ObjectNode) Json.parse(writer.writeValueAsString(assignment));

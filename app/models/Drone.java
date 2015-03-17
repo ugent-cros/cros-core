@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -22,11 +22,11 @@ public class Drone extends Model {
 
     public static final Finder<Long,Drone> FIND = new Finder<>(Long.class, Drone.class);
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Id
     private Long id;
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     private String name;
 
@@ -102,7 +102,7 @@ public class Drone extends Model {
     }
 
     @Transient
-    public int getBatteryStatus() {
+    public int getBatteryPercentage() {
         return -1;
     }
 

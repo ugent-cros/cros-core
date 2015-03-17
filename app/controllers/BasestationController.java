@@ -32,7 +32,7 @@ public class BasestationController {
         objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
 
         ArrayNode array = objectMapper.createArrayNode();
-        ObjectWriter writer = objectMapper.writerWithView(ControllerHelper.Summary.class);
+        ObjectWriter writer = objectMapper.writerWithView(JsonHelper.Summary.class);
         for(Basestation basestation : Basestation.FIND.all()) {
             try {
                 ObjectNode basestationNode = (ObjectNode) Json.parse(writer.writeValueAsString(basestation));

@@ -1,6 +1,5 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import controllers.routes;
 import models.Drone;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -168,7 +167,7 @@ public class DroneControllerTest extends TestSuperclass {
                 JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
 
                 int status = node.get("battery").intValue();
-                assertThat(status).isEqualTo(drone.getBatteryStatus());
+                assertThat(status).isEqualTo(drone.getBatteryPercentage());
             } catch(JsonHelper.InvalidJSONException ex) {
                 Assert.fail("Invalid json exception: " + ex.getMessage());
                 break;
