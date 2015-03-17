@@ -1,9 +1,12 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import controllers.routes;
+import drones.models.BepopDriver;
 import models.Drone;
-import models.DroneType;
-import org.junit.*;
+import controllers.routes;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Http;
 import play.mvc.Result;
@@ -21,7 +24,6 @@ import static play.test.Helpers.*;
 public class DroneControllerTest extends TestSuperclass {
 
     private static List<Drone> testDrones = new ArrayList<>();
-    private static DroneType bepopType = new DroneType("ARDrone3", "bepop");
 
     @BeforeClass
     public static void setup() {
@@ -31,10 +33,10 @@ public class DroneControllerTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Add drones to the database
-        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, bepopType,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, bepopType,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, bepopType,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, bepopType,  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
         Ebean.save(testDrones);
     }
 
@@ -87,7 +89,7 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
     public void create_AuthorizedRequest_DroneCreated() {
         Drone droneToBeAdded =
-                new Drone("newDrone", Drone.Status.AVAILABLE, bepopType, "ipAddress");
+                new Drone("newDrone", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE, "ipAddress");
         JsonNode node = JsonHelper.addRootElement(Json.toJson(droneToBeAdded), Drone.class);
 
         Result result = callAction(routes.ref.DroneController.create(),
@@ -108,7 +110,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void update_AuthorizedRequestWithValidId_DroneUpdated() {
-        Drone d = new Drone("test1", Drone.Status.AVAILABLE, new DroneType("ARDrone3", "bepop"), "address1");
+        Drone d = new Drone("test1", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE, "address1");
         d.save();
         d.setName("test2");
         d.setAddress("address2");
@@ -131,7 +133,7 @@ public class DroneControllerTest extends TestSuperclass {
     @Test
      public void delete_AuthorizedRequestWithValidId_DroneDeleted() {
         Drone droneToBeRemoved =
-                new Drone("remove this drone", Drone.Status.AVAILABLE, bepopType,  "x.x.x.x");
+                new Drone("remove this drone", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x");
         droneToBeRemoved.save();
 
         callAction(routes.ref.DroneController.delete(droneToBeRemoved.getId()),
