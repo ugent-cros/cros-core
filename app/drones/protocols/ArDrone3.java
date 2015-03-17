@@ -185,7 +185,12 @@ public class ArDrone3 extends UntypedActor {
         DataChannel ch = recvMap.get(realId);
         if (ch != null) {
             byte seq = frame.getData().iterator().getByte();
-            ch.receivedAck(seq);
+            long time = System.currentTimeMillis();
+            Frame nextFrame = ch.receivedAck(seq, time);
+            if(nextFrame != null){
+                log.debug("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
+                sendData(FrameHelper.getFrameData(nextFrame));
+            }
         } else {
             log.warning("Received ack for unknown channel id: [{}]", realId);
         }

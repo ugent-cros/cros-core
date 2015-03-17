@@ -105,7 +105,7 @@ public class DataChannel {
         return retVal != 0;*/
     }
 
-    public void receivedAck(byte seq){
+    public Frame receivedAck(byte seq, long time){
         synchronized (lock){
             Frame f = frameQueue.peek();
             if(f.getSeq() == seq){
@@ -116,6 +116,7 @@ public class DataChannel {
 //TODO: log!
             }
         }
+        return tick(time);
     }
 
     public Frame createFrame(ByteString data){
