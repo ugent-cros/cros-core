@@ -56,18 +56,19 @@ public class ArDrone2 extends UntypedActor {
 
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPort())), getSelf());
-        log.debug("Starting ARDrone 2.0 Protocol, listening on port: [{}]", details.getReceivingPort());
+        log.info("Starting ARDrone 2.0 Protocol, listening on port: [{}]", details.getReceivingPort());
     }
 
     @Override
     public void preStart() {
-        log.debug("[ARDRONE2] Starting ARDrone 2.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
+        
+        log.info("[ARDRONE2] Starting ARDrone 2.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
     }
 
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
-            log.debug("[ARDRONE2] Socket ARDRone 2.0 bound.");
+            log.info("[ARDRONE2] Socket ARDRone 2.0 bound.");
 
             senderRef = getSender();
             // Setup handlers
@@ -77,14 +78,18 @@ public class ArDrone2 extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
 
-                     // Drone commands
-                    .match(DroneCommandMessage.class, s -> dispatchCommand(s))
+                            // Drone commands
+                            //.match(DroneCommandMessage.class, s -> dispatchCommand(s))
+                    .match(InitDroneCommand.class, s -> handleInit())
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
                     .match(RequestStatusCommand.class, s -> handleRequestStatus())
                     .match(OutdoorCommand.class, s -> handleOutdoor(s))
                     .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
+                    .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -93,13 +98,13 @@ public class ArDrone2 extends UntypedActor {
 
             listener.tell(new PingMessage(), getSelf());
         } else if (msg instanceof DroneConnectionDetails) {
-            log.debug("[ARDRONE2] DroneConnectionDetails received");
+            log.info("[ARDRONE2] DroneConnectionDetails received");
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
-            log.debug("[ARDRONE2] Stop message received - ArDrone2 protocol");
+            log.info("[ARDRONE2] Stop message received - ArDrone2 protocol");
             stop();
         } else {
-            log.debug("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
+            log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
     }
@@ -107,23 +112,23 @@ public class ArDrone2 extends UntypedActor {
     private void droneDiscovered(DroneConnectionDetails details) {
         this.details = details;
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
-        log.debug("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
+        log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
-    private void dispatchCommand(DroneCommandMessage msg) {
+    /*private void dispatchCommand(DroneCommandMessage msg) {
         if (msg.getMessage() instanceof TakeOffCommand) {
-            log.debug("[ARDRONE2] TakeOff Command Received - ArDrone2 Protocol");
+            log.info("[ARDRONE2] TakeOff Command Received - ArDrone2 Protocol");
             handleTakeoff();
         } else if (msg.getMessage() instanceof LandCommand) {
-            log.debug("[ARDRONE2] Land Command Received - ArDrone2 Protocol");
+            log.info("[ARDRONE2] Land Command Received - ArDrone2 Protocol");
             handleLand();
         } else if (msg.getMessage() instanceof InitDroneCommand) {
-            log.debug("[ARDRONE2] Starting ARDrone 2.0 - ArDrone2 Protocol");
+            log.info("[ARDRONE2] Starting ARDrone 2.0 - ArDrone2 Protocol");
             handleInit();
         } else {
             log.warning("[ARDRONE2] No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
         }
-    }
+    }*/
 
     private void stop() {
         udpManager.tell(UdpMessage.unbind(), self());
@@ -132,17 +137,17 @@ public class ArDrone2 extends UntypedActor {
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {
-            log.debug("[ARDRONE2] Sending RAW data to: [{}] - [{}]", senderAddress.getAddress().getHostAddress(), senderAddress.getPort());
+            log.info("[ARDRONE2] Sending RAW data to: [{}] - [{}]", senderAddress.getAddress().getHostAddress(), senderAddress.getPort());
             senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
             return true;
         } else {
-            log.debug("[ARDRONE2] Sending data failed (senderAddress or senderRef is null).");
+            log.info("[ARDRONE2] Sending data failed (senderAddress or senderRef is null).");
             return false;
         }
     }
 
     private void processRawData(ByteString data) {
-        log.debug("[ARDRONE2] Message received");
+        log.info("[ARDRONE2] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -204,7 +209,7 @@ public class ArDrone2 extends UntypedActor {
      * For the init code see: https://github.com/puku0x/cvdrone/blob/master/src/ardrone/command.cpp
      */
     private void handleInit() {
-        log.debug("[ARDRONE2] Initializing ARDrone 2.0");
+        log.info("[ARDRONE2] Initializing ARDrone 2.0");
 
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
@@ -218,11 +223,37 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void handleRequestStatus() {
-
+        // @TODO
+        //sendData(PacketCreator.createPacket(null));
     }
 
     private void handleFlatTrim() {
+        sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
+    }
 
+    private void handleSetMaxTilt(float degrees) {
+        // @TODO
+        //sendData(PacketCreator.createPacket(null));
+    }
+
+    private void handleSetMaxHeight(float meters) {
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                "control:altitude_max", Integer.toString(Math.round(meters * 1000)))));
+    }
+
+    private void handleMove(MoveCommand s) {
+        // Vx: roll  - left-right Must between -1..1
+        // Vy: pitch - front-back Must between -1..1
+        // Vr: gaz   - angular    Must between -1..1
+        // Vz: yaw   - vertical   Must between -1..1
+        if(isMoveParamInRange((float) s.getVx()) && isMoveParamInRange((float) s.getVy())
+                && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVz()))
+            sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 1,
+                    (float) s.getVx(), (float) s.getVy(), (float) s.getVr(), (float) s.getVz())));
+    }
+
+    private boolean isMoveParamInRange(float moveParam) {
+        return (moveParam <= 1 && moveParam >= -1);
     }
 
     /**
@@ -236,7 +267,8 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void handleRequestSettings() {
-
+        // @TODO
+        //sendData(PacketCreator.createPacket(null));
     }
 
     public LoggingAdapter getLog(){

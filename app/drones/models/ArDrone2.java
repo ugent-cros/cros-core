@@ -98,12 +98,16 @@ public class ArDrone2 extends DroneActor {
                 match(PingMessage.class, s -> handlePingResponse());
     }
 
-    private <T extends Serializable> void sendMessage(T msg) {
+    private <T extends Serializable> boolean sendMessage(T msg) {
+        if (msg == null)
+            return false;
+
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
+            return false;
         } else {
-            log.info("Message send [In ArDrone2]");
-            protocol.tell(new DroneCommandMessage(msg), self());
+            protocol.tell(msg, self());
+            return true;
         }
     }
 }
