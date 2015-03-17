@@ -164,9 +164,10 @@ public class ArDrone3 extends UntypedActor {
                     processAck(frame);
                     break;
                 case DATA:
+                    processDataFrame(frame);
+                    break;
                 case DATA_LOW_LATENCY:
                     // Ignore video data for now
-                    //processDataFrame(frame);
                     break;
                 case DATA_WITH_ACK:
                     processDataFrame(frame);
@@ -182,15 +183,17 @@ public class ArDrone3 extends UntypedActor {
     private void processAck(Frame frame) {
         byte realId = FrameHelper.getAckToServer(frame.getId());
         log.debug("Ack received for ID [{}]", realId);
-        Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_CONTROLLER);
+        Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_DRONE);
         DataChannel ch = recvMap.get(realId);
         if (ch != null) {
             byte seq = frame.getData().iterator().getByte();
             long time = System.currentTimeMillis();
             Frame nextFrame = ch.receivedAck(seq, time);
             if (nextFrame != null) {
-                log.debug("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
+                log.info("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
                 sendData(FrameHelper.getFrameData(nextFrame));
+            } else {
+                log.info("Advancing ACK, queue empty.");
             }
         } else {
             log.warning("Received ack for unknown channel id: [{}]", realId);
@@ -261,7 +264,7 @@ public class ArDrone3 extends UntypedActor {
 
     private void addSendChannel(FrameType type, byte id) {
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
-        DataChannel ch = new DataChannel(id, type, 0, 100, 3);
+        DataChannel ch = new DataChannel(id, type, 0, 500, 3);
         if (type == FrameType.DATA_WITH_ACK) {
             ackChannels.add(ch);
         }

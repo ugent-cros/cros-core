@@ -19,12 +19,12 @@ public class DataChannel {
     private final Object lock = new Object();
 
     // Ack channel specs
-    private int sendDelay;
-    private int ackTimeout;
-    private int numRetry;
+    private final int sendDelay;
+    private final int ackTimeout;
+    private final int numRetry;
 
     //Concurrency primitives
-    private LinkedList<Frame> frameQueue; //TODO: use locked queue, no concurrent
+    private LinkedList<Frame> frameQueue;
     private long lastSend = 0;
     private int retried = 0;
 
@@ -42,7 +42,7 @@ public class DataChannel {
 
         this.sendDelay = sendDelay;
         this.ackTimeout = ackTimeout;
-        this.numRetry = numRetry + 1;
+        this.numRetry = numRetry;
 
         if (type == FrameType.DATA_WITH_ACK) { //Create a sender buffer if necesary
             if (numRetry == INFINITE_RETRY)
@@ -51,42 +51,45 @@ public class DataChannel {
         }
     }
 
-    public Frame sendFrame(Frame f, long time){
-        if(type == FrameType.DATA_WITH_ACK){
-            synchronized (lock){
+    public Frame sendFrame(Frame f, long time) {
+        sent++; //TODO: atomic
+        if (type == FrameType.DATA_WITH_ACK) {
+            synchronized (lock) {
                 frameQueue.offer(f);
             }
             return tick(time);
         } else return f;
     }
 
-    public Frame tick(long time){
-        synchronized (lock){
-            if(!frameQueue.isEmpty()){
+    public Frame tick(long time) {
+        synchronized (lock) {
+            if (!frameQueue.isEmpty()) {
                 long diff = time - lastSend;
-                if(diff > ackTimeout){
-                    retried++;
-                    if(retried > numRetry){
-                        frameQueue.poll(); // pop frame
+                if (diff > ackTimeout) {
+                    System.out.println("Retrying at " + time);
+                    if (retried >= numRetry) {
+                        missed++;//TODO: atomic
+                        System.out.println("Retried expired at " + time);
                         retried = 0;
+                        frameQueue.poll(); // pop frame
+                        if (frameQueue.isEmpty()) {
+                            lastSend = 0; //make ready for next packet
+                            return null;
+                        }
                     }
                     lastSend = time;
-                    if(frameQueue.isEmpty()) {
-                        lastSend = 0; //enforce send next time
-                        return null;
-                    } else {
-                        return frameQueue.peek();
-                    }
+                    retried++;
+                    return frameQueue.peek();
                 }
             }
         }
         return null;
     }
 
-    public boolean shouldAllowFrame(Frame f){
+    public boolean shouldAllowFrame(Frame f) {
         // Warning: signed java bytes vs. unsigned seq
         // TODO: Use atomic inc / cmpexch
-        synchronized (lock){
+        synchronized (lock) {
             seq = f.getSeq();
         }
         return true; //TODO: implement properly and don't accept all packets
@@ -105,23 +108,22 @@ public class DataChannel {
         return retVal != 0;*/
     }
 
-    public Frame receivedAck(byte seq, long time){
-        synchronized (lock){
+    public Frame receivedAck(byte seq, long time) {
+        synchronized (lock) {
             Frame f = frameQueue.peek();
-            if(f.getSeq() == seq){
+            if (f.getSeq() == seq) {
+                System.out.println("ACK right frame!");
+                frameQueue.poll();
                 lastSend = 0;
                 retried = 0;
-                frameQueue.poll();
-            } else {
-//TODO: log!
             }
         }
         return tick(time);
     }
 
-    public Frame createFrame(ByteString data){
+    public Frame createFrame(ByteString data) {
         byte s = 0;
-        synchronized (lock){
+        synchronized (lock) {
             s = this.seq++;
         }
         return new Frame(this.type, this.id, s, data);
