@@ -71,7 +71,7 @@ public class AssignmentController {
         if (form.hasErrors())
             return badRequest(form.errors().toString());
 
-        User user = (User) Http.Context.current().args.get("user");
+        User user = (User) SecurityController.getUser();
         if(user == null)
             return unauthorized();
 
