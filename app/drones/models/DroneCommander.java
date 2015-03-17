@@ -153,4 +153,30 @@ public class DroneCommander implements DroneControl, DroneStatus {
             }
         }, Akka.system().dispatcher());
     }
+
+    /**
+     * Subscribe to messages of given topic
+     * @param sub The actor to which the events have to be sent
+     * @param cl The topic class of the message to subscribe to
+     */
+    public void subscribeTopic(final ActorRef sub, Class cl){
+        droneActor.tell(new SubscribeEventMessage(cl), sub);
+    }
+
+    /**
+     * Unsubscribe for a given topic
+     * @param sub The currently subscribed actor
+     * @param cl The topic class of the messages to unsubscribe
+     */
+    public void unsubscribeTopic(final ActorRef sub, Class cl){
+        droneActor.tell(new UnsubscribeEventMessage(cl), sub);
+    }
+
+    /**
+     * Unsubscribe all messages
+     * @param sub The actor to unsubscribe
+     */
+    public void unsubscribe(final ActorRef sub){
+        droneActor.tell(new UnsubscribeEventMessage(null), sub);
+    }
 }
