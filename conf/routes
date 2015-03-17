@@ -13,7 +13,7 @@ GET           /speed                                controllers.Application.getS
 GET           /altitude                             controllers.Application.getAltitude()
 GET           /version                              controllers.Application.getVersion()
 
-#GET           /takeoff                              controllers.Application.takeOff()
+GET           /takeoff                              controllers.Application.takeOff()
 GET           /land                                 controllers.Application.land()
 GET           /subscribe                            controllers.Application.subscribeMonitor()
 GET           /unsubscribe                          controllers.Application.unsubscribeMonitor()
