@@ -17,7 +17,6 @@ public class Fleet {
     /* Supporting multiple drone types */
     private static Map<DroneType, DroneDriver> drivers = new HashMap<>();
 
-    // This method will override any existing drivers for the given droneType
     public static void registerDriver(DroneType droneType, DroneDriver factory) {
         drivers.put(droneType, factory);
     }
@@ -26,28 +25,18 @@ public class Fleet {
         return drivers.remove(droneType);
     }
 
+    public static Map<DroneType, DroneDriver> registeredDrivers() {
+        return new HashMap<>(drivers);
+    }
+
     private static DroneDriver getDriver(DroneType droneType) {
         return drivers.get(droneType);
     }
 
     static {
 
-        DroneDriver bepopFactory = new DroneDriver() {
-            @Override
-            public <T extends DroneActor> Class<T> getActorClass() {
-                return (Class<T>) Bepop.class;
-            }
-
-            @Override
-            public <T extends DroneActor> T createActor(Drone droneEntity) {
-                // TODO: find solution for fixed indoor parameter
-                return (T) new Bepop(droneEntity.getAddress(), true);
-            }
-        };
-
-        DroneType bepop = new DroneType("ARDrone3", "bepop");
-
-        registerDriver(bepop, bepopFactory);
+        BepopDriver bepopDriver = new BepopDriver();
+        registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
 
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
