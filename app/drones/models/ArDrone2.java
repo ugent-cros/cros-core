@@ -6,11 +6,8 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import com.typesafe.config.ConfigException;
 import drones.commands.*;
-import drones.messages.DroneDiscoveredMessage;
 import drones.messages.PingMessage;
-import drones.messages.StopMessage;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -50,7 +47,7 @@ public class ArDrone2 extends DroneActor {
         p.success(null);
     }
 
-    private void handlePingResponse(PingMessage s) {
+    private void handlePingResponse() {
         log.info("ArDrone Ping message received");
         setupDrone();
     }
@@ -79,7 +76,7 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(PingMessage.class, this::handlePingResponse);
+                match(PingMessage.class, s -> handlePingResponse());
     }
 
     private <T extends Serializable> void sendMessage(T msg) {

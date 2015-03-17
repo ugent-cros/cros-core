@@ -34,7 +34,20 @@ public class ArDrone2 extends UntypedActor {
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
 
+    // Sequence number of command
     private int seq = 0;
+
+    // Bytes to be sent to enable navdata
+    private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
+    // Offsets of navdata
+    private static final int NAV_STATE_OFFSET   =  4;
+    private static final int NAV_BATTERY_OFFSET = 24;
+    private static final int NAV_PITCH_OFFSET   = 28;
+    private static final int NAV_ROLL_OFFSET    = 32;
+    private static final int NAV_YAW_OFFSET     = 36;
+    private static final int NAV_ALTITUDE_OFFSET= 40;
+    private static final int NAV_LATITUDE_OFFSET        = 44;
+    private static final int NAV_LONGITUDE_OFFSET       = 48;
 
     public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
@@ -143,19 +156,6 @@ public class ArDrone2 extends UntypedActor {
         processData(received);
     }
 
-    // Bytes to be sent to enable navdata
-    private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
-
-    private static final int NAV_STATE_OFFSET   =  4;
-    private static final int NAV_BATTERY_OFFSET = 24;
-    private static final int NAV_PITCH_OFFSET   = 28;
-    private static final int NAV_ROLL_OFFSET    = 32;
-    private static final int NAV_YAW_OFFSET     = 36;
-    private static final int NAV_ALTITUDE_OFFSET= 40;
-
-    private static final int NAV_LATITUDE_OFFSET        = 44;
-    private static final int NAV_LONGITUDE_OFFSET       = 48;
-
     private int navCounter = 1;
     private void processData(byte[] navdata) {
         int state       = PacketHelper.getInt(navdata, NAV_STATE_OFFSET);
@@ -166,11 +166,6 @@ public class ArDrone2 extends UntypedActor {
         float yaw       = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET) / 1000f;
         float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET);
         float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET);
-        // NOT USED
-        //PacketHelper.getFloat(navdata, NAV_HEADING_OFFSET);
-        //((float)getInt(navdata, NAV_ALTITUDE_US_OFFSET)/1000);
-        //PacketHelper.getFloat(navdata, NAV_ALTITUDE_BARO_OFFSET);
-        //PacketHelper.getFloat(navdata, NAV_ALTITUDE_BARO_RAW_OFFSET);
 
         // TODO nog te verwijderen
         int tmp = 0, n = 0;
