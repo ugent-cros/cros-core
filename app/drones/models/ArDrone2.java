@@ -75,6 +75,24 @@ public class ArDrone2 extends DroneActor {
     }
 
     @Override
+    protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
+        sendMessage(new MoveCommand(vx, vy, vz, vr));
+        p.success(null);
+    }
+
+    @Override
+    protected void setMaxHeight(Promise<Void> p, float meters) {
+        sendMessage(new SetMaxHeightCommand(meters));
+        p.success(null);
+    }
+
+    @Override
+    protected void setMaxTilt(Promise<Void> p, float degrees) {
+        sendMessage(new SetMaxTiltCommand(degrees));
+        p.success(null);
+    }
+
+    @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
                 match(PingMessage.class, s -> handlePingResponse());

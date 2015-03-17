@@ -1,19 +1,28 @@
 package controllers;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
+import drones.messages.BatteryPercentageChangedMessage;
+import drones.models.Bepop;
 import drones.models.DroneCommander;
+import drones.models.DroneMonitor;
 import models.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.Fleet;
+import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Application extends Controller {
 
@@ -57,7 +66,8 @@ public class Application extends Controller {
 
     public static F.Promise<Result> initDrone() {
         // Drone d = Fleet.getFleet().createArDrone2("ardrone2", "192.168.1.2", true);
-        DroneCommander d = Fleet.getFleet().createArDrone2("ardrone2", "localhost", true);
+        DroneCommander d = Fleet.getFleet().createArDrone2("ardrone2", "192.168.1.1", true);
+        //DroneCommander d = Fleet.getFleet().createBepop("bepop", "192.168.42.1", true);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -65,8 +75,37 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> getBatteryPercentage(){
+    public static Result subscribeMonitor(){
         DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        ActorRef r = Akka.system().actorOf(Props.create(DroneMonitor.class), "droneMonitor");
+        d.subscribeTopic(r, BatteryPercentageChangedMessage.class);
+
+        ObjectNode result = Json.newObject();
+        result.put("status", "subscribed");
+        return ok(result);
+    }
+
+    public static Result unsubscribeMonitor(){
+        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+
+        try {
+            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
+                    new Timeout(5, TimeUnit.SECONDS).duration());
+
+            d.unsubscribe(r);
+            ObjectNode result = Json.newObject();
+            result.put("status", "unsubscribed");
+            return ok(result);
+        } catch (Exception e) {
+            ObjectNode result = Json.newObject();
+            result.put("status", "not-found");
+            return ok(result);
+        }
+    }
+
+    public static F.Promise<Result> getBatteryPercentage(){
+        //DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("ardrone2");
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
@@ -86,7 +125,8 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getAltitude(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        //DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getDrone("ardrone2");
         return F.Promise.wrap(d.getAltitude()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("altitude", v);

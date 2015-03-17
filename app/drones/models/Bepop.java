@@ -42,8 +42,8 @@ public class Bepop extends DroneActor {
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
-           //TODO: https://github.com/akka/akka/issues/15882 fix unbound when failed
-           // protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
+            //TODO: https://github.com/akka/akka/issues/15882 fix unbound when failed
+            // protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
         } else {
             setupDrone(s);
@@ -53,14 +53,16 @@ public class Bepop extends DroneActor {
         initPromise = null;
     }
 
-    private <T extends Serializable> void sendMessage(T msg) {
-        if(msg == null)
-            return;
+    private <T extends Serializable> boolean sendMessage(T msg) {
+        if (msg == null)
+            return false;
 
         if (protocol == null) {
             log.warning("Trying to send message to uninitialized drone: [{}]", ip);
+            return false;
         } else {
             protocol.tell(msg, self());
+            return true;
         }
     }
 
@@ -69,6 +71,7 @@ public class Bepop extends DroneActor {
         log.info("Discovery finished, forwarding connection details to protocl");
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
+        sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
         sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
@@ -81,7 +84,7 @@ public class Bepop extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
-                if(protocol == null){
+                if (protocol == null) {
                     //TODO: randomize listening port for multiple drones later
                     //TODO: dispose each time when udp bound is fixed
                     protocol = getContext().actorOf(Props.create(ArDrone3.class,
@@ -89,7 +92,7 @@ public class Bepop extends DroneActor {
                 }
 
 
-                if(discoveryProtocol != null){
+                if (discoveryProtocol != null) {
                     discoveryProtocol.tell(new StopMessage(), self());
                 }
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
@@ -101,14 +104,47 @@ public class Bepop extends DroneActor {
     @Override
     protected void takeOff(Promise<Void> p) {
         //TODO: only return when status changes to taking off promises
-        sendMessage(new FlatTrimCommand());
-        sendMessage(new TakeOffCommand());
-        p.success(null);
+        if (sendMessage(new FlatTrimCommand()) &&
+                sendMessage(new TakeOffCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override
     protected void land(Promise<Void> p) {
-        sendMessage(new LandCommand());
-        p.success(null);
+        if (sendMessage(new LandCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
+        if(sendMessage(new MoveCommand(vx, vy, vz, vr))){
+            p.success(null); //ack the command
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setMaxHeight(Promise<Void> p, float meters) {
+        if(sendMessage(new SetMaxHeightCommand(meters))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setMaxTilt(Promise<Void> p, float degrees) {
+        if(sendMessage(new SetMaxTiltCommand(degrees))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 }

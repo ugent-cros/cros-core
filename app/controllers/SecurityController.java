@@ -1,6 +1,7 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import exceptions.IncompatibleSystemException;
 import models.User;
 import play.data.Form;
 import play.data.validation.Constraints;
@@ -36,7 +37,13 @@ public class SecurityController extends Controller {
 
         // Authenticate the user
         Login login = loginForm.get();
-        User user = User.authenticate(login.emailAddress, login.password);
+        User user = null;
+        try {
+            user = User.authenticate(login.emailAddress, login.password);
+        } catch (IncompatibleSystemException e) {
+            // Password hash not available on this system
+            return  internalServerError(e.getMessage());
+        }
         if (user == null)
             return unauthorized();
 
