@@ -112,4 +112,9 @@ public class Bepop extends DroneActor {
         sendMessage(new LandCommand());
         p.success(null);
     }
+
+    @Override
+    protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
+        sendMessage(new MoveCommand(vx, vy, vz, vr));
+    }
 }

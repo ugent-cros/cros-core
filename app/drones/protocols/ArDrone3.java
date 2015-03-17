@@ -320,13 +320,14 @@ public class ArDrone3 extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
 
-                     // Drone commands
+                            // Drone commands
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
                     .match(RequestStatusCommand.class, s -> handleRequestStatus())
                     .match(OutdoorCommand.class, s -> handleOutdoor(s))
                     .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .match(MoveCommand.class, s -> handleMove(s))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -341,6 +342,43 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
+    private void handleMove(MoveCommand cmd){
+        log.debug("ArDrone3 MOVE command.");
+
+        float v[] = new float[]{-20f * (float)cmd.getVy(), -20f * (float)cmd.getVx(), 20f * (float)cmd.getVz(), -50f * (float)cmd.getVr()};
+        boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
+
+        // Normalize [-100;+100]
+        for (int i = 0; i < 4; i++) {
+            if (Math.abs(v[i]) > 100f) v[i] /= Math.abs(v[i]);
+        }
+
+        /*
+        Quad reference: https://developer.valvesoftware.com/w/images/7/7e/Roll_pitch_yaw.gif
+
+        The left-right tilt (aka. "drone roll" or phi angle) argument is a percentage of the maximum
+        inclination as configured here. A negative value makes the drone tilt to its left, thus flying
+        leftward. A positive value makes the drone tilt to its right, thus flying rightward.
+
+        The front-back tilt (aka. "drone pitch" or theta angle) argument is a percentage of the maximum
+        inclination as configured here. A negative value makes the drone lower its nose, thus flying
+        frontward. A positive value makes the drone raise its nose, thus flying backward.
+
+        The drone translation speed in the horizontal plane depends on the environment and cannot
+        be determined. With roll or pitch values set to 0, the drone will stay horizontal but continue
+        sliding in the air because of its inertia. Only the air resistance will then make it stop.
+
+        The vertical speed (aka. "gaz") argument is a percentage of the maximum vertical speed as
+        defined here. A positive value makes the drone rise in the air. A negative value makes it go
+        down.
+
+        The angular speed argument is a percentage of the maximum angular speed as defined here.
+        A positive value makes the drone spin right; a negative value makes it spin left.
+         */
+
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)v[0], (byte)v[1], (byte)v[2], (byte)v[3]));
+
+    }
 
 
     private void tick() {

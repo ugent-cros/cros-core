@@ -84,6 +84,8 @@ public class DataChannel {
     }
 
     public boolean shouldAllowFrame(Frame f){
+        // Warning: signed java bytes vs. unsigned seq
+        // TODO: Use atomic inc / cmpexch
         synchronized (lock){
             seq = f.getSeq();
         }

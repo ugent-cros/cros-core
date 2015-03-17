@@ -19,6 +19,7 @@ import scala.concurrent.Promise;
 public abstract class DroneActor extends AbstractActor {
 
     protected LazyProperty<FlyingState> state;
+    protected LazyProperty<AlertState> alertState;
     protected LazyProperty<Location> location;
     protected LazyProperty<Byte> batteryPercentage;
     protected LazyProperty<Void> flatTrimStatus;
@@ -35,6 +36,7 @@ public abstract class DroneActor extends AbstractActor {
     public DroneActor(){
         batteryPercentage = new LazyProperty<>();
         state = new LazyProperty<>(FlyingState.LANDED); //TODO: request this on connect
+        alertState = new LazyProperty<>(AlertState.NONE);
         flatTrimStatus = new LazyProperty<>();
         location = new LazyProperty<>();
         rotation = new LazyProperty<>();
@@ -51,6 +53,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
+                match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
 
                 // Drone -> external
                 match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
@@ -59,6 +62,7 @@ public abstract class DroneActor extends AbstractActor {
                     log.info("Battery=[{}]", s.getPercent());
                 }).
                 match(FlyingStateChangedMessage.class, s -> state.setValue(s.getState())).
+                match(AlertStateChangedMessage.class, s -> alertState.setValue(s.getState())).
                 match(FlatTrimChangedMessage.class, s -> flatTrimStatus.setValue(null)).
                 match(AttitudeChangedMessage.class, s -> rotation.setValue(new Rotation(s.getRoll(), s.getPitch(), s.getYaw()))).
                 match(AltitudeChangedMessage.class, s -> altitude.setValue(s.getAltitude())).
@@ -116,6 +120,17 @@ public abstract class DroneActor extends AbstractActor {
         }, ec);
     }
 
+    private void moveInternal(final ActorRef sender, final ActorRef self, final MoveRequestMessage msg){
+        if(!loaded || state.getRawValue() == FlyingState.LANDED){
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when on the ground")), self);
+        } else {
+            log.debug("Attempting movement vx=[{}], vy=[{}], vz=[{}], vr=[{}]", msg.getVx(), msg.getVy(), msg.getVz(), msg.getVr());
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            move3d(v, msg.getVx(), msg.getVy(), msg.getVz(), msg.getVr());
+        }
+    }
+
     private void initInternal(final ActorRef sender, final ActorRef self){
         if(!loading && !loaded){
             loading = true;
@@ -168,6 +183,7 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void init(Promise<Void> p);
     protected abstract void takeOff(Promise<Void> p);
     protected abstract void land(Promise<Void> p);
+    protected abstract void move3d(Promise<Void> p, double vx, double vy, double vz, double vr);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

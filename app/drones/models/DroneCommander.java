@@ -60,6 +60,20 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> move3d(double vx, double vy, double vz, double vr) {
+        return ask(droneActor, new MoveRequestMessage(vx, vy, vz, vr), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> move(double vx, double vy, double vr) {
+        return move3d(vx, vy, 0d, vr);
+    }
+
+    @Override
     public Future<FlyingState> getFlyingState() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {
