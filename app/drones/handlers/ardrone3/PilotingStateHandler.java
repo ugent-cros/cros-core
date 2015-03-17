@@ -2,6 +2,7 @@ package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
 import drones.messages.*;
+import drones.models.AlertState;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.FlyingState;
 import drones.models.ardrone3.Packet;
@@ -22,6 +23,7 @@ public class PilotingStateHandler extends CommandProcessor {
 
         addHandler((short)0, PilotingStateHandler::flatTrimChanged);
         addHandler((short)1, PilotingStateHandler::flyingStateChanged);
+        addHandler((short)2, PilotingStateHandler::alertStateChanged);
         addHandler((short)4, PilotingStateHandler::positionChanged);
         addHandler((short)5, PilotingStateHandler::speedChanged);
         addHandler((short)6, PilotingStateHandler::attitudeChanged);
@@ -72,6 +74,31 @@ public class PilotingStateHandler extends CommandProcessor {
         ByteIterator it = p.getData().iterator();
         int val = it.getInt(FrameHelper.BYTE_ORDER);
         return new FlyingStateChangedMessage(getFlyingState(val));
+    }
+
+    private static AlertState getAlertState(int val){
+        switch(val){
+            case 0:
+                return AlertState.NONE;
+            case 1:
+                return AlertState.USER_EMERGENCY;
+            case 2:
+                return AlertState.CUT_OUT;
+            case 3:
+                return AlertState.BATTERY_CRITICAL;
+            case 4:
+                return AlertState.BATTERY_LOW;
+            case 5:
+                return AlertState.ANGLE_CRITICAL;
+            default:
+                throw new IllegalArgumentException("val");
+        }
+    }
+
+    private static Object alertStateChanged(Packet p){
+        ByteIterator it = p.getData().iterator();
+        int val = it.getInt(FrameHelper.BYTE_ORDER);
+        return new AlertStateChangedMessage(getAlertState(val));
     }
 
     private static Object altitudeChanged(Packet p){

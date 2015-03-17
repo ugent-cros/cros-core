@@ -1,20 +1,29 @@
 package controllers;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import drones.models.BepopDriver;
+import drones.messages.BatteryPercentageChangedMessage;
+import drones.models.Bepop;
 import drones.models.DroneCommander;
+import drones.models.DroneMonitor;
 import models.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.Fleet;
+import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Application extends Controller {
 
@@ -60,7 +69,6 @@ public class Application extends Controller {
     private static Drone testDroneEntity;
 
     public static F.Promise<Result> initDrone() {
-
         testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
         testDroneEntity.save();
 
@@ -70,6 +78,34 @@ public class Application extends Controller {
             result.put("status", "ok");
             return ok(result);
         });
+    }
+
+    public static Result subscribeMonitor(){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        ActorRef r = Akka.system().actorOf(Props.create(DroneMonitor.class), "droneMonitor");
+        d.subscribeTopic(r, BatteryPercentageChangedMessage.class);
+
+        ObjectNode result = Json.newObject();
+        result.put("status", "subscribed");
+        return ok(result);
+    }
+
+    public static Result unsubscribeMonitor(){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+
+        try {
+            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
+                    new Timeout(5, TimeUnit.SECONDS).duration());
+
+            d.unsubscribe(r);
+            ObjectNode result = Json.newObject();
+            result.put("status", "unsubscribed");
+            return ok(result);
+        } catch (Exception e) {
+            ObjectNode result = Json.newObject();
+            result.put("status", "not-found");
+            return ok(result);
+        }
     }
 
     public static F.Promise<Result> getBatteryPercentage(){
