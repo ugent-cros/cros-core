@@ -88,7 +88,7 @@ public class ArDrone3 extends UntypedActor {
 
     private void stop() {
         log.debug("Unbinding ARDrone 3 UDP listener.");
-        if(senderRef != null) {
+        if (senderRef != null) {
             senderRef.tell(UdpMessage.unbind(), self());
         }
         getContext().stop(self());
@@ -128,7 +128,7 @@ public class ArDrone3 extends UntypedActor {
                     log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
                     listener.tell(msg, getSelf()); //Dispatch message back to droneactor
                 }
-            } catch(RuntimeException ex){
+            } catch (RuntimeException ex) {
                 log.error(ex, "Packet handler failed ([{}], [{}], [{}]", packet.getType(), packet.getCommandClass(), packet.getCommand());
             }
         }
@@ -165,7 +165,8 @@ public class ArDrone3 extends UntypedActor {
                     break;
                 case DATA:
                 case DATA_LOW_LATENCY:
-                    processDataFrame(frame);
+                    // Ignore video data for now
+                    //processDataFrame(frame);
                     break;
                 case DATA_WITH_ACK:
                     processDataFrame(frame);
@@ -187,7 +188,7 @@ public class ArDrone3 extends UntypedActor {
             byte seq = frame.getData().iterator().getByte();
             long time = System.currentTimeMillis();
             Frame nextFrame = ch.receivedAck(seq, time);
-            if(nextFrame != null){
+            if (nextFrame != null) {
                 log.debug("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
                 sendData(FrameHelper.getFrameData(nextFrame));
             }
@@ -337,6 +338,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(OutdoorCommand.class, s -> handleOutdoor(s))
                     .match(RequestSettingsCommand.class, s -> handleRequestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetVideoStreamingStateCommand.class,  s -> handleSetVideoStreaming(s.isEnabled()))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .matchAny(s -> {
@@ -353,10 +355,10 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void handleMove(MoveCommand cmd){
+    private void handleMove(MoveCommand cmd) {
         log.debug("ArDrone3 MOVE command.");
 
-        float v[] = new float[]{-20f * (float)cmd.getVy(), -20f * (float)cmd.getVx(), 20f * (float)cmd.getVz(), -50f * (float)cmd.getVr()};
+        float v[] = new float[]{-20f * (float) cmd.getVy(), -20f * (float) cmd.getVx(), 20f * (float) cmd.getVz(), -50f * (float) cmd.getVr()};
         boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
 
         // Normalize [-100;+100]
@@ -387,7 +389,7 @@ public class ArDrone3 extends UntypedActor {
         A positive value makes the drone spin right; a negative value makes it spin left.
          */
 
-        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)v[0], (byte)v[1], (byte)v[2], (byte)v[3]));
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) v[0], (byte) v[1], (byte) v[2], (byte) v[3]));
 
     }
 
@@ -444,34 +446,38 @@ public class ArDrone3 extends UntypedActor {
     // All command handlers
     //TODO: move these to seperate class statically
     private void handleFlatTrim() {
-        sendDataNoAck(PacketCreator.createFlatTrimPacket());//TODO: ack channel
+        sendDataAck(PacketCreator.createFlatTrimPacket());
     }
 
     private void handleTakeoff() {
-        sendDataNoAck(PacketCreator.createTakeOffPacket()); //TODO: ACK channel
+        sendDataAck(PacketCreator.createTakeOffPacket());
     }
 
     private void handleLand() {
-        sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
+        sendDataAck(PacketCreator.createLandingPacket());
     }
 
     private void handleRequestStatus() {
-        sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
+        sendDataAck(PacketCreator.createRequestStatusPacket());
+    }
+
+    private void handleSetVideoStreaming(boolean enabled){
+        sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
     private void handleRequestSettings() {
-        sendDataNoAck(PacketCreator.createRequestAllSettingsCommand()); //TODO: ack
+        sendDataAck(PacketCreator.createRequestAllSettingsCommand());
     }
 
     private void handleOutdoor(OutdoorCommand cmd) {
-        sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
+        sendDataAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor()));
     }
 
-    private void handleSetMaxHeight(float meters){
+    private void handleSetMaxHeight(float meters) {
         sendDataAck(PacketCreator.createSetMaxAltitudePacket(meters));
     }
 
-    private void handleSetMaxTilt(float degrees){
+    private void handleSetMaxTilt(float degrees) {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
     }
 

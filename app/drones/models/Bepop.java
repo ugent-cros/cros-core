@@ -72,6 +72,7 @@ public class Bepop extends DroneActor {
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
 
+        sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
         sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());

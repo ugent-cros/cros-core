@@ -59,4 +59,10 @@ public class PacketCreator {
         b.putFloat(0f, FrameHelper.BYTE_ORDER); //unused PSI heading for compass
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)2, b.result());
     }
+
+    public static Packet createSetVideoStreamingStatePacket(boolean enabled){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(enabled ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.MEDIASTREAMING.getVal(), (short)0, b.result());
+    }
 }
