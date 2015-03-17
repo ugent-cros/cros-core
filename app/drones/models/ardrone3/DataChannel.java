@@ -4,6 +4,7 @@ import akka.util.ByteString;
 
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Cedric on 3/6/2015.
@@ -28,8 +29,8 @@ public class DataChannel {
     private long lastSend = 0;
     private int retried = 0;
 
-    private int missed = 0; //TODO: statistics
-    private int sent = 0;
+    private AtomicInteger missed;
+    private AtomicInteger sent;
 
     public DataChannel(byte id, FrameType type) {
         this(id, type, 20, -1, INFINITE_RETRY);
@@ -39,6 +40,9 @@ public class DataChannel {
         this.id = id;
         this.type = type;
         this.seq = 1;
+
+        this.missed = new AtomicInteger(0);
+        this.sent = new AtomicInteger(0);
 
         this.sendDelay = sendDelay;
         this.ackTimeout = ackTimeout;
@@ -52,7 +56,7 @@ public class DataChannel {
     }
 
     public Frame sendFrame(Frame f, long time) {
-        sent++; //TODO: atomic
+        sent.incrementAndGet(); //TODO: atomic
         if (type == FrameType.DATA_WITH_ACK) {
             synchronized (lock) {
                 frameQueue.offer(f);
@@ -66,10 +70,8 @@ public class DataChannel {
             if (!frameQueue.isEmpty()) {
                 long diff = time - lastSend;
                 if (diff > ackTimeout) {
-                    System.out.println("Retrying at " + time);
                     if (retried >= numRetry) {
-                        missed++;//TODO: atomic
-                        System.out.println("Retried expired at " + time);
+                        missed.incrementAndGet();//TODO: atomic
                         retried = 0;
                         frameQueue.poll(); // pop frame
                         if (frameQueue.isEmpty()) {
@@ -112,7 +114,6 @@ public class DataChannel {
         synchronized (lock) {
             Frame f = frameQueue.peek();
             if (f.getSeq() == seq) {
-                System.out.println("ACK right frame!");
                 frameQueue.poll();
                 lastSend = 0;
                 retried = 0;
@@ -127,6 +128,10 @@ public class DataChannel {
             s = this.seq++;
         }
         return new Frame(this.type, this.id, s, data);
+    }
+
+    public float getMissRate(){
+        return (float)missed.get() / sent.get();
     }
 
     public byte getId() {

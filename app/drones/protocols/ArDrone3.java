@@ -190,10 +190,10 @@ public class ArDrone3 extends UntypedActor {
             long time = System.currentTimeMillis();
             Frame nextFrame = ch.receivedAck(seq, time);
             if (nextFrame != null) {
-                log.info("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
+                log.debug("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
                 sendData(FrameHelper.getFrameData(nextFrame));
             } else {
-                log.info("Advancing ACK, queue empty.");
+                log.debug("Advancing ACK, queue empty.");
             }
         } else {
             log.warning("Received ack for unknown channel id: [{}]", realId);
