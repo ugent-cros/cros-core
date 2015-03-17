@@ -121,11 +121,15 @@ public class ArDrone3 extends UntypedActor {
         if (p == null) {
             log.debug("No CommandTypeProcessor for [{}]", packet.getType());
         } else {
-            Object msg = p.handle(packet);
+            try {
+                Object msg = p.handle(packet);
 
-            if (msg != null) {
-                log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
-                listener.tell(msg, getSelf()); //Dispatch message back to droneactor
+                if (msg != null) {
+                    log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
+                    listener.tell(msg, getSelf()); //Dispatch message back to droneactor
+                }
+            } catch(RuntimeException ex){
+                log.error(ex, "Packet handler failed ([{}], [{}], [{}]", packet.getType(), packet.getCommandClass(), packet.getCommand());
             }
         }
     }
