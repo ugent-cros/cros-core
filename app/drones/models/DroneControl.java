@@ -42,4 +42,19 @@ public interface DroneControl {
      * @return Promise whether request was initiated (but not yet completed)
      */
     Future<Void> move(double vx, double vy, double vr);
+
+    /**
+     * Sets the maximum height for the drone
+     * @param meters The height
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> setMaxHeight(float meters);
+
+    /**
+     * Sets the maximum drone tilt
+     * @param degrees Maximum angle in degrees
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> setMaxTilt(float degrees);
+
 }

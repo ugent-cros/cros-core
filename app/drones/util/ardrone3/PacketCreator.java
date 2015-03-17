@@ -37,6 +37,18 @@ public class PacketCreator {
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)3, b.result());
     }
 
+    public static Packet createSetMaxAltitudePacket(float meters){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putFloat(meters, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTINGSETTINGS.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createSetMaxTiltPacket(float degrees){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putFloat(degrees, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTINGSETTINGS.getVal(), (short)1, b.result());
+    }
+
     public static Packet createMove3dPacket(boolean useRoll, byte roll, byte pitch, byte yaw, byte gaz){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(useRoll ? (byte)1 : (byte)0);

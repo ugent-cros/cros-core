@@ -328,6 +328,8 @@ public class ArDrone3 extends UntypedActor {
                     .match(OutdoorCommand.class, s -> handleOutdoor(s))
                     .match(RequestSettingsCommand.class, s -> handleRequestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
+                    .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -452,7 +454,16 @@ public class ArDrone3 extends UntypedActor {
         sendDataNoAck(PacketCreator.createRequestAllSettingsCommand()); //TODO: ack
     }
 
-    public void handleOutdoor(OutdoorCommand cmd) {
+    private void handleOutdoor(OutdoorCommand cmd) {
         sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
     }
+
+    private void handleSetMaxHeight(float meters){
+        sendDataAck(PacketCreator.createSetMaxAltitudePacket(meters));
+    }
+
+    private void handleSetMaxTilt(float degrees){
+        sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
+    }
+
 }

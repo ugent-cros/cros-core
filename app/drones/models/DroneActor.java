@@ -54,6 +54,8 @@ public abstract class DroneActor extends AbstractActor {
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
+                match(SetMaxHeigthRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
+                match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
 
                 // Drone -> external
                 match(LocationChangedMessage.class, s -> location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()))).
@@ -180,10 +182,32 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    private void setMaxHeightInternal(final ActorRef sender, final ActorRef self, float meters){
+        if(loaded){
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            setMaxHeight(v, meters);
+        } else {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone not initialized yet")), self);
+        }
+    }
+
+    private void setMaxTiltInternal(final ActorRef sender, final ActorRef self, float degrees) {
+        if(loaded){
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            setMaxTilt(v, degrees);
+        } else {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone not initialized yet")), self);
+        }
+    }
+
     protected abstract void init(Promise<Void> p);
     protected abstract void takeOff(Promise<Void> p);
     protected abstract void land(Promise<Void> p);
     protected abstract void move3d(Promise<Void> p, double vx, double vy, double vz, double vr);
+    protected abstract void setMaxHeight(Promise<Void> p, float meters);
+    protected abstract void setMaxTilt(Promise<Void> p, float degrees);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }
