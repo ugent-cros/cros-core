@@ -14,7 +14,7 @@ public class PacketHelper {
      * @return
      */
     public static int getInt(byte[] data, int offset) {
-        int tmp = 0, n = 0;
+        int n = 0;
 
         /*for (int i=3; i>=0; i--) {
             n <<= 8;

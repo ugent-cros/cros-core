@@ -6,7 +6,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
-import akka.japi.Procedure;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
@@ -16,8 +15,6 @@ import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
 import drones.util.ardrone2.PacketHelper;
-import drones.util.ardrone3.FrameHelper;
-
 import java.net.InetSocketAddress;
 
 /**
@@ -40,14 +37,16 @@ public class ArDrone2 extends UntypedActor {
     // Bytes to be sent to enable navdata
     private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
     // Offsets of navdata
-    private static final int NAV_STATE_OFFSET   =  4;
-    private static final int NAV_BATTERY_OFFSET = 24;
-    private static final int NAV_PITCH_OFFSET   = 28;
-    private static final int NAV_ROLL_OFFSET    = 32;
-    private static final int NAV_YAW_OFFSET     = 36;
-    private static final int NAV_ALTITUDE_OFFSET= 40;
-    private static final int NAV_LATITUDE_OFFSET        = 44;
-    private static final int NAV_LONGITUDE_OFFSET       = 48;
+    private static final int NAV_STATE_OFFSET     =  4;
+    private static final int NAV_BATTERY_OFFSET   = 24;
+    private static final int NAV_PITCH_OFFSET     = 28;
+    private static final int NAV_ROLL_OFFSET      = 32;
+    private static final int NAV_YAW_OFFSET       = 36;
+    private static final int NAV_ALTITUDE_OFFSET  = 40;
+    private static final int NAV_LATITUDE_OFFSET  = 44;
+    private static final int NAV_LONGITUDE_OFFSET = 48;
+    // Counter for navdata packets
+    private int navCounter = 1;
 
     public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
@@ -156,7 +155,6 @@ public class ArDrone2 extends UntypedActor {
         processData(received);
     }
 
-    private int navCounter = 1;
     private void processData(byte[] navdata) {
         int state       = PacketHelper.getInt(navdata, NAV_STATE_OFFSET);
         int battery     = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET);
@@ -181,10 +179,10 @@ public class ArDrone2 extends UntypedActor {
         listener.tell(batteryMessage, getSelf());
 
         Object altitudeMessage = new AltitudeChangedMessage(altitude);
-        listener.tell(batteryMessage, getSelf());
+        listener.tell(altitudeMessage, getSelf());
 
         Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
-        listener.tell(batteryMessage, getSelf());
+        listener.tell(attitudeMessage, getSelf());
 
         String debug = String.format(
                 "[ARDRONE2] NavData received [%d]\n " +
@@ -212,7 +210,7 @@ public class ArDrone2 extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "1000"))); // 1m max height //@TODO add "\""
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "1000"))); // 1m max height
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
 
         // Enable nav data
@@ -234,7 +232,7 @@ public class ArDrone2 extends UntypedActor {
      */
     private void handleOutdoor(OutdoorCommand cmd) {
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                "control:outdoor", "\"" + Boolean.toString(cmd.isOutdoor()).toUpperCase() + "\"")));
+                "control:outdoor", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
     }
 
     private void handleRequestSettings() {

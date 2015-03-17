@@ -11,6 +11,8 @@ import java.nio.IntBuffer;
  */
 public abstract class ATCommand {
     protected int seq;
+    private FloatBuffer fb;
+    private IntBuffer ib;
 
     public ATCommand(int seq) {
         ByteBuffer bb = ByteBuffer.allocate(4);
@@ -27,9 +29,6 @@ public abstract class ATCommand {
     public int getSeq() {
         return seq;
     }
-
-    private FloatBuffer fb;
-    private IntBuffer ib;
 
     protected int intOfFloat(float f) {
         fb.put(0, f);

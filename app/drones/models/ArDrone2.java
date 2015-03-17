@@ -19,10 +19,11 @@ public class ArDrone2 extends DroneActor {
 
     private ActorRef protocol;
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    private final String ip;
-    private final boolean indoor;
-    private final Object lock = new Object();
     private Promise<Void> initPromise;
+    private final boolean indoor;
+    private final String ip;
+    private final Object lock = new Object();
+
 
     public ArDrone2(String ip, boolean indoor) {
         this.ip = ip;
@@ -38,7 +39,7 @@ public class ArDrone2 extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
-                // @TODO
+                // @TODO change hard coded ports
                 protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.class,
                         () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5554, 5556), ArDrone2.this.self())));
             }

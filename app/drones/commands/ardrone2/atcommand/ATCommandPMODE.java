@@ -1,7 +1,6 @@
 package drones.commands.ardrone2.atcommand;
 
 /**
- * @TODO see what this command does
  *
  * Created by brecht on 3/8/15.
  */
