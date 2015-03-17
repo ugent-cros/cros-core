@@ -37,4 +37,8 @@ public class Fleet {
     public DroneCommander getDrone(String name){
         return drones.get(name);
     }
+
+    public Map<String,DroneCommander> getDrones(){
+        return drones;
+    }
 }

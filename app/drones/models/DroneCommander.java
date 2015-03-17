@@ -5,6 +5,7 @@ import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
+import models.Drone;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -27,6 +28,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
+    }
+
+    public boolean isIdle(){
+        //TODO: Check if drone is busy completing an assignment
+        return true;
+    }
+
+    //TODO: Make this work with real Drone Models
+    private Drone model = null;
+    public Drone getModel(){
+        return model;
     }
 
     @Override
