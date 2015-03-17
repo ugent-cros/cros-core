@@ -41,9 +41,6 @@ public class Fleet {
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
 
-    // TODO: replace communitcationType in drone by String or Type object
-    // Type object: type + version?
-
     /* Singleton */
 
     private static final Fleet fleet = new Fleet();

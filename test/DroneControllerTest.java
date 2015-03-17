@@ -117,7 +117,6 @@ public class DroneControllerTest extends TestSuperclass {
         Result result = callAction(routes.ref.DroneController.update(d.getId()),
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
         try {
-            System.err.println(contentAsString(result));
             JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
             Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
             assertThat(receivedDrone).isEqualTo(d);
