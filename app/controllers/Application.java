@@ -29,10 +29,11 @@ public class Application extends Controller {
         User.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
-        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address1"));
-        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address2"));
-        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address4"));
+        DroneType bepop = new DroneType("ARDrone3", "bepop");
+        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
+        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
+        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop,  "address4"));
 
         Ebean.save(drones);
 
@@ -59,7 +60,8 @@ public class Application extends Controller {
 
     public static F.Promise<Result> initDrone() {
 
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "192.168.42.1");
+        DroneType bepop = new DroneType("ARDrone3", "bepop");
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, bepop,  "192.168.42.1");
         testDroneEntity.save();
 
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);

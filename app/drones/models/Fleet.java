@@ -3,6 +3,7 @@ package drones.models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import models.Drone;
+import models.DroneType;
 import play.libs.Akka;
 
 import java.util.HashMap;
@@ -14,24 +15,24 @@ import java.util.Map;
 public class Fleet {
 
     /* Supporting multiple drone types */
-    private static Map<String, DroneActorFactory> drivers = new HashMap<>();
+    private static Map<DroneType, DroneDriver> drivers = new HashMap<>();
 
     // This method will override any existing drivers for the given droneType
-    public static void registerDriver(String droneType, DroneActorFactory factory) {
+    public static void registerDriver(DroneType droneType, DroneDriver factory) {
         drivers.put(droneType, factory);
     }
 
-    public static DroneActorFactory unregisterDriver(String droneType) {
+    public static DroneDriver unregisterDriver(String droneType) {
         return drivers.remove(droneType);
     }
 
-    private static DroneActorFactory getDriver(String droneType) {
+    private static DroneDriver getDriver(DroneType droneType) {
         return drivers.get(droneType);
     }
 
     static {
 
-        DroneActorFactory bepopFactory = new DroneActorFactory() {
+        DroneDriver bepopFactory = new DroneDriver() {
             @Override
             public <T extends DroneActor> Class<T> getActorClass() {
                 return (Class<T>) Bepop.class;
@@ -44,7 +45,9 @@ public class Fleet {
             }
         };
 
-        registerDriver(Drone.CommunicationType.DEFAULT.name(), bepopFactory);
+        DroneType bepop = new DroneType("ARDrone3", "bepop");
+
+        registerDriver(bepop, bepopFactory);
 
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
@@ -77,7 +80,7 @@ public class Fleet {
         if (commander == null) {
 
             // Get the driver, if available
-            DroneActorFactory driver = getDriver(droneEntity.getCommunicationType().name());
+            DroneDriver driver = getDriver(droneEntity.getDroneType());
             if (driver == null)
                 return null;
 
