@@ -1,6 +1,7 @@
 package controllers;
 
 import com.avaje.ebean.Ebean;
+import drones.models.BepopDriver;
 import drones.models.DroneCommander;
 import models.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -60,8 +61,7 @@ public class Application extends Controller {
 
     public static F.Promise<Result> initDrone() {
 
-        DroneType bepop = new DroneType("ARDrone3", "bepop");
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, bepop,  "192.168.42.1");
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
         testDroneEntity.save();
 
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
