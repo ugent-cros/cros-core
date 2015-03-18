@@ -9,7 +9,7 @@ import drones.models.DroneCommander;
  */
 public abstract class Pilot extends FlightControl{
 
-    private DroneCommander dc;
+    protected DroneCommander dc;
 
     public Pilot(DroneCommander dc) {
         super();
