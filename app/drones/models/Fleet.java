@@ -21,8 +21,9 @@ public class Fleet {
         drivers.put(droneType, factory);
     }
 
-    public static DroneDriver unregisterDriver(String droneType) {
-        return drivers.remove(droneType);
+    // Removes the driver if it's currently associated with the given type
+    public static boolean unregisterDriver(DroneType droneType, DroneDriver driver) {
+        return drivers.remove(droneType, driver);
     }
 
     public static Map<DroneType, DroneDriver> registeredDrivers() {
