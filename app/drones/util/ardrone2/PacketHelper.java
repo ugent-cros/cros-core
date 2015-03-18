@@ -14,19 +14,20 @@ public class PacketHelper {
      * @return
      */
     public static int getInt(byte[] data, int offset) {
-        int n = 0;
+        int n = 0, tmp = 0;
 
-        /*for (int i=3; i>=0; i--) {
+        for (int i=3; i>=0; i--) {
             n <<= 8;
             tmp = data[offset + i] & 0xFF;
             n |= tmp;
-        }*/
-
-        for (int i = 3; i >= 0; i--) {
-            n |= (data[offset + i] & 0xFF) << ((3 - i) * 8);
         }
 
         return n;
+        /*for (int i = 3; i >= 0; i--) {
+            n |= (data[offset + i] & 0xFF) << ((3 - i) * 8);
+        }
+
+        return n;*/
     }
 
     /**

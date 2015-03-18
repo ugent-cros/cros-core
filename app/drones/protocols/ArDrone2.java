@@ -47,21 +47,22 @@ public class ArDrone2 extends UntypedActor {
     private static final int NAV_LONGITUDE_OFFSET = 48;
     // Counter for navdata packets
     private int navCounter = 1;
+    private static final int VIDEO_PORT = 5555; // @TODO "randomnize" port
 
     public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
-        this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
+        this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort()); // Sends to 5554 instead of 5556
         this.details = details;
 
         this.listener = listener;
 
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPort())), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", VIDEO_PORT)), getSelf());
         log.info("Starting ARDrone 2.0 Protocol, listening on port: [{}]", details.getReceivingPort());
     }
 
     @Override
     public void preStart() {
-        
         log.info("[ARDRONE2] Starting ARDrone 2.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
     }
 
@@ -114,21 +115,6 @@ public class ArDrone2 extends UntypedActor {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
-
-    /*private void dispatchCommand(DroneCommandMessage msg) {
-        if (msg.getMessage() instanceof TakeOffCommand) {
-            log.info("[ARDRONE2] TakeOff Command Received - ArDrone2 Protocol");
-            handleTakeoff();
-        } else if (msg.getMessage() instanceof LandCommand) {
-            log.info("[ARDRONE2] Land Command Received - ArDrone2 Protocol");
-            handleLand();
-        } else if (msg.getMessage() instanceof InitDroneCommand) {
-            log.info("[ARDRONE2] Starting ARDrone 2.0 - ArDrone2 Protocol");
-            handleInit();
-        } else {
-            log.warning("[ARDRONE2] No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
-        }
-    }*/
 
     private void stop() {
         udpManager.tell(UdpMessage.unbind(), self());
@@ -198,10 +184,12 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void handleTakeoff() {
+        log.info("[ARDrone2] TakeOff");
         sendData(PacketCreator.createTakeOffPacket(seq++));
     }
 
     private void handleLand() {
+        log.info("[ARDrone2] Land");
         sendData(PacketCreator.createLandingPacket(seq++));
     }
 
@@ -253,7 +241,7 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private boolean isMoveParamInRange(float moveParam) {
-        return (moveParam <= 1 && moveParam >= -1);
+        return moveParam <= 1 && moveParam >= -1;
     }
 
     /**
