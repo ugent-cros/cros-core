@@ -2,6 +2,8 @@ package drones.models;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import models.Drone;
+import models.DroneType;
 import play.libs.Akka;
 
 import java.util.HashMap;
@@ -11,30 +13,72 @@ import java.util.Map;
  * Created by Cedric on 3/9/2015.
  */
 public class Fleet {
+
+    /* Supporting multiple drone types */
+    private static Map<DroneType, DroneDriver> drivers = new HashMap<>();
+
+    public static void registerDriver(DroneType droneType, DroneDriver factory) {
+        drivers.put(droneType, factory);
+    }
+
+    // Removes the driver if it's currently associated with the given type
+    public static boolean unregisterDriver(DroneType droneType, DroneDriver driver) {
+        return drivers.remove(droneType, driver);
+    }
+
+    public static Map<DroneType, DroneDriver> registeredDrivers() {
+        return new HashMap<>(drivers);
+    }
+
+    private static DroneDriver getDriver(DroneType droneType) {
+        return drivers.get(droneType);
+    }
+
+    static {
+
+        BepopDriver bepopDriver = new BepopDriver();
+        registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
+
+        // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
+    }
+
+    /* Singleton */
+
     private static final Fleet fleet = new Fleet();
 
     public static Fleet getFleet(){
         return fleet;
     }
 
-    private Map<String, DroneCommander> drones;
+
+    /* Instance */
+
+    private Map<Drone, DroneCommander> drones;
 
     public Fleet(){
         drones = new HashMap<>();
     }
 
-    public DroneCommander createBepop(String name, String ip, boolean indoor){
-        if(drones.containsKey(name)) {
-            return drones.get(name); //TODO: check with others about this behaviour
-        }  else {
-            ActorRef ref = Akka.system().actorOf(Props.create(Bepop.class, () -> new Bepop(ip, indoor)));
-            DroneCommander d = new DroneCommander(ref);
-            drones.put(name, d);
-            return d;
-        }
-    }
+    public DroneCommander getCommanderForDrone(Drone droneEntity) {
 
-    public DroneCommander getDrone(String name){
-        return drones.get(name);
+        DroneCommander commander = drones.get(droneEntity);
+
+        // If commander does not exist yet, create it
+        if (commander == null) {
+
+            // Get the driver, if available
+            DroneDriver driver = getDriver(droneEntity.getDroneType());
+            if (driver == null)
+                return null;
+
+            // Create commander
+            ActorRef ref = Akka.system().actorOf(
+                    Props.create(driver.getActorClass(),
+                            () -> driver.createActor(droneEntity)));
+            commander = new DroneCommander(ref);
+            drones.put(droneEntity, commander);
+        }
+
+        return commander;
     }
 }
