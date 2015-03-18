@@ -39,11 +39,11 @@ public class SimpleScheduler extends Scheduler{
     }
 
     @Override
-    protected void fetch(long assignmentId) {
+    protected void fetchAssignment(AssignmentMessage message) {
         // Retrieve assignment from database
-        Assignment assignment = Assignment.FIND.byId(assignmentId);
+        Assignment entity = Assignment.FIND.byId(message.getAssignment().getId());
         // Add new assignments to the queue in order of Id
-        queue.add(assignment);
+        queue.add(entity);
         // Start scheduling
         schedule();
     }
@@ -67,22 +67,22 @@ public class SimpleScheduler extends Scheduler{
     }
 
     private DroneCommander findIdleCommander(){
-        Collection<DroneCommander> commanders = fleet.getDrones().values();
-        for(DroneCommander commander : commanders){
-            if(commander.isIdle()){
-                return commander;
-            }
-        }
+        //Collection<DroneCommander> commanders = fleet.getDrones().values();
+        //for(DroneCommander commander : commanders){
+        //    if(commander.isIdle()){
+        //        return commander;
+        //    }
+        //}
         // No idle commander found
         return null;
     }
 
     @Override
-    protected void completed(Assignment assignment) {
+    protected void droneArrival(DroneArrivalMessage message) {
         // Update the assignment
-        assignment.setAssignedDrone(null);
-        assignment.setProgress(100);
-        assignment.update();
+        //assignment.setAssignedDrone(null);
+        //assignment.setProgress(100);
+        //assignment.update();
         // Maybe a drone has become available
         schedule();
     }

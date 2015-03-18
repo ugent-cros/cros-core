@@ -2,13 +2,7 @@ package drones.models.scheduler;
 
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
-import models.Assignment;
-import models.Drone;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by Ronald on 16/03/2015.
@@ -28,14 +22,11 @@ public abstract class Scheduler extends AbstractActor {
     public Scheduler(){
         //Receive behaviour
         receive(ReceiveBuilder.
-                        match(Fleet.class, fleet -> {
-                            init(fleet);
+                        match(AssignmentMessage.class, message -> {
+                            fetchAssignment(message);
                         }).
-                        match(Long.class, id -> {
-                            fetch(id);
-                        }).
-                        match(Assignment.class, assignment -> {
-                            completed(assignment);
+                        match(DroneArrivalMessage.class, message -> {
+                            droneArrival(message);
                         }).build()
         );
     }
@@ -43,12 +34,12 @@ public abstract class Scheduler extends AbstractActor {
     protected abstract void init(Fleet fleet);
 
     // Fetch new assignments
-    protected abstract void fetch(long assignmentId);
+    protected abstract void fetchAssignment(AssignmentMessage message);
 
     // Schedule strategy
     protected abstract void schedule();
 
     // An assignment has completed
-    protected abstract void completed(Assignment assignment);
+    protected abstract void droneArrival(DroneArrivalMessage message);
 
 }

@@ -81,8 +81,4 @@ public class Fleet {
 
         return commander;
     }
-
-    public Map<String,DroneCommander> getDrones(){
-        return drones;
-    }
 }
