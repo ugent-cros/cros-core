@@ -126,8 +126,8 @@ public class DroneController {
             return badRequest(droneForm.errors().toString());
 
         Drone updatedDrone = droneForm.get();
-        updatedDrone.setId(drone.getId());
-        updatedDrone.update();
+        updatedDrone.setVersion(drone.getVersion());
+        updatedDrone.update(id);
         return get(updatedDrone.getId());
     }
 
