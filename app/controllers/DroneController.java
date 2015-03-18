@@ -53,18 +53,7 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        // TODO: uncomment and add links when available
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).url()));
-        links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).url()));
-        links.add(new ControllerHelper.Link("battery", controllers.routes.DroneController.battery(id).url()));
-        links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
-        links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
-        links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
-        //links.add(new ControllerHelper.Link("altitude", );
-        //links.add(new ControllerHelper.Link("speed", );
-
-        return ok(JsonHelper.createJsonNode(drone, links, Drone.class));
+        return ok(JsonHelper.createJsonNode(drone, getAllLinks(id), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -77,15 +66,15 @@ public class DroneController {
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }
-        Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
+        Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
 
-        if (droneForm.hasErrors())
-            return badRequest(droneForm.errorsAsJson());
+        if (form.hasErrors())
+            return badRequest(form.errorsAsJson());
 
-        Drone drone = droneForm.get();
+        Drone drone = form.get();
         drone.save();
 
-        return created(JsonHelper.createJsonNode(drone, Drone.class));
+        return created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -109,7 +98,7 @@ public class DroneController {
         Drone updatedDrone = droneForm.get();
         updatedDrone.setId(drone.getId());
         updatedDrone.update();
-        return created(JsonHelper.createJsonNode(updatedDrone, Drone.class));
+        return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -181,6 +170,18 @@ public class DroneController {
         return ok();
     }
 
-
+    private static final List<ControllerHelper.Link> getAllLinks(long id) {
+        // TODO: uncomment and add links when available
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).url()));
+        links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).url()));
+        links.add(new ControllerHelper.Link("battery", controllers.routes.DroneController.battery(id).url()));
+        links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
+        links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
+        links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
+        //links.add(new ControllerHelper.Link("altitude", );
+        //links.add(new ControllerHelper.Link("speed", );
+        return links;
+    }
 
 }

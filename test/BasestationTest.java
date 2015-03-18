@@ -54,7 +54,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, true);
             if (node.isArray()) {
                 for (int i = 0; i < testBasestations.size(); ++i) {
                     Basestation testBasestation = testBasestations.get(i);
@@ -95,7 +95,7 @@ public class BasestationTest extends TestSuperclass {
     @Test
     public void create_AuthorizedRequest_BasestationCreated() {
         Basestation basestationToBeAdded = new Basestation("A new testing basestation", new Checkpoint(23, 23, 0));
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestationToBeAdded), Basestation.class);
+        JsonNode nodeWithRoot = JsonHelper.createJsonNode(basestationToBeAdded, Basestation.class);
 
         Result result = callAction(routes.ref.BasestationController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
@@ -122,7 +122,7 @@ public class BasestationTest extends TestSuperclass {
         Basestation basestation = new Basestation("Another basestation", new Checkpoint(3, 2, 1));
         basestation.save();
         basestation.setName("Changed name");
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestation), Basestation.class);
+        JsonNode nodeWithRoot = JsonHelper.createJsonNode(basestation, Basestation.class);
         Result result = callAction(routes.ref.BasestationController.update(basestation.getId()),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 

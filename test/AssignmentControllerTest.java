@@ -59,7 +59,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, false);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, true);
             if (node.isArray()) {
                 for (int i = 0; i < testAssignments.size(); ++i) {
                     Assignment testAssignment = testAssignments.get(i);
@@ -102,7 +102,7 @@ public class AssignmentControllerTest extends TestSuperclass {
         List<Checkpoint> route = new ArrayList<>();
         route.add(new Checkpoint(5,6,7));
         Assignment assignmentToBeAdded = new Assignment(route, null);
-        JsonNode node = JsonHelper.addRootElement(Json.toJson(assignmentToBeAdded), Assignment.class);
+        JsonNode node = JsonHelper.createJsonNode(assignmentToBeAdded, Assignment.class);
 
         Result result = callAction(routes.ref.AssignmentController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));

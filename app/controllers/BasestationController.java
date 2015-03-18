@@ -2,15 +2,9 @@ package controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Basestation;
 import models.User;
 import play.data.Form;
-import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
@@ -28,30 +22,33 @@ public class BasestationController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
-
-        ArrayNode array = objectMapper.createArrayNode();
-        ObjectWriter writer = objectMapper.writerWithView(JsonHelper.Summary.class);
+        List<JsonHelper.Tuple> tuples = new ArrayList<>();
         for(Basestation basestation : Basestation.FIND.all()) {
-            try {
-                ObjectNode basestationNode = (ObjectNode) Json.parse(writer.writeValueAsString(basestation));
-
-                List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("details", controllers.routes.BasestationController.get(basestation.getId()).url()));
-                basestationNode.put("links", (JsonNode) objectMapper.valueToTree(links));
-                array.add(basestationNode);
-            } catch (JsonProcessingException e) {
-                play.Logger.error(e.getMessage(), e);
-                return internalServerError();
-            }
+            tuples.add(new JsonHelper.Tuple(basestation, new ControllerHelper.Link("self",
+                    controllers.routes.BasestationController.get(basestation.getId()).url())));
         }
-        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Basestation.class);
+
+        // TODO: uncomment and add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
-        links.add(new ControllerHelper.Link("create", controllers.routes.BasestationController.create().url()));
-        node.put("links", (JsonNode) objectMapper.valueToTree(links));
-        return ok(node);
+        //links.add(new ControllerHelper.Link("search", )
+
+        try {
+            return ok(JsonHelper.createJsonNode(tuples, links, Basestation.class));
+        } catch(JsonProcessingException ex) {
+            play.Logger.error(ex.getMessage(), ex);
+            return internalServerError();
+        }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result get(long id) {
+        Basestation basestation = Basestation.FIND.byId(id);
+
+        if (basestation == null)
+            return notFound();
+
+        return ok(JsonHelper.createJsonNode(basestation, getAllLinks(id), Basestation.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -66,32 +63,11 @@ public class BasestationController {
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
 
         if (form.hasErrors())
-            return badRequest(form.errors().toString());
+            return badRequest(form.errorsAsJson());
 
         Basestation basestation = form.get();
         basestation.save();
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestation), Basestation.class);
-        return created(nodeWithRoot);
-    }
-
-    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result get(long id) {
-        Basestation basestation = Basestation.FIND.byId(id);
-
-        if(basestation == null)
-            return notFound("Requested basestation not found");
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = (ObjectNode) Json.toJson(basestation);
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(basestation.getId()).url()));
-        links.add(new ControllerHelper.Link("all", controllers.routes.BasestationController.getAll().url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.BasestationController.update(basestation.getId()).url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.BasestationController.delete(basestation.getId()).url()));
-        node.put("links", (JsonNode) mapper.valueToTree(links));
-
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(node, Basestation.class);
-        return ok(nodeWithRoot);
+        return created(JsonHelper.createJsonNode(basestation, getAllLinks(basestation.getId()), Basestation.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -116,8 +92,8 @@ public class BasestationController {
         updatedBaseStation.setId(id);
         updatedBaseStation.getCheckpoint().update();
         updatedBaseStation.update();
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(updatedBaseStation), Basestation.class);
-        return ok(nodeWithRoot);
+        return ok(JsonHelper.createJsonNode(updatedBaseStation, getAllLinks(updatedBaseStation.getId()),
+                Basestation.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -128,5 +104,11 @@ public class BasestationController {
 
         basestation.delete();//cascading delete automatically
         return ok();
+    }
+
+    private static List<ControllerHelper.Link> getAllLinks(long id) {
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(id).url()));
+        return links;
     }
 }

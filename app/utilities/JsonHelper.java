@@ -53,14 +53,6 @@ public class JsonHelper {
         return createJsonNode(nodeWithArray, links, clazz);
     }
 
-    public static JsonNode addRootElement(JsonNode node, Class clazz) {
-        JsonRootName annotation = (JsonRootName) clazz.getAnnotation(JsonRootName.class);
-        String rootElement = annotation.value();
-        ObjectNode nodeWithRoot = Json.newObject();
-        nodeWithRoot.put(rootElement, node);
-        return nodeWithRoot;
-    }
-
     public static JsonNode removeRootElement(JsonNode node, Class clazz, boolean isList) throws InvalidJSONException {
         JsonRootName annotation = (JsonRootName) clazz.getAnnotation(JsonRootName.class);
         String rootElement = annotation.value();
@@ -74,6 +66,14 @@ public class JsonHelper {
     public static JsonNode removeRootElement(String jsonString, Class clazz, boolean isList) throws InvalidJSONException {
         JsonNode node = Json.parse(jsonString);
         return removeRootElement(node, clazz, isList);
+    }
+
+    public static JsonNode addRootElement(JsonNode node, Class clazz) {
+        JsonRootName annotation = (JsonRootName) clazz.getAnnotation(JsonRootName.class);
+        String rootElement = annotation.value();
+        ObjectNode nodeWithRoot = Json.newObject();
+        nodeWithRoot.put(rootElement, node);
+        return nodeWithRoot;
     }
 
     private static ObjectNode linksToNode(List<Link> links) {
