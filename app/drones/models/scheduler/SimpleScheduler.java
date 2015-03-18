@@ -67,12 +67,12 @@ public class SimpleScheduler extends Scheduler{
     }
 
     private DroneCommander findIdleCommander(){
-        Collection<DroneCommander> commanders = fleet.getDrones().values();
-        for(DroneCommander commander : commanders){
-            if(commander.isIdle()){
-                return commander;
-            }
-        }
+        //Collection<DroneCommander> commanders = fleet.getDrones().values();
+        //for(DroneCommander commander : commanders){
+        //    if(commander.isIdle()){
+        //        return commander;
+        //    }
+        //}
         // No idle commander found
         return null;
     }
