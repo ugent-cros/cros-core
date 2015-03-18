@@ -105,7 +105,7 @@ public class UserTest extends TestSuperclass {
 
         try {
             User receivedUser =
-                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class, false), User.class);
             u.setId(receivedUser.getId()); // bypass id because u has no id yet
             assertThat(u).isEqualTo(receivedUser);
 
@@ -171,7 +171,7 @@ public class UserTest extends TestSuperclass {
         // Check if update was executed
         try {
             User receivedUser =
-                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class, false), User.class);
             assertThat(receivedUser).isEqualTo(u);
             User fetchedUser = User.FIND.byId(u.getId());
             assertThat(fetchedUser).isEqualTo(u);
@@ -195,7 +195,7 @@ public class UserTest extends TestSuperclass {
         // Check if update was executed
         try {
             User receivedUser =
-                    Json.fromJson(removeRootElement(contentAsString(result), User.class), User.class);
+                    Json.fromJson(removeRootElement(contentAsString(result), User.class, false), User.class);
             assertThat(receivedUser).isEqualTo(u);
             User fetchedUser = User.FIND.byId(u.getId());
             assertThat(fetchedUser).isEqualTo(u);
@@ -230,7 +230,7 @@ public class UserTest extends TestSuperclass {
 
         JsonNode response = Json.parse(contentAsString(result));
         try {
-            ArrayNode list = (ArrayNode) removeRootElement(response, User.class);
+            ArrayNode list = (ArrayNode) removeRootElement(response, User.class, false);
             List<User> usersFromDB = User.FIND.all();
 
             // Assure equality

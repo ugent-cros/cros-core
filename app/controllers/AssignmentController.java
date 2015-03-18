@@ -61,7 +61,7 @@ public class AssignmentController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Assignment.class);
+            strippedBody = JsonHelper.removeRootElement(body, Assignment.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }

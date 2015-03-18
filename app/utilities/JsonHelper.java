@@ -22,13 +22,18 @@ public class JsonHelper {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static JsonNode createJsonNode(ObjectNode node, List<Link> links, Class clazz) {
-        node.put(LINKS, linksToNode(links));
+        if(links != null && links.size() > 0)
+            node.put(LINKS, linksToNode(links));
         return addRootElement(node, clazz);
     }
 
     public static JsonNode createJsonNode(Object object, List<Link> links, Class clazz) {
         ObjectNode node = (ObjectNode) Json.toJson(object);
         return createJsonNode(node, links, clazz);
+    }
+
+    public static JsonNode createJsonNode(Object object, Class clazz) {
+        return createJsonNode(object, null, clazz);
     }
 
     public static JsonNode createJsonNode(List<Tuple> objectsWithLinks, List<Link> links, Class clazz)
@@ -38,7 +43,8 @@ public class JsonHelper {
         for(Tuple objectWithLink : objectsWithLinks) {
             ObjectNode node =
                     (ObjectNode) Json.parse(MAPPER.writerWithView(Summary.class).writeValueAsString(objectWithLink.object));
-            node.put(LINKS, addlinkToNode(MAPPER.createObjectNode(), objectWithLink.link));
+            if(objectWithLink.link != null)
+                node.put(LINKS, addlinkToNode(MAPPER.createObjectNode(), objectWithLink.link));
             array.add(node);
         }
         ObjectNode nodeWithArray = Json.newObject();
@@ -55,18 +61,19 @@ public class JsonHelper {
         return nodeWithRoot;
     }
 
-    public static JsonNode removeRootElement(JsonNode node, Class clazz) throws InvalidJSONException {
+    public static JsonNode removeRootElement(JsonNode node, Class clazz, boolean isList) throws InvalidJSONException {
         JsonRootName annotation = (JsonRootName) clazz.getAnnotation(JsonRootName.class);
         String rootElement = annotation.value();
-        JsonNode rootNode = node.get(rootElement);
+        JsonNode rootNode = isList ? node.get(rootElement).get(DEFAULT_ROOT_ELEMENT) : node.get(rootElement);
         if(rootNode == null)
-            throw new InvalidJSONException("Invalid json: no such root element (" + annotation.value() + ")");
+            throw new InvalidJSONException("Invalid json: no such element (" +
+                    (isList ? DEFAULT_ROOT_ELEMENT : annotation.value()) + ")");
         return rootNode;
     }
 
-    public static JsonNode removeRootElement(String jsonString, Class clazz) throws InvalidJSONException {
+    public static JsonNode removeRootElement(String jsonString, Class clazz, boolean isList) throws InvalidJSONException {
         JsonNode node = Json.parse(jsonString);
-        return removeRootElement(node, clazz);
+        return removeRootElement(node, clazz, isList);
     }
 
     private static ObjectNode linksToNode(List<Link> links) {

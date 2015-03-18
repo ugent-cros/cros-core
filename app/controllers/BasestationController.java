@@ -59,7 +59,7 @@ public class BasestationController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
+            strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }
@@ -103,7 +103,7 @@ public class BasestationController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Basestation.class);
+            strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }

@@ -54,7 +54,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             if (node.isArray()) {
                 for (int i = 0; i < testBasestations.size(); ++i) {
                     Basestation testBasestation = testBasestations.get(i);
@@ -77,7 +77,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
             assertThat(testBasestation).isEqualTo(receivedBasestation);
         } catch(JsonHelper.InvalidJSONException ex) {
@@ -102,7 +102,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
 
             // bypass id check because basestationToBeAdded isn't saved
@@ -128,7 +128,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
             assertThat(basestation.getId()).isEqualTo(receivedBasestation.getId());
             assertThat(basestation.getCheckpoint()).isEqualTo(receivedBasestation.getCheckpoint());

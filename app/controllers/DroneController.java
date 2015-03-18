@@ -2,7 +2,6 @@ package controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Drone;
 import models.User;
@@ -74,7 +73,7 @@ public class DroneController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }
@@ -86,17 +85,7 @@ public class DroneController {
         Drone drone = droneForm.get();
         drone.save();
 
-        ObjectNode responseNode = (ObjectNode) Json.toJson(drone);
-
-        // Add links to result
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.getId()).url()));
-        responseNode.put("links", (JsonNode) new ObjectMapper().valueToTree(links));
-
-        return created(JsonHelper.addRootElement(responseNode, Drone.class));
+        return created(JsonHelper.createJsonNode(drone, Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -108,7 +97,7 @@ public class DroneController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }
@@ -120,7 +109,7 @@ public class DroneController {
         Drone updatedDrone = droneForm.get();
         updatedDrone.setId(drone.getId());
         updatedDrone.update();
-        return get(updatedDrone.getId());
+        return created(JsonHelper.createJsonNode(updatedDrone, Drone.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})

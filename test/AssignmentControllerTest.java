@@ -59,7 +59,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, false);
             if (node.isArray()) {
                 for (int i = 0; i < testAssignments.size(); ++i) {
                     Assignment testAssignment = testAssignments.get(i);
@@ -82,7 +82,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, false);
             Assignment receivedAssignment = Json.fromJson(node, Assignment.class);
             assertThat(testAssignment).isEqualTo(receivedAssignment);
         } catch(JsonHelper.InvalidJSONException ex) {
@@ -109,7 +109,7 @@ public class AssignmentControllerTest extends TestSuperclass {
 
         JsonNode receivedNode;
         try {
-            receivedNode = JsonHelper.removeRootElement(contentAsString(result), Assignment.class);
+            receivedNode = JsonHelper.removeRootElement(contentAsString(result), Assignment.class, false);
             Assignment assignment = Json.fromJson(receivedNode, Assignment.class);
 
             // bypass id, creator check and checkpoint id check
