@@ -53,15 +53,19 @@ public class BasestationTest extends TestSuperclass {
                 authorizeRequest(new FakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        if (node.isArray()) {
-            for (int i = 0; i < testBasestations.size(); ++i) {
-                Basestation testBasestation = testBasestations.get(i);
-                Basestation receivedBasestation = Json.fromJson(node.get(i), Basestation.class);
-                assertThat(testBasestation.getId()).isEqualTo(receivedBasestation.getId());
-            }
-        } else
-            Assert.fail("Returned JSON is not an array");
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            if (node.isArray()) {
+                for (int i = 0; i < testBasestations.size(); ++i) {
+                    Basestation testBasestation = testBasestations.get(i);
+                    Basestation receivedBasestation = Json.fromJson(node.get(i), Basestation.class);
+                    assertThat(testBasestation.getId()).isEqualTo(receivedBasestation.getId());
+                }
+            } else
+                Assert.fail("Returned JSON is not an array");
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -72,9 +76,13 @@ public class BasestationTest extends TestSuperclass {
                 authorizeRequest(new FakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
-        assertThat(testBasestation).isEqualTo(receivedBasestation);
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
+            assertThat(testBasestation).isEqualTo(receivedBasestation);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -93,16 +101,20 @@ public class BasestationTest extends TestSuperclass {
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
 
-        // bypass id check because basestationToBeAdded isn't saved
-        basestationToBeAdded.setId(receivedBasestation.getId());
-        basestationToBeAdded.getCheckpoint().setId(receivedBasestation.getCheckpoint().getId());
-        assertThat(basestationToBeAdded).isEqualTo(receivedBasestation);
+            // bypass id check because basestationToBeAdded isn't saved
+            basestationToBeAdded.setId(receivedBasestation.getId());
+            basestationToBeAdded.getCheckpoint().setId(receivedBasestation.getCheckpoint().getId());
+            assertThat(basestationToBeAdded).isEqualTo(receivedBasestation);
 
-        Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
-        assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
+            Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
+            assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -115,13 +127,17 @@ public class BasestationTest extends TestSuperclass {
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
-        Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
-        assertThat(basestation.getId()).isEqualTo(receivedBasestation.getId());
-        assertThat(basestation.getCheckpoint()).isEqualTo(receivedBasestation.getCheckpoint());
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
+            assertThat(basestation.getId()).isEqualTo(receivedBasestation.getId());
+            assertThat(basestation.getCheckpoint()).isEqualTo(receivedBasestation.getCheckpoint());
 
-        Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
-        assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
+            Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
+            assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
     @Test
     public void delete_AuthorizedRequestWithValidId_BasestationDeleted() {

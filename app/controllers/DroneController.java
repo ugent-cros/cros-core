@@ -79,8 +79,14 @@ public class DroneController {
     @Authentication({User.Role.ADMIN})
     @BodyParser.Of(BodyParser.Json.class)
     public static Result create() {
-        JsonNode node = JsonHelper.removeRootElement(request().body().asJson(), Drone.class);
-        Form<Drone> droneForm = Form.form(Drone.class).bind(node);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
 
         if (droneForm.hasErrors())
             return badRequest(droneForm.errorsAsJson());
@@ -107,15 +113,21 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        JsonNode node = JsonHelper.removeRootElement(request().body().asJson(), Drone.class);
-        Form<Drone> f = Form.form(Drone.class).bind(node);
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
 
-        if (f.hasErrors())
-            return badRequest(f.errors().toString());
+        if (droneForm.hasErrors())
+            return badRequest(droneForm.errors().toString());
 
-        Drone updatedDrone = f.get();
-        updatedDrone.setId(drone.getId());
-        updatedDrone.update();
+        Drone updatedDrone = droneForm.get();
+        updatedDrone.setVersion(drone.getVersion());
+        updatedDrone.update(id);
         return get(updatedDrone.getId());
     }
 
