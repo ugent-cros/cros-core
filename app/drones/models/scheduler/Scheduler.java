@@ -3,6 +3,8 @@ package drones.models.scheduler;
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
 import drones.models.Fleet;
+import models.Assignment;
+import models.Drone;
 
 /**
  * Created by Ronald on 16/03/2015.
@@ -18,6 +20,7 @@ Accepts:
 public abstract class Scheduler extends AbstractActor {
 
 
+    protected final Fleet fleet = Fleet.getFleet();
 
     public Scheduler(){
         //Receive behaviour
@@ -31,15 +34,50 @@ public abstract class Scheduler extends AbstractActor {
         );
     }
 
-    protected abstract void init(Fleet fleet);
+    /**
+     * Updates the dispatch in the database.
+     * @param drone dispatched drone
+     * @param assignment assigned assignment
+     */
+    protected void storeDispatch(Drone drone, Assignment assignment){
+        // Update drone
+        drone.setStatus(Drone.Status.UNAVAILABLE);
+        drone.update();
+        // Update assignment
+        assignment.setAssignedDrone(drone);
+        assignment.update();
+    }
 
-    // Fetch new assignments
+    /**
+     * Updates the arrival of a drone in the database
+     * @param drone drone that arrived
+     * @param assignment assignment that has been completed by arrival
+     */
+    protected void storeArrival(Drone drone, Assignment assignment){
+        // Update drone
+        drone.setStatus(Drone.Status.AVAILABLE);
+        drone.update();
+        // Update assignment
+        assignment.setProgress(100);
+        assignment.update();
+    }
+
+    /**
+     * Tell the scheduler that a new assignment is available.
+     * @param message message containing the new assignment.
+     */
     protected abstract void fetchAssignment(AssignmentMessage message);
 
-    // Schedule strategy
+    /**
+     * Tell the scheduler to start scheduling
+     */
     protected abstract void schedule();
 
-    // An assignment has completed
+
+    /**
+     * Tell the scheduler a drone has arrived at it's destination.
+     * @param message message containing the drone and it's destination.
+     */
     protected abstract void droneArrival(DroneArrivalMessage message);
 
 }

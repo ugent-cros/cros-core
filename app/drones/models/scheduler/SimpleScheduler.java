@@ -1,11 +1,16 @@
 package drones.models.scheduler;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
+import drones.models.flightcontrol.SimplePilot;
+import drones.models.flightcontrol.StartFlightControlMessage;
 import models.Assignment;
 import models.Drone;
+import play.libs.Akka;
 
 import java.util.*;
 
@@ -19,71 +24,72 @@ First come, first served.
  */
 public class SimpleScheduler extends Scheduler{
 
-    //Query to fetch all assignments without progress and without assigned drone.
-    private static final Query<Assignment> assignments;
+    // Query to fetch available drones
+    private static final Query<Drone> dQuery;
     static{
-        assignments = Ebean.createQuery(Assignment.class);
-        assignments.where().eq("progress", 0);
-        assignments.where().eq("assignedDrone",null);
-        assignments.orderBy("id");
+        dQuery = Ebean.createQuery(Drone.class);
+        dQuery.where().eq("status", Drone.Status.AVAILABLE);
     }
 
     private Fleet fleet;
     private AbstractQueue<Assignment> queue;
+    private Map<DroneCommander,Assignment> flights;
 
 
-    @Override
-    protected void init(Fleet fleet) {
-        this.fleet = fleet;
-        this.queue = new PriorityQueue<Assignment>();
+    public SimpleScheduler(){
+        this.queue = new PriorityQueue<>();
+        this.flights = new HashMap<>();
     }
 
     @Override
     protected void fetchAssignment(AssignmentMessage message) {
         // Retrieve assignment from database
         Assignment entity = Assignment.FIND.byId(message.getAssignment().getId());
-        // Add new assignments to the queue in order of Id
+        // Add new aQuery to the queue in order of Id
         queue.add(entity);
         // Start scheduling
         schedule();
     }
 
-    protected void assign(Assignment assignment, DroneCommander commander){
-        Drone drone = commander.getModel();
-        assignment.setAssignedDrone(drone);
-        assignment.update();
-        //TODO: Create FlightControl and pass the commander
+    protected void assign(Drone drone, Assignment assignment){
+        // Store in database
+        storeDispatch(drone,assignment);
+        DroneCommander commander = fleet.getCommanderForDrone(drone);
+        flights.put(commander,assignment);
+        // Create SimplePilot
+        ActorRef pilot = Akka.system().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(commander)));
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(),self());
     }
 
     @Override
     protected void schedule() {
         while(!queue.isEmpty()) {
-            DroneCommander commander = findIdleCommander();
-            if(commander == null) break; // No more commanders available
+            Drone drone = findAvailableDrone();
+            if(drone == null) break; // No more commanders available
             Assignment assignment = queue.remove();
-            assign(assignment,commander);
+            assign(drone,assignment);
         }
-        //No more assignments available
+        //No more aQuery available
     }
 
-    private DroneCommander findIdleCommander(){
-        //Collection<DroneCommander> commanders = fleet.getDrones().values();
-        //for(DroneCommander commander : commanders){
-        //    if(commander.isIdle()){
-        //        return commander;
-        //    }
-        //}
-        // No idle commander found
-        return null;
+    private Drone findAvailableDrone(){
+        List<Drone> drones = dQuery.findList();
+        //TODO: Check battery status!
+        // Return the first available drone
+        return drones.get(1);
     }
 
     @Override
     protected void droneArrival(DroneArrivalMessage message) {
-        // Update the assignment
-        //assignment.setAssignedDrone(null);
-        //assignment.setProgress(100);
-        //assignment.update();
-        // Maybe a drone has become available
+        DroneCommander commander = message.getCommander();
+        Assignment assignment = flights.get(commander);
+        //TODO: get drone
+        Drone drone = null;
+        storeArrival(drone,assignment);
+        // Start scheduling again
         schedule();
     }
 }

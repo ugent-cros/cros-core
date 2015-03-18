@@ -12,6 +12,15 @@ public class DroneArrivalMessage {
     private Location location;
 
     public DroneArrivalMessage(DroneCommander commander, Location location) {
+        this.commander = commander;
+        this.location = location;
+    }
 
+    public DroneCommander getCommander() {
+        return commander;
+    }
+
+    public Location getLocation() {
+        return location;
     }
 }

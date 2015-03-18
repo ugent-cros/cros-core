@@ -30,17 +30,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
         this.droneActor = droneActor;
     }
 
-    public boolean isIdle(){
-        //TODO: Check if drone is busy completing an assignment
-        return true;
-    }
-
-    //TODO: Make this work with real Drone Models
-    private Drone model = null;
-    public Drone getModel(){
-        return model;
-    }
-
     @Override
     public Future<Void> init() {
         if(!initialized) {
