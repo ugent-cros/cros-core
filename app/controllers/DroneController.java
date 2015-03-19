@@ -96,6 +96,7 @@ public class DroneController {
             return badRequest(droneForm.errors().toString());
 
         Drone updatedDrone = droneForm.get();
+        updatedDrone.setVersion(drone.getVersion());
         updatedDrone.setId(drone.getId());
         updatedDrone.update();
         return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));

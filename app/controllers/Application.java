@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
+import drones.models.BepopDriver;
 import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.Bepop;
 import drones.models.DroneCommander;
@@ -38,10 +39,11 @@ public class Application extends Controller {
         User.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
-        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address1"));
-        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address2"));
-        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address4"));
+        DroneType bepop = new DroneType("ARDrone3", "bepop");
+        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
+        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
+        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop,  "address4"));
 
         Ebean.save(drones);
 
@@ -64,8 +66,13 @@ public class Application extends Controller {
         return ok();
     }
 
+    private static Drone testDroneEntity;
+
     public static F.Promise<Result> initDrone() {
-        DroneCommander d = Fleet.getFleet().createBepop("bepop", "192.168.42.1", true);
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
+        testDroneEntity.save();
+
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -74,7 +81,7 @@ public class Application extends Controller {
     }
 
     public static Result subscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         ActorRef r = Akka.system().actorOf(Props.create(DroneMonitor.class), "droneMonitor");
         d.subscribeTopic(r, BatteryPercentageChangedMessage.class);
 
@@ -84,7 +91,7 @@ public class Application extends Controller {
     }
 
     public static Result unsubscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
 
         try {
             ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
@@ -102,7 +109,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getBatteryPercentage(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
@@ -111,7 +118,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getLocation(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getLocation()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("long", v.getLongtitude());
@@ -122,7 +129,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getAltitude(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getAltitude()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("altitude", v);
@@ -131,7 +138,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getVersion(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getVersion()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("softwareVersion", v.getSoftware());
@@ -141,7 +148,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getSpeed(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getSpeed()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("vx", v.getVx());
@@ -152,7 +159,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getRotation(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getRotation()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("yaw", v.getYaw());
@@ -163,7 +170,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> takeOff(){
-       DroneCommander d = Fleet.getFleet().getDrone("bepop");
+       DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -172,7 +179,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> land(){
-        DroneCommander d = Fleet.getFleet().getDrone("bepop");
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.land()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
