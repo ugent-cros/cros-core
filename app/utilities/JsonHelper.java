@@ -22,7 +22,7 @@ public class JsonHelper {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static JsonNode createJsonNode(ObjectNode node, List<Link> links, Class clazz) {
-        if(links != null && links.size() > 0)
+        if(links != null && !links.isEmpty())
             node.put(LINKS, linksToNode(links));
         return addRootElement(node, clazz);
     }
@@ -42,9 +42,9 @@ public class JsonHelper {
         ArrayNode array = MAPPER.createArrayNode();
         for(Tuple objectWithLink : objectsWithLinks) {
             ObjectNode node =
-                    (ObjectNode) Json.parse(MAPPER.writerWithView(Summary.class).writeValueAsString(objectWithLink.object));
+                    (ObjectNode) Json.parse(MAPPER.writerWithView(Summary.class).writeValueAsString(objectWithLink.getObject()));
             if(objectWithLink.link != null)
-                node.put(LINKS, addlinkToNode(MAPPER.createObjectNode(), objectWithLink.link));
+                node.put(LINKS, addlinkToNode(MAPPER.createObjectNode(), objectWithLink.getLink()));
             array.add(node);
         }
         ObjectNode nodeWithArray = Json.newObject();
@@ -91,11 +91,19 @@ public class JsonHelper {
     public static class Summary { }
 
     public static class Tuple {
-        public final Object object;
-        public final Link link;
+        private final Object object;
+        private final Link link;
         public Tuple(Object object, Link link) {
             this.object = object;
             this.link = link;
+        }
+
+        public Object getObject() {
+            return object;
+        }
+
+        public Link getLink() {
+            return link;
         }
     }
 
