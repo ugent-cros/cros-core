@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
-import play.db.ebean.Model;
 import utilities.ControllerHelper;
+import utilities.Location;
 
 import javax.persistence.*;
 
@@ -15,7 +15,7 @@ import javax.persistence.*;
 @Entity
 @JsonRootName("basestation")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Basestation extends Model {
+public class Basestation extends Location {
 
     public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
 
@@ -28,12 +28,9 @@ public class Basestation extends Model {
     @Column(length = 256, unique = true, nullable = false)
     private String name;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    private Checkpoint checkpoint;
-
-    public Basestation(String name, Checkpoint checkpoint){
+    public Basestation(String name, double longitude, double latitude, double altitude){
+        super(longitude,latitude, altitude);
         this.name = name;
-        this.checkpoint = checkpoint;
     }
 
     public Basestation() { }
@@ -54,14 +51,6 @@ public class Basestation extends Model {
         this.name = name;
     }
 
-    public Checkpoint getCheckpoint() {
-        return checkpoint;
-    }
-
-    public void setCheckpoint(Checkpoint checkpoint) {
-        this.checkpoint = checkpoint;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (obj == null)
@@ -73,7 +62,7 @@ public class Basestation extends Model {
         Basestation basestation = (Basestation) obj;
         return this.id.equals(basestation.id)
                 && this.name.equals(basestation.name)
-                && this.checkpoint.equals(basestation.checkpoint);
+                && super.equals(basestation);
     }
 
     @Override
@@ -81,7 +70,6 @@ public class Basestation extends Model {
         int result = super.hashCode();
         result = 31 * result + (id != null ? id.hashCode() : 0);
         result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (checkpoint != null ? checkpoint.hashCode() : 0);
         return result;
     }
 }

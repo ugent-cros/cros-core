@@ -5,7 +5,6 @@ import akka.actor.Props;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.models.Bepop;
 import drones.models.DroneCommander;
 import drones.models.DroneMonitor;
 import models.*;
@@ -38,10 +37,10 @@ public class Application extends Controller {
         User.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
-        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address1"));
-        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address2"));
-        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.DEFAULT, "address4"));
+        drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, Drone.CommunicationType.WIFI, "address1"));
+        drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, Drone.CommunicationType.WIFI, "address2"));
+        drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, Drone.CommunicationType.WIFI, "address3"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, Drone.CommunicationType.WIFI, "address4"));
 
         Ebean.save(drones);
 
