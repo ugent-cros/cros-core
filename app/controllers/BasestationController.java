@@ -114,7 +114,6 @@ public class BasestationController {
 
         Basestation updatedBaseStation = form.get();
         updatedBaseStation.setId(id);
-        updatedBaseStation.getCheckpoint().update();
         updatedBaseStation.update();
         JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(updatedBaseStation), Basestation.class);
         return ok(nodeWithRoot);

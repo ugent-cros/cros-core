@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import utilities.ControllerHelper;
-import utilities.Location;
 
 import javax.persistence.*;
 
@@ -13,15 +12,12 @@ import javax.persistence.*;
  * Created by Eveline on 6/03/2015.
  */
 @Entity
+@Table(name="basestation")
 @JsonRootName("basestation")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Basestation extends Location {
 
     public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
-
-    @JsonView(ControllerHelper.Summary.class)
-    @Id
-    private Long id;
 
     @JsonView(ControllerHelper.Summary.class)
     @Constraints.Required
@@ -34,14 +30,6 @@ public class Basestation extends Location {
     }
 
     public Basestation() { }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
@@ -60,15 +48,13 @@ public class Basestation extends Location {
         if (!(obj instanceof Basestation))
             return false;
         Basestation basestation = (Basestation) obj;
-        return this.id.equals(basestation.id)
-                && this.name.equals(basestation.name)
+        return this.name.equals(basestation.name)
                 && super.equals(basestation);
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (id != null ? id.hashCode() : 0);
         result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
     }

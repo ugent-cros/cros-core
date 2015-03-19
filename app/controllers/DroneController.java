@@ -14,6 +14,7 @@ import play.mvc.BodyParser;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import models.Location;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -137,7 +138,8 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        JsonNode node = JsonHelper.addRootElement(Json.toJson(drone.getLocation()), Drone.Location.class);
+        // TODO: call drone location
+        JsonNode node = JsonHelper.addRootElement(Json.toJson(new Location()), Location.class);
         return ok(node);
     }
 
@@ -148,7 +150,7 @@ public class DroneController {
             return notFound();
 
         ObjectNode node = Json.newObject();
-        node.put("connection", drone.testConnection());
+        node.put("connection", true); // TODO: call connection Test
         return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
@@ -159,7 +161,7 @@ public class DroneController {
             return notFound();
 
         ObjectNode node = Json.newObject();
-        node.put("battery", drone.getBatteryStatus());
+        node.put("battery", -1); // TODO: call battery status
         return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
@@ -170,7 +172,7 @@ public class DroneController {
             return notFound();
 
         ObjectNode node = Json.newObject();
-        node.put("cameraCapture", drone.getCameraCapture());
+        node.put("cameraCapture", "nothing"); // TODO: call cameraCapture
         return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
@@ -180,7 +182,7 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
-        drone.emergency();
+        // TODO: call emergency
         return ok();
     }
 

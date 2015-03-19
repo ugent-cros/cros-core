@@ -1,5 +1,6 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
+import controllers.routes;
 import models.Drone;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -139,57 +140,6 @@ public class DroneControllerTest extends TestSuperclass {
 
         long amount = Drone.FIND.all().stream().filter(d -> d.getId().equals(droneToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
-    }
-
-    @Test
-    public void testConnection_AuthorizedRequest_CorrectConnectionReceived() {
-        for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.testConnection(drone.getId()),
-                    authorizeRequest(fakeRequest(), getAdmin()));
-            try {
-                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
-
-                boolean status = node.get("connection").asBoolean();
-                assertThat(status).isEqualTo(drone.testConnection());
-            } catch(JsonHelper.InvalidJSONException ex) {
-                Assert.fail("Invalid json exception: " + ex.getMessage());
-                break;
-            }
-        }
-    }
-
-    @Test
-    public void battery_AuthorizedRequest_CorrectBatteryStatusReceived() {
-        for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.battery(drone.getId()),
-                    authorizeRequest(fakeRequest(), getAdmin()));
-            try {
-                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
-
-                int status = node.get("battery").intValue();
-                assertThat(status).isEqualTo(drone.getBatteryStatus());
-            } catch(JsonHelper.InvalidJSONException ex) {
-                Assert.fail("Invalid json exception: " + ex.getMessage());
-                break;
-            }
-        }
-    }
-
-    @Test
-    public void cameraCapture_AuthorizedRequest_CorrectCaptureReceived() {
-        for(Drone drone : testDrones) {
-            Result r = callAction(routes.ref.DroneController.cameraCapture(drone.getId()),
-                    authorizeRequest(fakeRequest(), getAdmin()));
-            try {
-                JsonNode node = JsonHelper.removeRootElement(contentAsString(r), Drone.class);
-
-                String capture = node.get("cameraCapture").asText();
-                assertThat(capture).isEqualTo(drone.getCameraCapture());
-            } catch(JsonHelper.InvalidJSONException ex) {
-                Assert.fail("Invalid json exception: " + ex.getMessage());
-                break;
-            }
-        }
     }
 
 }
