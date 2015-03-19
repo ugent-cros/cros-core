@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.*;
 
@@ -19,11 +19,11 @@ public class Basestation extends Model {
 
     public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Id
     private Long id;
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     @Column(length = 256, unique = true, nullable = false)
     private String name;

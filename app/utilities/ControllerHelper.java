@@ -32,6 +32,4 @@ public class ControllerHelper {
         }
     }
 
-    public static class Summary { }
-
 }
