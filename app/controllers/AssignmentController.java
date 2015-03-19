@@ -49,6 +49,7 @@ public class AssignmentController {
         if (assignment == null)
             return notFound();
 
+        // TODO: summary view of user instead of complete user informartion in json
         return ok(JsonHelper.createJsonNode(assignment, getAllLinks(id), Assignment.class));
     }
 

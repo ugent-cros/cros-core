@@ -96,7 +96,7 @@ public class DroneControllerTest extends TestSuperclass {
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
         try {
-            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class, false);
             Drone d = Json.fromJson(receivedNode, Drone.class);
             droneToBeAdded.setId(d.getId());
             assertThat(d).isEqualTo(droneToBeAdded);
@@ -120,7 +120,7 @@ public class DroneControllerTest extends TestSuperclass {
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
 
         try {
-            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class);
+            JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Drone.class, false);
             Drone receivedDrone = Json.fromJson(receivedNode, Drone.class);
             assertThat(receivedDrone).isEqualTo(d);
 
