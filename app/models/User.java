@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import exceptions.IncompatibleSystemException;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.*;
 import java.io.UnsupportedEncodingException;
@@ -29,7 +29,7 @@ public class User extends Model {
     private static final long MIN_PASSWORD_LENGTH = 8;
     public static final Finder<Long, User> FIND = new Finder<Long, User>(Long.class, User.class);
 
-    @JsonView({ControllerHelper.Summary.class})
+    @JsonView({JsonHelper.Summary.class})
     @Id
     private Long id;
 
@@ -48,7 +48,7 @@ public class User extends Model {
     @Column(nullable = false, updatable = false)
     private Date creationDate;
 
-    @JsonView({ControllerHelper.Summary.class})
+    @JsonView({JsonHelper.Summary.class})
     @Column(length = 256, unique = true, nullable = false)
     @Constraints.MaxLength(256)
     @Constraints.Required
