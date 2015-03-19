@@ -2,9 +2,7 @@ package controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.User;
 import play.data.Form;
@@ -35,31 +33,37 @@ public class UserController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
-
-        ArrayNode array = objectMapper.createArrayNode();
+        List<JsonHelper.Tuple> tuples = new ArrayList<>();
         for(User user : User.FIND.all()) {
-            try {
-                ObjectNode userNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(user));
-
-                List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("details", controllers.routes.UserController.get(user.getId()).url()));
-                userNode.put("links", (JsonNode) objectMapper.valueToTree(links));
-                array.add(userNode);
-            } catch (JsonProcessingException e) {
-                play.Logger.error(e.getMessage(), e);
-                return internalServerError();
-            }
+            tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
+                    controllers.routes.DroneController.get(user.getId()).url())));
         }
 
-        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, User.class);
+        // TODO: uncomment and add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
-        links.add(new ControllerHelper.Link("create", controllers.routes.UserController.create().url()));
-        node.put("links", (JsonNode) objectMapper.valueToTree(links));
+        //links.add(new ControllerHelper.Link("search", );
 
-        return ok(node);
+        try {
+            return ok(JsonHelper.createJsonNode(tuples, links, User.class));
+        } catch(JsonProcessingException ex) {
+            play.Logger.error(ex.getMessage(), ex);
+            return internalServerError();
+        }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
+    public static Result get(Long id) {
+        // Check if user has correct privileges
+        User client = SecurityController.getUser();
+        if(User.Role.USER.equals(client.getRole()) && client.getId() != id)
+            return unauthorized();
+
+        User user = User.FIND.byId(id);
+        if(user == null)
+            return notFound();
+
+        return ok(JsonHelper.createJsonNode(user, getAllLinks(id), User.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -67,7 +71,7 @@ public class UserController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, User.class);
+            strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             return badRequest(ex.getMessage());
         }
@@ -94,17 +98,59 @@ public class UserController {
 
         // Create new user
         newUser.save();
+        return created(JsonHelper.createJsonNode(newUser, getAllLinks(newUser.getId()), User.class));
+    }
 
-        // Add user to result
-        ObjectNode node = (ObjectNode) Json.toJson(newUser);
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
+    public static Result update(Long id) {
+        // Check if user has correct privileges
+        User client = SecurityController.getUser();
+        if(!User.Role.ADMIN.equals(client.getRole()) && client.getId() != id)
+            return unauthorized();
 
-        // Add links to result
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(Application.homeLink);
-        links.add(allUsersLink);
-        node.put("links", (JsonNode) jsonMapper.valueToTree(links));
+        // Check if user exists
+        User user = User.FIND.byId(id);
+        if(user == null)
+            return notFound();
 
-        return created(JsonHelper.addRootElement(node,User.class));
+        // Check input
+        JsonNode body = request().body().asJson();
+        JsonNode strippedBody;
+        try {
+            strippedBody = JsonHelper.removeRootElement(body, User.class, false);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            return badRequest(ex.getMessage());
+        }
+        Form<User> filledForm = form.bind(strippedBody);
+
+        // Check if password is long enough in filled form
+        String password = filledForm.field(PASSWORD_FIELD_KEY).value();
+        if(password != null) {
+            String error = User.validatePassword(password);
+            if(error != null) {
+                filledForm.reject(PASSWORD_FIELD_KEY, error);
+            }
+        }
+        // Check rest of input
+        if(filledForm.hasErrors()) {
+            return badRequest(filledForm.errorsAsJson());
+        }
+
+        // Update the user
+        User updatedUser = filledForm.get();
+        updatedUser.update(id);
+
+        return ok(JsonHelper.createJsonNode(updatedUser, getAllLinks(id), User.class));
+    }
+
+    // no check needed
+    public static Result currentUser() {
+
+        User client = SecurityController.getUser();
+        if(client == null) {
+            return unauthorized();
+        }
+        return redirect(controllers.routes.UserController.get(client.getId()));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -134,27 +180,6 @@ public class UserController {
         root.put("links", (JsonNode) jsonMapper.valueToTree(links));
 
         return ok(root);
-    }
-
-    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
-    public static Result get(Long id) {
-        // Check if user has correct privileges
-        User client = SecurityController.getUser();
-        if(User.Role.USER.equals(client.getRole()) && client.getId() != id)
-            return unauthorized();
-
-        User user = User.FIND.byId(id);
-        if(user == null)
-            return notFound();
-
-        // Add user to result
-        ObjectNode root = (ObjectNode) Json.toJson(user);
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(Application.homeLink);
-        links.add(allUsersLink);
-        root.put("links", (JsonNode) jsonMapper.valueToTree(links));
-
-        return ok(JsonHelper.addRootElement(root,User.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
@@ -203,55 +228,12 @@ public class UserController {
         return ok();
     }
 
-    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
-    public static Result update(Long id) {
-        // Check if user has correct privileges
-        User client = SecurityController.getUser();
-        if(!User.Role.ADMIN.equals(client.getRole()) && client.getId() != id)
-            return unauthorized();
-
-        // Check if user exists
-        User user = User.FIND.byId(id);
-        if(user == null)
-            return notFound();
-
-        // Check input
-        JsonNode body = request().body().asJson();
-        JsonNode strippedBody;
-        try {
-            strippedBody = JsonHelper.removeRootElement(body, User.class);
-        } catch(JsonHelper.InvalidJSONException ex) {
-            return badRequest(ex.getMessage());
-        }
-        Form<User> filledForm = form.bind(strippedBody);
-
-        // Check if password is long enough in filled form
-        String password = filledForm.field(PASSWORD_FIELD_KEY).value();
-        if(password != null) {
-            String error = User.validatePassword(password);
-            if(error != null) {
-                filledForm.reject(PASSWORD_FIELD_KEY, error);
-            }
-        }
-        // Check rest of input
-        if(filledForm.hasErrors()) {
-            return badRequest(filledForm.errorsAsJson());
-        }
-
-        // Update the user
-        User updatedUser = filledForm.get();
-        updatedUser.update(id);
-
-        return get(updatedUser.getId());
+    private static List<ControllerHelper.Link> getAllLinks(long id) {
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", routes.UserController.get(id).url()));
+        links.add(new ControllerHelper.Link("getAuthToken", routes.UserController.getUserAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("invalidateAuthToken", routes.UserController.invalidateAuthToken(id).url()));
+        return links;
     }
 
-    // no check needed
-    public static Result currentUser() {
-
-        User client = SecurityController.getUser();
-        if(client == null) {
-            return unauthorized();
-        }
-        return redirect(controllers.routes.UserController.get(client.getId()));
-    }
 }

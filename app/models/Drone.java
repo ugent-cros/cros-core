@@ -1,14 +1,17 @@
 package models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Version;
 import java.beans.Transient;
 
 /**
@@ -22,11 +25,15 @@ public class Drone extends Model {
 
     public static final Finder<Long,Drone> FIND = new Finder<>(Long.class, Drone.class);
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Id
     private Long id;
 
-    @JsonView(ControllerHelper.Summary.class)
+    @Version
+    @JsonIgnore
+    public Long version;
+    
+	@JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     private String name;
 
@@ -39,18 +46,27 @@ public class Drone extends Model {
     private String address;
 
     @Constraints.Required
-    private CommunicationType communicationType;
+    @Embedded
+    private DroneType droneType;
 
     // setting default values
     public Drone() {
         status = Status.AVAILABLE;
     }
 
-    public Drone(String name, Status status, CommunicationType communicationType, String address) {
+    public Drone(String name, Status status, DroneType droneType, String address) {
         this.name = name;
         this.status = status;
         this.address = address;
-        this.communicationType = communicationType;
+        this.droneType = droneType;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long stamp) {
+        this.version = stamp;
     }
 
     public Long getId() {
@@ -93,16 +109,16 @@ public class Drone extends Model {
         this.address = address;
     }
 
-    public CommunicationType getCommunicationType() {
-        return communicationType;
+    public DroneType getDroneType() {
+        return droneType;
     }
 
-    public void setCommunicationType(CommunicationType communicationType) {
-        this.communicationType = communicationType;
+    public void setDroneType(DroneType type) {
+        droneType = type;
     }
 
     @Transient
-    public int getBatteryStatus() {
+    public int getBatteryPercentage() {
         return -1;
     }
 
@@ -135,7 +151,7 @@ public class Drone extends Model {
         isEqual &= this.weightLimitation == other.weightLimitation;
         isEqual &= this.status == other.status;
         isEqual &= this.address.equals(other.address);
-        return isEqual && this.communicationType == other.communicationType;
+        return isEqual && this.droneType.equals(other.droneType);
     }
 
     @Override
@@ -146,7 +162,7 @@ public class Drone extends Model {
         result = 31 * result + weightLimitation;
         result = 31 * result + (status != null ? status.hashCode() : 0);
         result = 31 * result + (address != null ? address.hashCode() : 0);
-        result = 31 * result + (communicationType != null ? communicationType.hashCode() : 0);
+        result = 31 * result + (droneType != null ? droneType.hashCode() : 0);
         return result;
     }
 
@@ -179,9 +195,5 @@ public class Drone extends Model {
         CHARGING,
         EMERGENCY_LANDED,
         UNKNOWN
-    }
-
-    public enum CommunicationType {
-        DEFAULT
     }
 }
