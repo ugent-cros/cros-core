@@ -29,6 +29,8 @@ GET           /drones/:id/testConnection            controllers.DroneController.
 GET           /drones/:id/battery                   controllers.DroneController.battery(id: Long)
 GET           /drones/:id/cameraCapture             controllers.DroneController.cameraCapture(id: Long)
 GET           /drones/:id/location                  controllers.DroneController.location(id: Long)
+GET           /drones/:id/speed                     controllers.DroneController.speed(id: Long)
+GET           /drones/:id/rotation                  controllers.DroneController.rotation(id: Long)
 GET           /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
 
 POST          /login                                controllers.SecurityController.login()
