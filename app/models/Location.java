@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 import utilities.ModelHelper;
 
-import javax.persistence.*;
+import javax.persistence.Id;
+import javax.persistence.MappedSuperclass;
 
 /**
  * Created by matthias on 19/03/2015.
@@ -17,7 +18,7 @@ import javax.persistence.*;
 public class Location extends Model {
 
     @Id
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     protected Long id;
 
     @Constraints.Required

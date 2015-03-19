@@ -44,8 +44,8 @@ public class SearchTest extends TestSuperclass {
         testAssignments.add(new Assignment());
         testAssignments.add(new Assignment());
         Ebean.save(testAssignments);
-        testBasestations.add(new Basestation("station1", new Checkpoint()));
-        testBasestations.add(new Basestation("station2", new Checkpoint()));
+        testBasestations.add(new Basestation("station1", 0.0,0.0,0.0));
+        testBasestations.add(new Basestation("station2", 1.0,2.0,3.0));
         Ebean.save(testBasestations);
         testUsers.add(new User("test1@smeifj.com", "pass1", "john1", "doe1"));
         testUsers.add(new User("test2@smeifj.com", "pass2", "john2", "doe2"));
