@@ -28,10 +28,9 @@ public class BasestationController {
                     controllers.routes.BasestationController.get(basestation.getId()).url())));
         }
 
-        // TODO: uncomment and add links when available
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
-        //links.add(new ControllerHelper.Link("search", )
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Basestation.class));
@@ -58,6 +57,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
@@ -81,6 +81,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
