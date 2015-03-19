@@ -39,10 +39,9 @@ public class UserController {
                     controllers.routes.DroneController.get(user.getId()).url())));
         }
 
-        // TODO: uncomment and add links when available
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
-        //links.add(new ControllerHelper.Link("search", );
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, User.class));
@@ -73,6 +72,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -119,6 +119,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
