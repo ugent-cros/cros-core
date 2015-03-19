@@ -1,5 +1,6 @@
 package controllers;
 
+import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import models.Basestation;
@@ -8,6 +9,7 @@ import play.data.Form;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -22,8 +24,10 @@ public class BasestationController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
+        ExpressionList<Basestation> exp = QueryHelper.buildQuery(Basestation.class, Basestation.FIND.where());
+
         List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(Basestation basestation : Basestation.FIND.all()) {
+        for(Basestation basestation : exp.findList()) {
             tuples.add(new JsonHelper.Tuple(basestation, new ControllerHelper.Link("self",
                     controllers.routes.BasestationController.get(basestation.getId()).url())));
         }
