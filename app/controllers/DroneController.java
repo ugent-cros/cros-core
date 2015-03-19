@@ -33,10 +33,9 @@ public class DroneController {
                     controllers.routes.DroneController.get(drone.getId()).url())));
         }
 
-        // TODO: uncomment and add links when available
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
-        //links.add(new ControllerHelper.Link("search", );
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Drone.class));
@@ -64,6 +63,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
@@ -88,6 +88,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
@@ -172,7 +173,7 @@ public class DroneController {
     }
 
     private static final List<ControllerHelper.Link> getAllLinks(long id) {
-        // TODO: uncomment and add links when available
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).url()));
         links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).url()));
@@ -180,8 +181,6 @@ public class DroneController {
         links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
         links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
         links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
-        //links.add(new ControllerHelper.Link("altitude", );
-        //links.add(new ControllerHelper.Link("speed", );
         return links;
     }
 
