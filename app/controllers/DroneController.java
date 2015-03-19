@@ -133,7 +133,6 @@ public class DroneController {
         if (drone == null)
             return F.Promise.pure(notFound());
 
-        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         ObjectNode node = Json.newObject();
         node.put("connection", true); // TODO: call connection Test
         return F.Promise.pure(ok(JsonHelper.addRootElement(node, Drone.class)));

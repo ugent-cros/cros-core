@@ -14,45 +14,50 @@ import static play.mvc.Controller.request;
  */
 public class QueryHelper {
 
+    private static final String PAGE_SIZE = "pageSize";
+    private static final String ORDER = "order";
+
     public static <T extends Model> ExpressionList<T> buildQuery(Class<T> clazz , ExpressionList<T> exp) {
         JsonNode model;
         try {
             model = Json.toJson(clazz.newInstance());
         } catch (InstantiationException | IllegalAccessException e) {
-            play.Logger.error("the provided class is not accessible or cannot be instantiated");
+            play.Logger.error("the provided class is not accessible or cannot be instantiated", e);
             return null;
         }
 
-        int pageSize = 0;
-        if (request().queryString().containsKey("pageSize"))
-            pageSize = Integer.parseInt(request().queryString().get("pageSize")[0]);
-
-        boolean asc = true;
-        if (request().queryString().containsKey("order"))
-            asc = !"desc".equals(request().queryString().get("order")[0]);
-
+        int pageSize = getPageSize();
+        boolean asc = isAsc();
 
         for (Map.Entry<String,String[]> e : request().queryString().entrySet()) {
-            String key = e.getKey();
-            switch (key) {
+            switch (e.getKey()) {
                 case "orderBy" :
-                    if (asc)
-                        exp.order().asc(e.getValue()[0]);
-                    else
-                        exp.order().desc(e.getValue()[0]);
+                    exp.order().asc(e.getValue()[0]);
+                    if (!asc)
+                        exp.order().reverse();
                     break;
                 case "page" :
-                    if (pageSize == 0)
-                        break;
-                    exp.setFirstRow(pageSize * Integer.parseInt(e.getValue()[0])).setMaxRows(pageSize);
+                    if (pageSize > 0)
+                        exp.setFirstRow(pageSize * Integer.parseInt(e.getValue()[0])).setMaxRows(pageSize);
                     break;
                 default :
-                    JsonNode result = model.findValue(key);
-                    if (result != null)
-                        exp = exp.contains(key, e.getValue()[0]);
+                    if (model.findValue(e.getKey()) != null)
+                        exp.contains(e.getKey(), e.getValue()[0]);
             }
         }
 
         return exp;
+    }
+
+    private static int getPageSize() {
+        if (request().queryString().containsKey(PAGE_SIZE))
+            return Integer.parseInt(request().queryString().get(PAGE_SIZE)[0]);
+        return -1;
+    }
+
+    private static boolean isAsc() {
+        if (request().queryString().containsKey(ORDER))
+            return !"desc".equals(request().queryString().get(ORDER)[0]);
+        return true;
     }
 }

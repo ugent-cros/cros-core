@@ -12,7 +12,6 @@ import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Version;
-import java.beans.Transient;
 
 /**
  * Created by matthias on 19/02/2015.

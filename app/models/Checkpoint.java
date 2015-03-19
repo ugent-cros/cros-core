@@ -17,7 +17,7 @@ import javax.persistence.Table;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Checkpoint extends Location {
 
-    public final static Finder<Long, Checkpoint> FIND = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
+    public static final Finder<Long, Checkpoint> FIND = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
 
     @Constraints.Required
     private int waitingTime;

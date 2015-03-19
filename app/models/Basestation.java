@@ -17,7 +17,7 @@ import javax.persistence.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Basestation extends Location {
 
-    public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
+    public static final Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
 
     @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
