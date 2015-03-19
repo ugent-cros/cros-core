@@ -57,7 +57,7 @@ public class SimpleScheduler extends Scheduler{
         DroneCommander commander = fleet.getCommanderForDrone(drone);
         flights.put(commander,assignment);
         // Create SimplePilot
-        ActorRef pilot = Akka.system().actorOf(
+        ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
                         () -> new SimplePilot(commander)));
         // Tell the pilot to start the flight
