@@ -29,10 +29,9 @@ public class AssignmentController {
                     controllers.routes.AssignmentController.get(assignment.getId()).url())));
         }
 
-        // TODO: uncomment and add links when available
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().url()));
-        //links.add(new ControllerHelper.Link("search", )
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Assignment.class));
@@ -60,6 +59,7 @@ public class AssignmentController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Assignment.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);
