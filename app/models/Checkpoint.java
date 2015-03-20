@@ -82,7 +82,8 @@ public class Checkpoint extends Model {
         if (obj == null || !(obj instanceof Checkpoint))
             return false;
         Checkpoint checkpoint = (Checkpoint) obj;
-        boolean isEqual = super.equals(checkpoint);
+        boolean isEqual = this.location == null && checkpoint.location == null;
+        isEqual |= this.location != null && this.location.equals(checkpoint.location);
         return isEqual && this.waitingTime == checkpoint.waitingTime;
     }
 

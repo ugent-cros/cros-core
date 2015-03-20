@@ -44,8 +44,6 @@ public class Basestation extends Model {
         this.name = name;
     }
 
-    public Basestation() { }
-
     public Long getId() {
         return id;
     }
@@ -87,8 +85,12 @@ public class Basestation extends Model {
         if (!(obj instanceof Basestation))
             return false;
         Basestation basestation = (Basestation) obj;
-        return this.name.equals(basestation.name)
-                && super.equals(basestation);
+        boolean isEqual = (this.name == null && basestation.name == null)
+                || (this.name != null && this.name.equals(basestation.name));
+        isEqual &= (this.location == null && basestation.location == null)
+                || this.location != null && this.location.equals(basestation.location);
+
+        return this.name.equals(basestation.name);
     }
 
     @Override
