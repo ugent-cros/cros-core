@@ -79,6 +79,7 @@ public class Bepop extends DroneActor {
         sendMessage(new SetHullCommand(hull));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
+        sendMessage(new FlatTrimCommand());
     }
 
     @Override
@@ -108,8 +109,7 @@ public class Bepop extends DroneActor {
     @Override
     protected void takeOff(Promise<Void> p) {
         //TODO: only return when status changes to taking off promises
-        if (sendMessage(new FlatTrimCommand()) &&
-                sendMessage(new TakeOffCommand())) {
+        if (sendMessage(new TakeOffCommand())) {
             p.success(null);
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
