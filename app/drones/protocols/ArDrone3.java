@@ -342,6 +342,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .match(SetHullCommand.class, s -> handleSetHull(s.hasHull()))
+                    .match(SetCountryCommand.class, s -> handleSetCountry(s.getCountry()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -484,6 +485,10 @@ public class ArDrone3 extends UntypedActor {
 
     private void handleSetHull(boolean hull){
         sendDataAck(PacketCreator.createSetHullPacket(hull));
+    }
+
+    private void handleSetCountry(String ctry){
+        sendDataAck(PacketCreator.createSetCountryPacket(ctry));
     }
 
 }

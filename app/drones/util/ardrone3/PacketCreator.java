@@ -5,6 +5,9 @@ import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
+import org.apache.commons.lang3.CharSet;
+
+import java.nio.charset.Charset;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -70,5 +73,17 @@ public class PacketCreator {
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(hull ? (byte)1 : (byte)0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)2, b.result());
+    }
+
+    public static Packet createSetCountryPacket(String country){
+        if(country == null || country.length() != 2)
+            throw new IllegalArgumentException("country is in invalid format.");
+
+        ByteStringBuilder b = new ByteStringBuilder();
+        byte[] val = country.toUpperCase().getBytes(Charset.forName("UTF-8")); //enforce uppercase country code if forgotten
+        b.putBytes(val);
+        b.putByte((byte)0); //null terminated string
+
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.SETTINGS.getVal(), (short)3, b.result());
     }
 }
