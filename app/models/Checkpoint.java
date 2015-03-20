@@ -2,9 +2,14 @@ package models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
+import play.db.ebean.Model;
+import utilities.JsonHelper;
 
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.Id;
 import javax.persistence.Table;
 
 /**
@@ -15,29 +20,42 @@ import javax.persistence.Table;
 @Table(name="checkpoint")
 @JsonRootName("checkpoint")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Checkpoint extends Location {
+public class Checkpoint extends Model {
 
-    public static final Finder<Long, Checkpoint> FIND = new Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
+    public static final Finder<Long, Checkpoint> FIND = new Model.Finder<Long, Checkpoint>(Long.class, Checkpoint.class);
+
+    @Id
+    @JsonView(JsonHelper.Summary.class)
+    protected Long id;
 
     @Constraints.Required
     private int waitingTime;
+
+    @Constraints.Required
+    @Embedded
+    private Location location;
 
     public Checkpoint() {
         this(0,0,0);
     }
 
     public Checkpoint (double longitude, double lattitude, double altitude){
-        this.longitude = longitude;
-        this.latitude = lattitude;
-        this.altitude = altitude;
-        this.waitingTime = 0;
+
+        this(longitude, lattitude, altitude, 0);
     }
 
     public Checkpoint (double longitude, double lattitude, double altitude, int waitingTime){
-        this.longitude = longitude;
-        this.latitude = lattitude;
-        this.altitude = altitude;
+
+        this.setLocation(new Location(longitude, lattitude, altitude));
         this.waitingTime = waitingTime;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public int getWaitingTime() {
@@ -46,6 +64,15 @@ public class Checkpoint extends Location {
 
     public void setWaitingTime(int waitingTime) {
         this.waitingTime = waitingTime;
+    }
+
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     @Override

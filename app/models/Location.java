@@ -1,25 +1,17 @@
 package models;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
-import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
-import play.db.ebean.Model;
-import utilities.JsonHelper;
 import utilities.ModelHelper;
 
-import javax.persistence.Id;
-import javax.persistence.MappedSuperclass;
+import javax.persistence.Embeddable;
 
 /**
  * Created by matthias on 19/03/2015.
  */
 @JsonRootName("location")
-@MappedSuperclass
-public class Location extends Model {
-
-    @Id
-    @JsonView(JsonHelper.Summary.class)
-    protected Long id;
+@Embeddable
+public class Location {
 
     @Constraints.Required
     protected double longitude;
@@ -36,14 +28,6 @@ public class Location extends Model {
         this.longitude = longitude;
         this.latitude = latitude;
         this.altitude = altitude;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public double getLongitude() {
@@ -78,7 +62,6 @@ public class Location extends Model {
             return false;
         Location checkpoint = (Location) obj;
         boolean isEqual = ModelHelper.compareFloatingPoints(this.longitude, checkpoint.longitude);
-        isEqual &= this.id == checkpoint.id;
         isEqual &= ModelHelper.compareFloatingPoints(this.latitude, checkpoint.latitude);
         return isEqual && ModelHelper.compareFloatingPoints(this.altitude, checkpoint.altitude);
     }
@@ -87,7 +70,6 @@ public class Location extends Model {
     public int hashCode() {
         int result = super.hashCode();
         long temp;
-        result = 31 * result + (id != null ? id.hashCode() : 0);
         temp = Double.doubleToLongBits(longitude);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(latitude);

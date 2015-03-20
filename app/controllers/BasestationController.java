@@ -95,6 +95,7 @@ public class BasestationController {
 
         Basestation updatedBaseStation = form.get();
         updatedBaseStation.setId(id);
+        updatedBaseStation.setVersion(basestation.getVersion());
         updatedBaseStation.update();
         return ok(JsonHelper.createJsonNode(updatedBaseStation, getAllLinks(updatedBaseStation.getId()),
                 Basestation.class));
