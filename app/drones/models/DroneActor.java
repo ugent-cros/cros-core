@@ -27,6 +27,8 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Speed> speed;
     protected LazyProperty<Double> altitude;
     protected LazyProperty<DroneVersion> version;
+    protected LazyProperty<NavigationState> navigationState;
+    protected LazyProperty<NavigationStateReason> navigationStateReason;
 
     protected DroneEventBus eventBus;
 
@@ -47,6 +49,9 @@ public abstract class DroneActor extends AbstractActor {
         speed = new LazyProperty<>();
         altitude = new LazyProperty<>();
         version = new LazyProperty<>();
+        navigationState = new LazyProperty<>(NavigationState.AVAILABLE);
+        navigationStateReason = new LazyProperty<>(NavigationStateReason.ENABLED);
+
 
         // TODO: build pipeline that directly forwards to the eventbus
 
@@ -56,7 +61,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(PropertyRequestMessage.class, this::handlePropertyRequest).
 
                 // General commands (can be converted to switch as well, depends on embedded data)
-                        match(InitRequestMessage.class, s -> initInternal(sender(), self())).
+                match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
@@ -105,6 +110,11 @@ public abstract class DroneActor extends AbstractActor {
                     version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()));
                     eventBus.publish(new DroneEventMessage(s));
                 }).
+                match(NavigationStateChangedMessage.class, s -> {
+                    navigationState.setValue(s.getState());
+                    navigationStateReason.setValue(s.getReason());
+                    eventBus.publish(new DroneEventMessage(s));
+                }).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
     }
 
@@ -146,6 +156,12 @@ public abstract class DroneActor extends AbstractActor {
             case VERSION:
                 handleMessage(version.getValue(), sender(), self());
                 break;
+            case NAVIGATIONSTATE:
+                handleMessage(navigationState.getValue(), sender(), self());
+                break;
+            case NAVIGATIONREASON:
+                handleMessage(navigationStateReason.getValue(), sender(), self());
+                break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());
                 break;
@@ -169,7 +185,7 @@ public abstract class DroneActor extends AbstractActor {
         }, ec);
     }
 
-    private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self){
+    private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self) {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
         } else {
@@ -180,7 +196,7 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
-    private void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg){
+    private void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg) {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
         } else {
