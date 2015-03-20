@@ -116,6 +116,20 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> moveToLocation(double latitude, double longitude, double altitude){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.moveToLocation(latitude, longitude, altitude)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "requested");
+            ObjectNode locationResult = Json.newObject();
+            locationResult.put("latitude", latitude);
+            locationResult.put("longitude", longitude);
+            locationResult.put("altitude", altitude);
+            result.put("location", locationResult);
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> getLocation(){
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getLocation()).map(v -> {
