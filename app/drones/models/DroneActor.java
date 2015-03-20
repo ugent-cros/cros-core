@@ -7,16 +7,11 @@ import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
-import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
-import scala.Function1;
-import scala.PartialFunction;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
-import scala.runtime.BoxedUnit;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -67,6 +62,8 @@ public abstract class DroneActor extends AbstractActor {
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
                 match(SetMaxHeigthRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
+                match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
+                match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClass())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
@@ -172,6 +169,28 @@ public abstract class DroneActor extends AbstractActor {
         }, ec);
     }
 
+    private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
+        } else {
+            log.info("Cancelling move to location.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            cancelMoveToLocation(v);
+        }
+    }
+
+    private void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
+        } else {
+            log.info("Navigating to lat=[{}], long=[{}], alt=[{}]", msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+        }
+    }
+
     private void moveInternal(final ActorRef sender, final ActorRef self, final MoveRequestMessage msg) {
         if (!loaded || state.getRawValue() == FlyingState.LANDED) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when on the ground")), self);
@@ -259,6 +278,10 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void land(Promise<Void> p);
 
     protected abstract void move3d(Promise<Void> p, double vx, double vy, double vz, double vr);
+
+    protected abstract void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude);
+
+    protected abstract void cancelMoveToLocation(Promise<Void> p);
 
     protected abstract void setMaxHeight(Promise<Void> p, float meters);
 

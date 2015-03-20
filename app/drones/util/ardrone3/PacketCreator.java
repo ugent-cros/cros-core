@@ -86,4 +86,18 @@ public class PacketCreator {
 
         return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.SETTINGS.getVal(), (short)3, b.result());
     }
+
+    public static Packet createSetHomePacket(double latitude, double longitude, double altitude){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putDouble(latitude, FrameHelper.BYTE_ORDER);
+        b.putDouble(longitude, FrameHelper.BYTE_ORDER);
+        b.putDouble(altitude, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.GPSSETTINGS.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createNavigateHomePacket(boolean start){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(start ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)5, b.result());
+    }
 }

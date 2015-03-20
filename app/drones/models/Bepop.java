@@ -6,6 +6,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.DroneDiscoveredMessage;
+import drones.messages.HomeChangedMessage;
 import drones.messages.StopMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
@@ -27,6 +28,8 @@ public class Bepop extends DroneActor {
 
     private final Object lock = new Object();
 
+    private int homeLocationSum = 0; // check to store latest requested home location
+
     private Promise<Void> initPromise;
 
     //TODO: use configuration class to pass here
@@ -39,7 +42,8 @@ public class Bepop extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse);
+                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse).
+                match(HomeChangedMessage.class, this::handleHomeChangedResponse);
     }
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
@@ -76,10 +80,10 @@ public class Bepop extends DroneActor {
         sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
         sendMessage(new SetOutdoorCommand(!indoor));
         sendMessage(new SetHullCommand(hull));
+        sendMessage(new SetCountryCommand("US")); //US code allows higher throughput regulations
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
         sendMessage(new FlatTrimCommand());
-        sendMessage(new SetCountryCommand("US")); //US code allows higher throughput regulations
     }
 
     @Override
@@ -131,6 +135,43 @@ public class Bepop extends DroneActor {
             p.success(null); //ack the command
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    private void handleHomeChangedResponse(HomeChangedMessage msg){
+        int check = getLocationHashcode(msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+        if(check == homeLocationSum){
+            //TODO: enable this message for actual movement
+            //sendMessage(new NavigateHomeCommand(true));
+            log.info("Requesting home navigation at drone.");
+        } else {
+            log.warning("Home location changed to non-requested value.");
+        }
+    }
+
+    private static int getLocationHashcode(double lat, double lon, double alt){
+        return Double.valueOf(lat).hashCode() & Double.valueOf(lon).hashCode() & Double.valueOf(alt).hashCode();
+    }
+
+    @Override
+    protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
+        if(indoor) {
+            p.failure(new DroneException("Cannot move to location indoor."));
+        } else {
+            if(sendMessage(new SetHomeCommand(latitude, longitude, altitude))){
+                // Now we have to wait for home location set
+                homeLocationSum = getLocationHashcode(latitude, longitude, altitude);
+                p.success(null);
+            } else {
+                p.failure(new DroneException("Failed to send command. Not initialized yet."));
+            }
+        }
+    }
+
+    @Override
+    protected void cancelMoveToLocation(Promise<Void> p) {
+        if(sendMessage(new NavigateHomeCommand(false))){
+            p.success(null);
         }
     }
 

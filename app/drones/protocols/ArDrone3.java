@@ -331,18 +331,20 @@ public class ArDrone3 extends UntypedActor {
                     .match(StopMessage.class, s -> stop())
 
                             // Drone commands
-                    .match(FlatTrimCommand.class, s -> handleFlatTrim())
-                    .match(TakeOffCommand.class, s -> handleTakeoff())
-                    .match(LandCommand.class, s -> handleLand())
-                    .match(RequestStatusCommand.class, s -> handleRequestStatus())
-                    .match(SetOutdoorCommand.class, s -> handleOutdoor(s))
-                    .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .match(FlatTrimCommand.class, s -> flatTrim())
+                    .match(TakeOffCommand.class, s -> takeOff())
+                    .match(LandCommand.class, s -> land())
+                    .match(RequestStatusCommand.class, s -> requestStatus())
+                    .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
+                    .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
-                    .match(SetVideoStreamingStateCommand.class, s -> handleSetVideoStreaming(s.isEnabled()))
-                    .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
-                    .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
-                    .match(SetHullCommand.class, s -> handleSetHull(s.hasHull()))
-                    .match(SetCountryCommand.class, s -> handleSetCountry(s.getCountry()))
+                    .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
+                    .match(SetMaxHeightCommand.class, s -> setMaxHeight(s.getMeters()))
+                    .match(SetMaxTiltCommand.class, s -> setMaxTilt(s.getDegrees()))
+                    .match(SetHullCommand.class, s -> setHull(s.hasHull()))
+                    .match(SetCountryCommand.class, s -> setCountry(s.getCountry()))
+                    .match(SetHomeCommand.class, s -> setHome(s.getLatitude(), s.getLongitude(), s.getAltitude()))
+                    .match(NavigateHomeCommand.class, s -> navigateHome(s.isStart()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -447,48 +449,56 @@ public class ArDrone3 extends UntypedActor {
 
     // All command handlers
     //TODO: move these to seperate class statically
-    private void handleFlatTrim() {
+    private void flatTrim() {
         sendDataAck(PacketCreator.createFlatTrimPacket());
     }
 
-    private void handleTakeoff() {
+    private void takeOff() {
         sendDataAck(PacketCreator.createTakeOffPacket());
     }
 
-    private void handleLand() {
+    private void land() {
         sendDataAck(PacketCreator.createLandingPacket());
     }
 
-    private void handleRequestStatus() {
+    private void requestStatus() {
         sendDataAck(PacketCreator.createRequestStatusPacket());
     }
 
-    private void handleSetVideoStreaming(boolean enabled){
+    private void setVideoStreaming(boolean enabled){
         sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
-    private void handleRequestSettings() {
+    private void requestSettings() {
         sendDataAck(PacketCreator.createRequestAllSettingsCommand());
     }
 
-    private void handleOutdoor(SetOutdoorCommand cmd) {
-        sendDataAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor()));
+    private void setOutdoor(boolean outdoor) {
+        sendDataAck(PacketCreator.createOutdoorStatusPacket(outdoor));
     }
 
-    private void handleSetMaxHeight(float meters) {
+    private void setMaxHeight(float meters) {
         sendDataAck(PacketCreator.createSetMaxAltitudePacket(meters));
     }
 
-    private void handleSetMaxTilt(float degrees) {
+    private void setMaxTilt(float degrees) {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
     }
 
-    private void handleSetHull(boolean hull){
+    private void setHull(boolean hull){
         sendDataAck(PacketCreator.createSetHullPacket(hull));
     }
 
-    private void handleSetCountry(String ctry){
+    private void setCountry(String ctry){
         sendDataAck(PacketCreator.createSetCountryPacket(ctry));
+    }
+
+    private void setHome(double latitude, double longitude, double altitude){
+        sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
+    }
+
+    private void navigateHome(boolean start){
+        sendDataAck(PacketCreator.createNavigateHomePacket(start));
     }
 
 }

@@ -92,6 +92,24 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> moveToLocation(double latitude, double longitude, double altitude) {
+        return ask(droneActor, new MoveToLocationRequestMessage(latitude, longitude, altitude), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> cancelMoveToLocation() {
+        return ask(droneActor, new MoveToLocationCancellationMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
     public Future<FlyingState> getFlyingState() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {

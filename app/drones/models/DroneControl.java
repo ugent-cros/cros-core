@@ -57,4 +57,19 @@ public interface DroneControl {
      */
     Future<Void> setMaxTilt(float degrees);
 
+    /**
+     * Requests the drone to move to GPS coordinates
+     * @param latitude The latitude in decimal format
+     * @param longitude The longitude in decimal format
+     * @param altitude The altitude in meters
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> moveToLocation(double latitude, double longitude, double altitude);
+
+    /**
+     * Cancels the drone when moving to a GPS location
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> cancelMoveToLocation();
+
 }
