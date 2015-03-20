@@ -23,13 +23,15 @@ public class Bepop extends DroneActor {
 
     private final String ip;
     private final boolean indoor;
+    private final boolean hull;
 
     private final Object lock = new Object();
 
     private Promise<Void> initPromise;
 
     //TODO: use configuration class to pass here
-    public Bepop(String ip, boolean indoor) {
+    public Bepop(String ip, boolean indoor, boolean hull) {
+        this.hull = hull;
         this.ip = ip;
         this.indoor = indoor;
     }
@@ -73,7 +75,8 @@ public class Bepop extends DroneActor {
 
 
         sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
-        sendMessage(new OutdoorCommand(!indoor));
+        sendMessage(new SetOutdoorCommand(!indoor));
+        sendMessage(new SetHullCommand(hull));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
     }

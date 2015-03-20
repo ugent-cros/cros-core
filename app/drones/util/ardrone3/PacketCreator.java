@@ -65,4 +65,10 @@ public class PacketCreator {
         b.putByte(enabled ? (byte)1 : (byte)0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.MEDIASTREAMING.getVal(), (short)0, b.result());
     }
+
+    public static Packet createSetHullPacket(boolean hull){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(hull ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)2, b.result());
+    }
 }

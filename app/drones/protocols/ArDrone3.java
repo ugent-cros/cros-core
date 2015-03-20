@@ -6,14 +6,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
-import akka.japi.Procedure;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.messages.DroneDiscoveredMessage;
 import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
@@ -22,7 +20,6 @@ import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
 import scala.concurrent.duration.Duration;
 
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -338,12 +335,13 @@ public class ArDrone3 extends UntypedActor {
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
                     .match(RequestStatusCommand.class, s -> handleRequestStatus())
-                    .match(OutdoorCommand.class, s -> handleOutdoor(s))
+                    .match(SetOutdoorCommand.class, s -> handleOutdoor(s))
                     .match(RequestSettingsCommand.class, s -> handleRequestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
-                    .match(SetVideoStreamingStateCommand.class,  s -> handleSetVideoStreaming(s.isEnabled()))
+                    .match(SetVideoStreamingStateCommand.class, s -> handleSetVideoStreaming(s.isEnabled()))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
+                    .match(SetHullCommand.class, s -> handleSetHull(s.hasHull()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -472,7 +470,7 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createRequestAllSettingsCommand());
     }
 
-    private void handleOutdoor(OutdoorCommand cmd) {
+    private void handleOutdoor(SetOutdoorCommand cmd) {
         sendDataAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor()));
     }
 
@@ -482,6 +480,10 @@ public class ArDrone3 extends UntypedActor {
 
     private void handleSetMaxTilt(float degrees) {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
+    }
+
+    private void handleSetHull(boolean hull){
+        sendDataAck(PacketCreator.createSetHullPacket(hull));
     }
 
 }
