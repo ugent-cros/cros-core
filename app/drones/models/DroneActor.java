@@ -29,6 +29,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<DroneVersion> version;
     protected LazyProperty<NavigationState> navigationState;
     protected LazyProperty<NavigationStateReason> navigationStateReason;
+    protected LazyProperty<Boolean> gpsFix;
 
     protected DroneEventBus eventBus;
 
@@ -51,6 +52,7 @@ public abstract class DroneActor extends AbstractActor {
         version = new LazyProperty<>();
         navigationState = new LazyProperty<>(NavigationState.AVAILABLE);
         navigationStateReason = new LazyProperty<>(NavigationStateReason.ENABLED);
+        gpsFix = new LazyProperty<>(false);
 
 
         // TODO: build pipeline that directly forwards to the eventbus
@@ -74,8 +76,12 @@ public abstract class DroneActor extends AbstractActor {
 
 
                 // Drone -> external
-                        match(LocationChangedMessage.class, s -> {
+                match(LocationChangedMessage.class, s -> {
                     location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()));
+                    eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(GPSFixChangedMessage.class, s -> {
+                    gpsFix.setValue(s.isFixed());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
@@ -161,6 +167,9 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case NAVIGATIONREASON:
                 handleMessage(navigationStateReason.getValue(), sender(), self());
+                break;
+            case GPSFIX:
+                handleMessage(gpsFix.getValue(), sender(), self());
                 break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());

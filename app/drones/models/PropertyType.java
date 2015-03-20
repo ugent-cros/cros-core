@@ -13,5 +13,6 @@ public enum PropertyType {
     ROTATION,
     VERSION,
     NAVIGATIONSTATE,
-    NAVIGATIONREASON
+    NAVIGATIONREASON,
+    GPSFIX
 }

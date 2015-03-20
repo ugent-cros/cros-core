@@ -1,6 +1,7 @@
 package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
+import drones.messages.GPSFixChangedMessage;
 import drones.messages.HomeChangedMessage;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
@@ -30,6 +31,8 @@ public class GPSSettingsStateHandler extends CommandProcessor {
     }
 
     private static Object gpsFixChanged(Packet p){
-        return null; //TODO
+        ByteIterator it = p.getData().iterator();
+        boolean fixed = it.getByte() == 1;
+        return new GPSFixChangedMessage(fixed);
     }
 }
