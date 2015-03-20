@@ -1,16 +1,22 @@
 package controllers;
 
+import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.DroneCommander;
+import drones.models.Fleet;
 import models.Drone;
+import models.Location;
 import models.User;
 import play.data.Form;
+import play.libs.F;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -27,8 +33,10 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
+        ExpressionList<Drone> exp = QueryHelper.buildQuery(Drone.class, Drone.FIND.where());
+
         List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(Drone drone : Drone.FIND.all()) {
+        for(Drone drone : exp.findList()) {
             tuples.add(new JsonHelper.Tuple(drone, new ControllerHelper.Link("self",
                     controllers.routes.DroneController.get(drone.getId()).url())));
         }
@@ -82,6 +90,8 @@ public class DroneController {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
+        if (drone.getStatus() != Drone.Status.AVAILABLE)
+            return badRequest("cannot update drone which is in flight.");
 
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
@@ -104,35 +114,67 @@ public class DroneController {
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result location(Long id) {
+    public static F.Promise<Result> location(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        JsonNode node = JsonHelper.addRootElement(Json.toJson(drone.getLocation()), Drone.Location.class);
-        return ok(node);
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
+            Location l = new Location(v.getLongtitude(),v.getLatitude(), altitude);
+            return ok(JsonHelper.addRootElement(Json.toJson(l), Location.class));
+        }));
+
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result testConnection(Long id) {
+    public static F.Promise<Result> testConnection(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
         ObjectNode node = Json.newObject();
-        node.put("connection", drone.testConnection());
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        node.put("connection", true); // TODO: call connection Test
+        return F.Promise.pure(ok(JsonHelper.addRootElement(node, Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result battery(Long id) {
+    public static F.Promise<Result> battery(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        ObjectNode node = Json.newObject();
-        node.put("battery", drone.getBatteryPercentage());
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getBatteryPercentage()).map(percentage -> {
+            ObjectNode node = Json.newObject().put("battery", percentage);
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> rotation(Long id) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getRotation()).map(rotation -> {
+            JsonNode node = Json.newObject().put("rotation", Json.toJson(rotation));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> speed(Long id) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getSpeed()).map(speed -> {
+            JsonNode node = Json.newObject().put("speed", Json.toJson(speed));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -142,18 +184,19 @@ public class DroneController {
             return notFound();
 
         ObjectNode node = Json.newObject();
-        node.put("cameraCapture", drone.getCameraCapture());
+        node.put("cameraCapture", "nothing"); // TODO: call cameraCapture
         return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
-    public static Result emergency(Long id) {
+    public static F.Promise<Result> emergency(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        drone.emergency();
-        return ok();
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        F.Promise.wrap(commander.land()).get(500); // TODO: resend command if land has not responded
+        return F.Promise.pure(ok());
     }
 
     @Authentication({User.Role.ADMIN})

@@ -1,6 +1,5 @@
 package models;
 
-import com.avaje.ebean.annotation.PrivateOwned;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -26,8 +25,7 @@ public class Assignment extends Model {
     private Long id;
 
     @Constraints.Required
-    @ManyToMany(cascade = CascadeType.ALL)
-    @PrivateOwned
+    @OneToMany(cascade = CascadeType.ALL)
     private List<Checkpoint> route;
 
     @Constraints.Required

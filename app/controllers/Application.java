@@ -6,7 +6,6 @@ import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import drones.models.BepopDriver;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.models.Bepop;
 import drones.models.DroneCommander;
 import drones.models.DroneMonitor;
 import models.*;
@@ -61,7 +60,7 @@ public class Application extends Controller {
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
 
-        new Basestation("testing", new Checkpoint(5, 6, 7)).save();
+        new Basestation("testing", 5.0,6.0,7.0).save();
 
         return ok();
     }

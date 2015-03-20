@@ -12,7 +12,6 @@ import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Version;
-import java.beans.Transient;
 
 /**
  * Created by matthias on 19/02/2015.
@@ -117,28 +116,6 @@ public class Drone extends Model {
         droneType = type;
     }
 
-    @Transient
-    public int getBatteryPercentage() {
-        return -1;
-    }
-
-    @Transient
-    public Location getLocation() {
-        return new Location();
-    }
-
-    public String getCameraCapture() {
-        return "string to image not yet implemented";
-    }
-
-    public boolean testConnection() {
-        return true; // TODO: implement
-    }
-
-    public void emergency() {
-        // TODO: implement
-    }
-
     @Override
     public boolean equals(Object obj) {
         if(obj == this)
@@ -164,28 +141,6 @@ public class Drone extends Model {
         result = 31 * result + (address != null ? address.hashCode() : 0);
         result = 31 * result + (droneType != null ? droneType.hashCode() : 0);
         return result;
-    }
-
-    @JsonRootName("location")
-    public class Location {
-        @Constraints.Required
-        public double longitude;
-        @Constraints.Required
-        public double latitude;
-        @Constraints.Required
-        public double altitude;
-
-        public Location() {
-            longitude = 0;
-            latitude = 0;
-            altitude = 0;
-        }
-
-        public Location(double longitude, double latitude, double altitude) {
-            this.longitude = longitude;
-            this.latitude = latitude;
-            this.altitude = altitude;
-        }
     }
 
     public enum Status {

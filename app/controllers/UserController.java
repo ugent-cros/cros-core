@@ -1,5 +1,6 @@
 package controllers;
 
+import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +11,7 @@ import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -33,8 +35,10 @@ public class UserController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
+        ExpressionList<User> exp = QueryHelper.buildQuery(User.class, User.FIND.where());
+
         List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(User user : User.FIND.all()) {
+        for(User user : exp.findList()) {
             tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
                     controllers.routes.DroneController.get(user.getId()).url())));
         }
