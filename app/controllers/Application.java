@@ -4,13 +4,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
-import drones.models.BepopDriver;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
+import drones.models.BepopDriver;
 import drones.models.DroneCommander;
 import drones.models.DroneMonitor;
-import models.*;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.Fleet;
+import models.*;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
@@ -18,7 +18,6 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
-import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,24 @@ public class Application extends Controller {
     public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().url());
 
     public static Result index() {
-        return ok(index.render("Your new application is ready."));
+
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().url()));
+        links.add(new ControllerHelper.Link("drones", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("assignments", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("basestations", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
+
+        ObjectNode node = Json.newObject();
+        for(ControllerHelper.Link link : links)
+            node.put(link.getRel(), link.getPath());
+
+        ObjectNode root = Json.newObject();
+        root.put("home", node);
+
+        return ok(root);
+
     }
 
     public static Result initDb() {
@@ -200,5 +216,12 @@ public class Application extends Controller {
         });
     }
 
+    public static Result preflight(String all) {
+        response().setHeader("Access-Control-Allow-Origin", "*");
+        response().setHeader("Allow", "*");
+        response().setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
+        response().setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Referer, User-Agent, X-AUTH-TOKEN");
+        return ok();
+    }
 
 }
