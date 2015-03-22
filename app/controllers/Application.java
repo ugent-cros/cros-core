@@ -4,14 +4,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
-import drones.models.BepopDriver;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.models.Bepop;
+import drones.models.BepopDriver;
 import drones.models.DroneCommander;
 import drones.models.DroneMonitor;
-import models.*;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.Fleet;
+import models.*;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
@@ -19,7 +18,6 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
-import views.html.index;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +28,24 @@ public class Application extends Controller {
     public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().url());
 
     public static Result index() {
-        return ok(index.render("Your new application is ready."));
+
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().url()));
+        links.add(new ControllerHelper.Link("drones", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("assignments", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("basestations", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
+
+        ObjectNode node = Json.newObject();
+        for(ControllerHelper.Link link : links)
+            node.put(link.getRel(), link.getPath());
+
+        ObjectNode root = Json.newObject();
+        root.put("home", node);
+
+        return ok(root);
+
     }
 
     public static Result initDb() {
@@ -61,7 +76,7 @@ public class Application extends Controller {
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
 
-        new Basestation("testing", new Checkpoint(5, 6, 7)).save();
+        new Basestation("testing", 5.0,6.0,7.0).save();
 
         return ok();
     }
@@ -113,6 +128,80 @@ public class Application extends Controller {
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> setOutdoor(boolean outdoor){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setOutdoor(outdoor)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("outdoor", outdoor);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> setMaxHeight(float meters){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setMaxHeight(meters)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("maxHeight", meters);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> setHull(boolean hull){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setHull(hull)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("hull", hull);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> flatTrim(){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.flatTrim()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> calibrate(boolean hull, boolean outdoor){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.calibrate(outdoor, hull)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> moveToLocation(double latitude, double longitude, double altitude){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.moveToLocation(latitude, longitude, altitude)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "requested");
+            ObjectNode locationResult = Json.newObject();
+            locationResult.put("latitude", latitude);
+            locationResult.put("longitude", longitude);
+            locationResult.put("altitude", altitude);
+            result.put("location", locationResult);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> moveVector(double vx, double vy, double vz, double vr){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.move3d(vx, vy, vz, vr)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "requested");
+            ObjectNode locationResult = Json.newObject();
+            locationResult.put("vx", vx);
+            locationResult.put("vy", vy);
+            locationResult.put("vz", vz);
+            locationResult.put("vr", vr);
+            result.put("location", locationResult);
             return ok(result);
         });
     }
@@ -187,5 +276,12 @@ public class Application extends Controller {
         });
     }
 
+    public static Result preflight(String all) {
+        response().setHeader("Access-Control-Allow-Origin", "*");
+        response().setHeader("Allow", "*");
+        response().setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
+        response().setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Referer, User-Agent, X-AUTH-TOKEN");
+        return ok();
+    }
 
 }

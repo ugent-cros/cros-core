@@ -1,12 +1,11 @@
 package models;
 
-import com.avaje.ebean.annotation.PrivateOwned;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.*;
 import java.util.List;
@@ -21,13 +20,12 @@ public class Assignment extends Model {
 
     public static final Finder<Long,Assignment> FIND = new Finder<>(Long.class, Assignment.class);
 
-    @JsonView(ControllerHelper.Summary.class)
+    @JsonView(JsonHelper.Summary.class)
     @Id
     private Long id;
 
     @Constraints.Required
-    @ManyToMany(cascade = CascadeType.ALL)
-    @PrivateOwned
+    @OneToMany(cascade = CascadeType.ALL)
     private List<Checkpoint> route;
 
     @Constraints.Required
