@@ -72,4 +72,29 @@ public interface DroneControl {
      */
     Future<Void> cancelMoveToLocation();
 
+    /**
+     * Calibrates the drone when on the ground
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> calibrate(boolean outdoor, boolean hull);
+
+    /**
+     * Calibrates the drone when on ground with current settings
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> flatTrim();
+
+    /**
+     * Sets the drone's outdoor status
+     * @param outdoor True when outdoor
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> setOutdoor(boolean outdoor);
+
+    /**
+     * Sets the drone's hull status (protection)
+     * @param hull True when attached
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> setHull(boolean hull);
 }

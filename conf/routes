@@ -12,6 +12,10 @@ GET            /rotation                             controllers.Application.get
 GET            /speed                                controllers.Application.getSpeed()
 GET            /altitude                             controllers.Application.getAltitude()
 GET            /version                              controllers.Application.getVersion()
+GET            /setOutdoor                           controllers.Application.setOutdoor(outdoor: Boolean)
+GET            /setHull                              controllers.Application.setHull(hull: Boolean)
+GET            /flattrim                             controllers.Application.flatTrim()
+GET            /calibrate                            controllers.Application.calibrate(hull: Boolean, outdoor: Boolean)
 GET            /moveTo                               controllers.Application.moveToLocation(lat: Double, lon: Double, alt: Double)
 GET            /move                                 controllers.Application.moveVector(vx: Double, vy: Double, vz: Double, vr: Double)
 

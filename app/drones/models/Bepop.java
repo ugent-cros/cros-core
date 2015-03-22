@@ -193,4 +193,31 @@ public class Bepop extends DroneActor {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
         }
     }
+
+    @Override
+    protected void setOutdoor(Promise<Void> p, boolean outdoor) {
+        if(sendMessage(new SetOutdoorCommand(outdoor))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setHull(Promise<Void> p, boolean hull) {
+        if(sendMessage(new SetHullCommand(hull))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void flatTrim(Promise<Void> p) {
+        if(sendMessage(new FlatTrimCommand())){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
 }

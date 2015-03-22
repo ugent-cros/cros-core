@@ -132,6 +132,42 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> setOutdoor(boolean outdoor){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setOutdoor(outdoor)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("outdoor", outdoor);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> setHull(boolean hull){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setHull(hull)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("hull", hull);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> flatTrim(){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.flatTrim()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> calibrate(boolean hull, boolean outdoor){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.calibrate(outdoor, hull)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> moveToLocation(double latitude, double longitude, double altitude){
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.moveToLocation(latitude, longitude, altitude)).map(v -> {

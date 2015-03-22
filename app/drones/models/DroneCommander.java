@@ -114,6 +114,42 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> calibrate(boolean outdoor, boolean hull) {
+        return ask(droneActor, new CalibrateRequestMessage(hull, outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> flatTrim() {
+        return ask(droneActor, new FlatTrimRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> setOutdoor(boolean outdoor) {
+        return ask(droneActor, new SetOutdoorRequestMessage(outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> setHull(boolean hull) {
+        return ask(droneActor, new SetHullRequestMessage(hull), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
     public Future<FlyingState> getFlyingState() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {
