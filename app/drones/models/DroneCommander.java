@@ -93,6 +93,10 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> moveToLocation(double latitude, double longitude, double altitude) {
+        // Lat is bound by 90 degrees (north/south), longitude by 180 east/west
+        if(Math.abs(latitude) > 90.0d || Math.abs(longitude) > 180.0d || altitude <= 0.0d)
+            throw new IllegalArgumentException("invalid coordinates");
+
         return ask(droneActor, new MoveToLocationRequestMessage(latitude, longitude, altitude), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;

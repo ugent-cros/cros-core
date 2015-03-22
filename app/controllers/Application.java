@@ -146,6 +146,21 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> moveVector(double vx, double vy, double vz, double vr){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.move3d(vx, vy, vz, vr)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "requested");
+            ObjectNode locationResult = Json.newObject();
+            locationResult.put("vx", vx);
+            locationResult.put("vy", vy);
+            locationResult.put("vz", vz);
+            locationResult.put("vr", vr);
+            result.put("location", locationResult);
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> getLocation(){
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getLocation()).map(v -> {

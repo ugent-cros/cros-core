@@ -360,7 +360,7 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void handleMove(MoveCommand cmd) {
-        log.debug("ArDrone3 MOVE command.");
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
 
         float v[] = new float[]{-20f * (float) cmd.getVy(), -20f * (float) cmd.getVx(), 20f * (float) cmd.getVz(), -50f * (float) cmd.getVr()};
         boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
@@ -371,6 +371,7 @@ public class ArDrone3 extends UntypedActor {
         }
 
         /*
+        Roll = vy = left-right, pitch = vx = front-back, vz = yaw = up-down, vr = rotation
         Quad reference: https://developer.valvesoftware.com/w/images/7/7e/Roll_pitch_yaw.gif
 
         The left-right tilt (aka. "drone roll" or phi angle) argument is a percentage of the maximum
