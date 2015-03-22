@@ -1,20 +1,18 @@
 package drones.models.flightcontrol;
 
-import drones.models.DroneCommander;
-import drones.models.Location;
-import models.Drone;
-
-import java.util.ArrayList;
 import java.util.List;
+
+import models.Checkpoint;
+import models.Drone;
 
 /**
  * Created by Sander on 18/03/2015.
  */
 public class SimplePilot extends Pilot{
 
-    private List<Location> waypoints;
+	private List<Checkpoint> waypoints;
 
-    public SimplePilot(Drone drone, List<Location> waypoints) {
+    public SimplePilot(Drone drone, List<Checkpoint> waypoints) {
         super(drone);
         this.waypoints = waypoints;
     }

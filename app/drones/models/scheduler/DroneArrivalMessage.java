@@ -1,5 +1,6 @@
 package drones.models.scheduler;
 
+import models.Drone;
 import drones.models.DroneCommander;
 import drones.models.Location;
 
@@ -8,16 +9,16 @@ import drones.models.Location;
  */
 public class DroneArrivalMessage {
 
-    private DroneCommander commander;
+    private Drone drone;
     private Location location;
 
-    public DroneArrivalMessage(DroneCommander commander, Location location) {
-        this.commander = commander;
+    public DroneArrivalMessage(Drone drone, Location location) {
+        this.drone = drone;
         this.location = location;
     }
 
-    public DroneCommander getCommander() {
-        return commander;
+    public Drone getDrone() {
+        return drone;
     }
 
     public Location getLocation() {

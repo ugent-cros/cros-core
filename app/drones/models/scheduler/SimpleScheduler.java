@@ -2,13 +2,16 @@ package drones.models.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
+
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.StartFlightControlMessage;
 import models.Assignment;
+import models.Checkpoint;
 import models.Drone;
 import play.libs.Akka;
 
@@ -33,7 +36,7 @@ public class SimpleScheduler extends Scheduler{
 
     private Fleet fleet;
     private AbstractQueue<Assignment> queue;
-    private Map<DroneCommander,Assignment> flights;
+    private Map<Drone,Assignment> flights;
 
 
     public SimpleScheduler(){
@@ -53,13 +56,14 @@ public class SimpleScheduler extends Scheduler{
 
     protected void assign(Drone drone, Assignment assignment){
         // Store in database
-        storeDispatch(drone,assignment);
-        DroneCommander commander = fleet.getCommanderForDrone(drone);
-        flights.put(commander,assignment);
+        super.assign(drone,assignment);
+        flights.put(drone,assignment);
+        // Get route
+        List<Checkpoint> route = assignment.getRoute();
         // Create SimplePilot
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
-                        () -> new SimplePilot(drone,null)));
+                        () -> new SimplePilot(drone,route)));
         // Tell the pilot to start the flight
         pilot.tell(new StartFlightControlMessage(),self());
     }
@@ -84,11 +88,10 @@ public class SimpleScheduler extends Scheduler{
 
     @Override
     protected void droneArrival(DroneArrivalMessage message) {
-        DroneCommander commander = message.getCommander();
-        Assignment assignment = flights.get(commander);
+        Drone drone = message.getDrone();
+        Assignment assignment = flights.get(drone);
         //TODO: get drone
-        Drone drone = null;
-        storeArrival(drone,assignment);
+        unassign(drone,assignment);
         // Start scheduling again
         schedule();
     }
