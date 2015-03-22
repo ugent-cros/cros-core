@@ -75,6 +75,8 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> setMaxHeight(float meters) {
+        if(meters <= 0.5)
+            throw new IllegalArgumentException("Max height cannot be lower than 0.5m");
         return ask(droneActor, new SetMaxHeigthRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;

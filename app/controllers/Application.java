@@ -141,6 +141,15 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> setMaxHeight(float meters){
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        return F.Promise.wrap(d.setMaxHeight(meters)).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("maxHeight", meters);
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> setHull(boolean hull){
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.setHull(hull)).map(v -> {

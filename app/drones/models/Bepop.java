@@ -142,8 +142,9 @@ public class Bepop extends DroneActor {
         int check = getLocationHashcode(msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         if(check == homeLocationSum){
             //TODO: enable this message for actual movement
-            //sendMessage(new NavigateHomeCommand(true));
-            log.warning("MOVE TO LOCATION MESSAGE DISABLED FOR TESTING. ENABLE ME WHEN NECESSARY");
+            sendMessage(new NavigateHomeCommand(true));
+            log.info("Issueing navigate home command.");
+            //log.warning("MOVE TO LOCATION MESSAGE DISABLED FOR TESTING. ENABLE ME WHEN NECESSARY");
         } else {
             log.debug("Home location changed to non-requested value (ignoring) (lat=[{}], lon=[{}], alt=[{}]), hash=[{}]",
                     msg.getLatitude(), msg.getLongitude(), msg.getAltitude(), check);

@@ -2,12 +2,21 @@ package drones.models;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.Mapper;
+import akka.util.Timeout;
+import drones.messages.PingMessage;
+import drones.protocols.ICMPPing;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
+import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
+
+import static akka.pattern.Patterns.ask;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Cedric on 3/9/2015.
@@ -57,6 +66,23 @@ public class Fleet {
 
     public Fleet(){
         drones = new HashMap<>();
+    }
+
+    private ActorRef pinger;
+
+    public Future<PingResult> isReachable(Drone droneEntity){
+        // Lazy load the ping class
+        if(pinger == null){
+            pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");
+        }
+
+        return ask(pinger, new PingMessage(droneEntity.getAddress()),
+                new Timeout(Duration.create(ICMPPing.PING_TIMEOUT + 1000, TimeUnit.MILLISECONDS)))
+                .map(new Mapper<Object, PingResult>() {
+                    public PingResult apply(Object s) {
+                        return (PingResult)s;
+                    }
+                }, Akka.system().dispatcher());
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {

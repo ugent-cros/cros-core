@@ -18,6 +18,7 @@ GET            /flattrim                             controllers.Application.fla
 GET            /calibrate                            controllers.Application.calibrate(hull: Boolean, outdoor: Boolean)
 GET            /moveTo                               controllers.Application.moveToLocation(lat: Double, lon: Double, alt: Double)
 GET            /move                                 controllers.Application.moveVector(vx: Double, vy: Double, vz: Double, vr: Double)
+GET            /setMaxHeight                         controllers.Application.setMaxHeight(meters: Float)
 
 GET            /takeoff                              controllers.Application.takeOff()
 GET            /land                                 controllers.Application.land()
