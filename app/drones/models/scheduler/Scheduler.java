@@ -26,10 +26,10 @@ public abstract class Scheduler extends AbstractActor {
         //Receive behaviour
         receive(ReceiveBuilder.
                         match(AssignmentMessage.class, message -> {
-                            fetchAssignment(message);
+                            receiveAssignmentMessage(message);
                         }).
                         match(DroneArrivalMessage.class, message -> {
-                            droneArrival(message);
+                            receiveDroneArrivalMessage(message);
                         }).build()
         );
     }
@@ -58,6 +58,7 @@ public abstract class Scheduler extends AbstractActor {
         drone.setStatus(Drone.Status.AVAILABLE);
         drone.update();
         // Update assignment
+        assignment.setAssignedDrone(null);
         assignment.setProgress(100);
         assignment.update();
     }
@@ -66,18 +67,12 @@ public abstract class Scheduler extends AbstractActor {
      * Tell the scheduler that a new assignment is available.
      * @param message message containing the new assignment.
      */
-    protected abstract void fetchAssignment(AssignmentMessage message);
-
+    protected abstract void receiveAssignmentMessage(AssignmentMessage message);
+    
     /**
-     * Tell the scheduler to start scheduling
-     */
-    protected abstract void schedule();
-
-
-    /**
-     * Tell the scheduler a drone has arrived at it's destination.
-     * @param message message containing the drone and it's destination.
-     */
-    protected abstract void droneArrival(DroneArrivalMessage message);
+    * Tell the scheduler a drone has arrived at it's destination.
+    * @param message message containing the drone and it's destination.
+    */
+   protected abstract void receiveDroneArrivalMessage(DroneArrivalMessage message);
 
 }
