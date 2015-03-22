@@ -39,7 +39,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param drone dispatched drone
      * @param assignment assigned assignment
      */
-    protected void storeDispatch(Drone drone, Assignment assignment){
+    protected void assign(Drone drone, Assignment assignment){
         // Update drone
         drone.setStatus(Drone.Status.UNAVAILABLE);
         drone.update();
@@ -53,7 +53,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param drone drone that arrived
      * @param assignment assignment that has been completed by arrival
      */
-    protected void storeArrival(Drone drone, Assignment assignment){
+    protected void unassign(Drone drone, Assignment assignment){
         // Update drone
         drone.setStatus(Drone.Status.AVAILABLE);
         drone.update();

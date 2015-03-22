@@ -56,7 +56,7 @@ public class SimpleScheduler extends Scheduler{
 
     protected void assign(Drone drone, Assignment assignment){
         // Store in database
-        storeDispatch(drone,assignment);
+        super.assign(drone,assignment);
         flights.put(drone,assignment);
         // Get route
         List<Checkpoint> route = assignment.getRoute();
@@ -88,11 +88,10 @@ public class SimpleScheduler extends Scheduler{
 
     @Override
     protected void droneArrival(DroneArrivalMessage message) {
-        DroneCommander commander = message.getCommander();
-        Assignment assignment = flights.get(commander);
+        Drone drone = message.getDrone();
+        Assignment assignment = flights.get(drone);
         //TODO: get drone
-        Drone drone = null;
-        storeArrival(drone,assignment);
+        unassign(drone,assignment);
         // Start scheduling again
         schedule();
     }
