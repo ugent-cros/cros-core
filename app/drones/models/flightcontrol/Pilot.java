@@ -1,5 +1,6 @@
 package drones.models.flightcontrol;
 
+import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
 import akka.japi.pf.ReceiveBuilder;
 import drones.messages.LocationChangedMessage;
@@ -19,8 +20,8 @@ public abstract class Pilot extends FlightControl{
     protected DroneCommander dc;
     protected double altitude;
 
-    public Pilot(Drone drone) {
-        super();
+    public Pilot(ActorRef actorRef, Drone drone) {
+        super(actorRef);
         this.drone = drone;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 

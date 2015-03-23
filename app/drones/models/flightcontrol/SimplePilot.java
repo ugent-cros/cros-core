@@ -3,6 +3,7 @@ package drones.models.flightcontrol;
 import java.util.ArrayList;
 import java.util.List;
 
+import akka.actor.ActorRef;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.Location;
@@ -28,8 +29,8 @@ public class SimplePilot extends Pilot{
     private static final int NO_FY_RANGE = 3;
     private static final int AVACUATION_RANGE = 5;
 
-    public SimplePilot(Drone drone, List<Checkpoint> waypoints) {
-        super(drone);
+    public SimplePilot(ActorRef actorRef, Drone drone, List<Checkpoint> waypoints) {
+        super(actorRef, drone);
 
         if(waypoints.size() < 1){
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -66,10 +67,19 @@ public class SimplePilot extends Pilot{
                 //TO DO
                 break;
             case IN_PROGRESS:
-                //TO DO
+                switch (m.getReason()){
+                    case BATTERY_LOW:
+                        //TO DO
+                        break;
+                    case CONNECTION_LOST:
+                        //TO DO
+                        break;
+                    case REQUESTED:
+                        //TO DO
+                }
                 break;
             case PENDING:
-                //TO Do
+                //TO DO ???
         }
     }
 
@@ -86,6 +96,6 @@ public class SimplePilot extends Pilot{
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        
+
     }
 }

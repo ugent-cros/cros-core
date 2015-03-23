@@ -1,6 +1,7 @@
 package drones.models.flightcontrol;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -11,11 +12,15 @@ import akka.event.LoggingAdapter;
  */
 public abstract class FlightControl extends AbstractActor{
 
+    protected ActorRef actorRef;
+
     protected static final double DEFAULT_ALTITUDE = 5;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public FlightControl(){
+    public FlightControl(ActorRef actorRef){
+        this.actorRef = actorRef;
+
         //Receive behaviour
         receive(ReceiveBuilder.
                         match(StartFlightControlMessage.class, s -> start()).
