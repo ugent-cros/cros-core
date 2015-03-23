@@ -57,39 +57,64 @@ public class ArDrone2 extends DroneActor {
         log.info("Forwarding connection details to protocol");
         protocol.tell(new DroneConnectionDetails(ip, 5556, 5556), self());
 
-        sendMessage(new OutdoorCommand(!indoor));
+        //sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new InitDroneCommand());
         sendMessage(new RequestSettingsCommand());
     }
 
     @Override
+    protected void emergency(Promise<Void> p) {
+        if (sendMessage(new EmergencyCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
     protected void takeOff(Promise<Void> p) {
-        sendMessage(new TakeOffCommand());
-        p.success(null);
+        if (sendMessage(new TakeOffCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override
     protected void land(Promise<Void> p) {
-        sendMessage(new LandCommand());
-        p.success(null);
+        if (sendMessage(new LandCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override
     protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
-        sendMessage(new MoveCommand(vx, vy, vz, vr));
-        p.success(null);
+        if (sendMessage(new MoveCommand(vx, vy, vz, vr))) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
-        sendMessage(new SetMaxHeightCommand(meters));
-        p.success(null);
+        if (sendMessage(new SetMaxHeightCommand(meters))) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+
     }
 
     @Override
     protected void setMaxTilt(Promise<Void> p, float degrees) {
-        sendMessage(new SetMaxTiltCommand(degrees));
-        p.success(null);
+        if (sendMessage(new SetMaxTiltCommand(degrees))) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override
