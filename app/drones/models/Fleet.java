@@ -16,15 +16,17 @@ import static akka.pattern.Patterns.ask;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by Cedric on 3/9/2015.
+ * Created by Yasser.
  */
 public class Fleet {
 
     /* Supporting multiple drone types */
-    private static Map<DroneType, DroneDriver> drivers = new HashMap<>();
+    private static ConcurrentMap<DroneType, DroneDriver> drivers = new ConcurrentHashMap<>();
 
     public static void registerDriver(DroneType droneType, DroneDriver factory) {
         drivers.put(droneType, factory);
@@ -35,6 +37,7 @@ public class Fleet {
         return drivers.remove(droneType, driver);
     }
 
+    // Returns a copy of the registered drivers
     public static Map<DroneType, DroneDriver> registeredDrivers() {
         return new HashMap<>(drivers);
     }
@@ -62,10 +65,10 @@ public class Fleet {
 
     /* Instance */
 
-    private Map<Drone, DroneCommander> drones;
+    private ConcurrentMap<Drone, DroneCommander> drones;
 
     public Fleet(){
-        drones = new HashMap<>();
+        drones = new ConcurrentHashMap<>();
     }
 
     private ActorRef pinger;
