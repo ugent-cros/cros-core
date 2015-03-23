@@ -30,6 +30,9 @@ public abstract class Scheduler extends AbstractActor {
                         }).
                         match(DroneArrivalMessage.class, message -> {
                             receiveDroneArrivalMessage(message);
+                        }).
+                        match(DroneArrivalMessage.class, message -> {
+                            receiveDroneBatteryMessage(message);
                         }).build()
         );
     }
@@ -53,10 +56,13 @@ public abstract class Scheduler extends AbstractActor {
      * @param drone drone that arrived
      * @param assignment assignment that has been completed by arrival
      */
-    protected void unassign(Drone drone, Assignment assignment){
+    protected void unassign(Drone drone, Assignment assignment) {
         // Update drone
-        drone.setStatus(Drone.Status.AVAILABLE);
-        drone.update();
+        if (drone.getStatus() == Drone.Status.UNAVAILABLE){
+            // Set state available again if possible
+            drone.setStatus(Drone.Status.AVAILABLE);
+            drone.update();
+        }
         // Update assignment
         assignment.setAssignedDrone(null);
         assignment.setProgress(100);
@@ -74,5 +80,11 @@ public abstract class Scheduler extends AbstractActor {
     * @param message message containing the drone and it's destination.
     */
    protected abstract void receiveDroneArrivalMessage(DroneArrivalMessage message);
+
+    /**
+     * Tell the scheduler a that a drone has insufficient battery to finish his assignment
+     * @param message message containing the drone, the current location and remaining battery percentage.
+     */
+    protected abstract void receiveDroneBatteryMessage(DroneArrivalMessage message);
 
 }
