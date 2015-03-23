@@ -1,8 +1,12 @@
 package drones.models.flightcontrol;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import akka.dispatch.OnSuccess;
+import akka.actor.ActorRef;
+import drones.messages.LocationChangedMessage;
+import drones.messages.NavigationStateChangedMessage;
+import drones.models.Location;
 import models.Checkpoint;
 import models.Drone;
 
@@ -15,9 +19,18 @@ import models.Drone;
 public class SimplePilot extends Pilot{
 
 	private List<Checkpoint> waypoints;
+    private int  actualWaypoint = -1;
 
-    public SimplePilot(Drone drone, List<Checkpoint> waypoints) {
-        super(drone);
+    //List of points where the drone cannot fly
+    private List<Location> noFlyPoints = new ArrayList<>();
+    //List of points where the drone currently is but that need to be evacuated.
+    private List<Location> evacuationPoints = new ArrayList<>();
+
+    private static final int NO_FY_RANGE = 3;
+    private static final int AVACUATION_RANGE = 5;
+
+    public SimplePilot(ActorRef actorRef, Drone drone, List<Checkpoint> waypoints) {
+        super(actorRef, drone);
 
         if(waypoints.size() < 1){
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -30,6 +43,59 @@ public class SimplePilot extends Pilot{
         if (altitude == 0) {
             altitude = DEFAULT_ALTITUDE;
         }
+        actualWaypoint = 0;
+    }
+
+    @Override
+    protected void navigateHomeStateChanged(NavigationStateChangedMessage m) {
+        switch (m.getState()){
+            case AVAILABLE:
+                switch (m.getReason()){
+                    case ENABLED:
+                        goToNextWaypoint();
+                        break;
+                    case FINISHED:
+                        //TO DO wait at checkpoint
+                        actualWaypoint++;
+                        break;
+                    case STOPPED:
+                        //TO DO
+                        break;
+                }
+                break;
+            case UNAVAILABLE:
+                //TO DO
+                break;
+            case IN_PROGRESS:
+                switch (m.getReason()){
+                    case BATTERY_LOW:
+                        //TO DO
+                        break;
+                    case CONNECTION_LOST:
+                        //TO DO
+                        break;
+                    case REQUESTED:
+                        //TO DO
+                }
+                break;
+            case PENDING:
+                //TO DO ???
+        }
+    }
+
+    protected void goToNextWaypoint(){
+        if(actualWaypoint >= 0){
+            if(actualWaypoint == waypoints.size()){
+                //TO DO tell done
+            } else {
+                models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
+                dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(),altitude);
+            }
+        }
+    }
+
+    @Override
+    protected void locationChanged(LocationChangedMessage m) {
 
     }
 }

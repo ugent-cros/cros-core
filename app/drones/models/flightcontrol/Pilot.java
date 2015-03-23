@@ -1,7 +1,10 @@
 package drones.models.flightcontrol;
 
+import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
 import akka.japi.pf.ReceiveBuilder;
+import drones.messages.LocationChangedMessage;
+import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import models.Drone;
@@ -17,24 +20,20 @@ public abstract class Pilot extends FlightControl{
     protected DroneCommander dc;
     protected double altitude;
 
-    protected boolean gpsFix = false;
-
-    public Pilot(Drone drone) {
-        super();
+    public Pilot(ActorRef actorRef, Drone drone) {
+        super(actorRef);
         this.drone = drone;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 
-        //check GPSFix
-        dc.isGPSFixed().onSuccess(new OnSuccess<Boolean>(){
+        //subscribe to messages
+        dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
+        dc.subscribeTopic(self(), LocationChangedMessage.class);
 
-            @Override
-            public void onSuccess(Boolean result) throws Throwable {
-                gpsFix = result;
-            }
-        },getContext().system().dispatcher());
 
         receive(ReceiveBuilder.
                         match(SetAltitudeMessage.class, s -> setAltitude(s)).
+                        match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
+                        match(LocationChangedMessage.class, s -> locationChanged(s)).
                         matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
@@ -42,4 +41,8 @@ public abstract class Pilot extends FlightControl{
     private void setAltitude(SetAltitudeMessage s){
         altitude = s.getAltitude();
     }
+
+    protected abstract void navigateHomeStateChanged(NavigationStateChangedMessage m);
+
+    protected abstract void locationChanged(LocationChangedMessage m);
 }
