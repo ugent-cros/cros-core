@@ -1,7 +1,6 @@
 package drones.models.flightcontrol;
 
 import akka.actor.ActorRef;
-import akka.dispatch.OnSuccess;
 import akka.japi.pf.ReceiveBuilder;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
@@ -19,10 +18,12 @@ public abstract class Pilot extends FlightControl{
     protected Drone drone;
     protected DroneCommander dc;
     protected double altitude;
+    protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef actorRef, Drone drone) {
+    public Pilot(ActorRef actorRef, Drone drone, boolean withControlTower) {
         super(actorRef);
         this.drone = drone;
+        this.linkedWithControlTower = withControlTower;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 
         //subscribe to messages
@@ -34,6 +35,9 @@ public abstract class Pilot extends FlightControl{
                         match(SetAltitudeMessage.class, s -> setAltitude(s)).
                         match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
                         match(LocationChangedMessage.class, s -> locationChanged(s)).
+                        match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
+                        match(RequestForLandingAckMessage.class, s -> requestForLandingAckMessage(s)).
+                        match(LandingCompletedMessage.class, s-> landingCompletedMessage(s)).
                         matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
@@ -45,4 +49,10 @@ public abstract class Pilot extends FlightControl{
     protected abstract void navigateHomeStateChanged(NavigationStateChangedMessage m);
 
     protected abstract void locationChanged(LocationChangedMessage m);
+
+    protected abstract void requestForLandingMessage(RequestForLandingMessage m);
+
+    protected abstract void requestForLandingAckMessage(RequestForLandingAckMessage m);
+
+    protected abstract void landingCompletedMessage(LandingCompletedMessage m);
 }
