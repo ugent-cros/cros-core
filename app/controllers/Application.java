@@ -31,10 +31,10 @@ public class Application extends Controller {
 
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().url()));
-        links.add(new ControllerHelper.Link("drones", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("assignments", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url()));
-        links.add(new ControllerHelper.Link("basestations", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("drone", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("assignment", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
 
         ObjectNode node = Json.newObject();
