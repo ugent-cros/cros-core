@@ -143,12 +143,13 @@ public class Drone extends Model {
         return result;
     }
 
-    public enum Status {
+    public enum Status{
         AVAILABLE,
         UNAVAILABLE,
         IN_FLIGHT,
         CHARGING,
         EMERGENCY_LANDED,
+        DECOMMISSIONED,
         UNKNOWN
     }
 }

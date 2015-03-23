@@ -7,6 +7,7 @@ import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 
 
+import drones.models.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.StartFlightControlMessage;
 import models.Assignment;
@@ -61,6 +62,16 @@ public class SimpleScheduler extends Scheduler{
     }
 
     @Override
+    protected void receiveDroneBatteryMessage(DroneArrivalMessage message) {
+        // Well, this is just a simple scheduler.
+        // There is not much this scheduler can do about this right now
+        // Except updating the database.
+        Drone drone = message.getDrone();
+        drone.setStatus(Drone.Status.EMERGENCY_LANDED);
+        drone.update();
+    }
+
+    @Override
     protected void assign(Drone drone, Assignment assignment){
         // Store in database
         super.assign(drone,assignment);
@@ -87,7 +98,7 @@ public class SimpleScheduler extends Scheduler{
     			if(!fetchAssignments()) break; // No more assignments
     		}
     		// Pick drone
-            Drone drone = findAvailableDrone();
+            Drone drone = fetchAvailableDrone();
             if(drone == null) break; // No more drones available
             
             // Assign assignment to drone
@@ -128,14 +139,26 @@ public class SimpleScheduler extends Scheduler{
 
     /**
      * Method to find the most suitable drone for the assignment
-     * Here, the first drone find will do.
+     * The drone must have a commander and sufficient battery life.
      * @return the drone chosen to complete the assignment
      */
-    protected Drone findAvailableDrone(){
+    protected Drone fetchAvailableDrone(){
+        // Retrieve drones from database
         List<Drone> drones = DRONE_QUERY.findList();
-        //TODO: Check battery status!
-        // Return the first available drone
-        return drones.get(1);
+        Drone available = null;
+        DroneCommander commander = null;
+        for(Drone drone : drones) {
+            try {
+                commander = fleet.getCommanderForDrone(drone);
+                // TODO: Check battery percentage
+                // Choose this one
+                available = drone;
+            } catch (Exception ex) {
+                // Failed to check drone for availability
+                drone.setStatus(Drone.Status.UNKNOWN);
+            }
+        }
+        return available;
     }
     
     /**
