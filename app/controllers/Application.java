@@ -52,6 +52,7 @@ public class Application extends Controller {
         Drone.FIND.all().forEach(d -> d.delete());
         Assignment.FIND.all().forEach(d -> d.delete());
         User.FIND.all().forEach(d -> d.delete());
+        Basestation.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
         DroneType bepop = new DroneType("ARDrone3", "bepop");
