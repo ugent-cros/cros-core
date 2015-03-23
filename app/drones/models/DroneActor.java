@@ -51,8 +51,8 @@ public abstract class DroneActor extends AbstractActor {
         speed = new LazyProperty<>();
         altitude = new LazyProperty<>();
         version = new LazyProperty<>();
-        navigationState = new LazyProperty<>(NavigationState.AVAILABLE);
-        navigationStateReason = new LazyProperty<>(NavigationStateReason.ENABLED);
+        navigationState = new LazyProperty<>(NavigationState.UNAVAILABLE);
+        navigationStateReason = new LazyProperty<>(NavigationStateReason.CONNECTION_LOST);
         gpsFix = new LazyProperty<>(false);
 
 
@@ -86,6 +86,7 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(GPSFixChangedMessage.class, s -> {
+                    log.info("GPS fix changed: [{}]", s.isFixed());
                     gpsFix.setValue(s.isFixed());
                     eventBus.publish(new DroneEventMessage(s));
                 }).

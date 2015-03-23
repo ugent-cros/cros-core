@@ -74,13 +74,14 @@ public class Bepop extends DroneActor {
 
     private void setupDrone(final DroneDiscoveredMessage details) {
         // Assumes the drone is on the ground
-        log.info("Discovery finished, forwarding connection details to protocl");
+        log.info("Discovery finished, forwarding connection details to protocol");
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
         sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
         sendMessage(new SetOutdoorCommand(!indoor));
         sendMessage(new SetHullCommand(hull));
-        sendMessage(new SetCountryCommand("US")); //US code allows higher throughput regulations
+        sendMessage(new SetMaxTiltCommand(60f)); //default max tilt to 60 degrees
+        sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
         sendMessage(new FlatTrimCommand());

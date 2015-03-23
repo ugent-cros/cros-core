@@ -361,13 +361,14 @@ public class ArDrone3 extends UntypedActor {
 
     private void handleMove(MoveCommand cmd) {
         log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
+        boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-        float v[] = new float[]{-20f * (float) cmd.getVy(), -20f * (float) cmd.getVx(), 20f * (float) cmd.getVz(), -50f * (float) cmd.getVr()};
-        boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
-
-        // Normalize [-100;+100]
-        for (int i = 0; i < 4; i++) {
-            if (Math.abs(v[i]) > 100f) v[i] /= Math.abs(v[i]);
+        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        for(int i = 0; i < 4; i++){
+            vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
+            if(Math.abs(vars[i]) > 100d){
+                vars[i] /= Math.abs(vars[i]); //normalize to max, but keep sign
+            }
         }
 
         /*
@@ -394,8 +395,7 @@ public class ArDrone3 extends UntypedActor {
         A positive value makes the drone spin right; a negative value makes it spin left.
          */
 
-        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) v[0], (byte) v[1], (byte) v[2], (byte) v[3]));
-
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)vars[0], (byte)vars[1], (byte)vars[2], (byte)vars[3]));
     }
 
 
@@ -466,7 +466,7 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createRequestStatusPacket());
     }
 
-    private void setVideoStreaming(boolean enabled){
+    private void setVideoStreaming(boolean enabled) {
         sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
@@ -486,19 +486,19 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
     }
 
-    private void setHull(boolean hull){
+    private void setHull(boolean hull) {
         sendDataAck(PacketCreator.createSetHullPacket(hull));
     }
 
-    private void setCountry(String ctry){
+    private void setCountry(String ctry) {
         sendDataAck(PacketCreator.createSetCountryPacket(ctry));
     }
 
-    private void setHome(double latitude, double longitude, double altitude){
+    private void setHome(double latitude, double longitude, double altitude) {
         sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
     }
 
-    private void navigateHome(boolean start){
+    private void navigateHome(boolean start) {
         sendDataAck(PacketCreator.createNavigateHomePacket(start));
     }
 
