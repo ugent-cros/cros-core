@@ -11,6 +11,8 @@ import akka.event.LoggingAdapter;
  */
 public abstract class FlightControl extends AbstractActor{
 
+    protected static final double DEFAULT_ALTITUDE = 5;
+
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public FlightControl(){
