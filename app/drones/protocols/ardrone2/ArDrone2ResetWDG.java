@@ -1,4 +1,4 @@
-package drones.protocols.ArDrone2;
+package drones.protocols.ardrone2;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;

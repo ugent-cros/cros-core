@@ -1,4 +1,4 @@
-package drones.protocols.ArDrone2;
+package drones.protocols.ardrone2;
 
 /**
  * Created by brecht on 3/24/15.
