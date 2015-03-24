@@ -366,8 +366,9 @@ public class ArDrone3 extends UntypedActor {
         double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
         for(int i = 0; i < 4; i++){
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
+
             if(Math.abs(vars[i]) > 100d){
-                vars[i] /= Math.abs(vars[i]); //normalize to max, but keep sign
+                vars[i] = 100d * Math.signum(vars[i]);
             }
         }
 
