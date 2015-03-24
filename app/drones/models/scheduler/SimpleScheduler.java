@@ -13,8 +13,12 @@ import drones.models.flightcontrol.StartFlightControlMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
+import scala.concurrent.Await;
+import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 16/03/2015.
@@ -27,6 +31,10 @@ First come, first served...
  */
 public class SimpleScheduler extends Scheduler{
 
+    // Minimum battery percentage a drone needs to get an assignment
+    private static final int MIN_BATTERY_PERCENTAGE = 50;
+    // Maximum waiting time for a commander to answer
+    private static final Duration TIMEOUT = Duration.create(10, TimeUnit.SECONDS);
     // Query to fetch available drones
     private static final Query<Drone> DRONE_QUERY;
     static{
@@ -50,12 +58,15 @@ public class SimpleScheduler extends Scheduler{
     
     @Override
     protected void receiveDroneArrivalMessage(DroneArrivalMessage message) {
+        // Terminate SimplePilot
+        ActorRef pilot = sender();
+        getContext().stop(pilot);
     	// Drone that arrived
         Drone drone = message.getDrone();
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
-        unassign(drone,assignment);
+        relieve(drone, assignment);
         
         // Start scheduling again
         schedule();
@@ -139,26 +150,47 @@ public class SimpleScheduler extends Scheduler{
 
     /**
      * Method to find the most suitable drone for the assignment
-     * The drone must have a commander and sufficient battery life.
      * @return the drone chosen to complete the assignment
      */
     protected Drone fetchAvailableDrone(){
+        Drone assignee = null;
         // Retrieve drones from database
         List<Drone> drones = DRONE_QUERY.findList();
-        Drone available = null;
-        DroneCommander commander = null;
         for(Drone drone : drones) {
-            try {
-                commander = fleet.getCommanderForDrone(drone);
-                // TODO: Check battery percentage
-                // Choose this one
-                available = drone;
-            } catch (Exception ex) {
-                // Failed to check drone for availability
-                drone.setStatus(Drone.Status.UNKNOWN);
+            if(isValidDrone(drone)){
+                assignee = drone;
+                break;
             }
         }
-        return available;
+        return assignee;
+    }
+
+    /**
+     * Check if this drone can be used for an assignment.
+     * The drone must have a commander and sufficient battery life.
+     * @param drone
+     * @return true if the drone is fitted for assignment
+     */
+    protected boolean isValidDrone(Drone drone){
+        try {
+            // FIND AND INITIALIZE COMMANDER
+            DroneCommander commander = fleet.getCommanderForDrone(drone);
+            // TODO: Move the commander init to somewhere else
+            if(!commander.isInitialized()) {
+                Await.result(commander.init(), TIMEOUT);
+            }
+
+            // BATTERY PERCENTAGE CHECK
+            Future<Byte> future = commander.getBatteryPercentage();
+            int battery = Await.result(future,TIMEOUT);
+            // TODO: Change battery condition to be dynamic
+            return (battery > MIN_BATTERY_PERCENTAGE);
+
+        } catch (Exception ex) {
+            // Something failed with this drone
+            drone.setStatus(Drone.Status.UNKNOWN);
+            return false;
+        }
     }
     
     /**

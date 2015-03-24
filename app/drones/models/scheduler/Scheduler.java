@@ -56,7 +56,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param drone drone that arrived
      * @param assignment assignment that has been completed by arrival
      */
-    protected void unassign(Drone drone, Assignment assignment) {
+    protected void relieve(Drone drone, Assignment assignment) {
         // Update drone
         if (drone.getStatus() == Drone.Status.UNAVAILABLE){
             // Set state available again if possible

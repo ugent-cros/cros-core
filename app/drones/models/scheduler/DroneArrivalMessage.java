@@ -4,10 +4,12 @@ import models.Drone;
 import drones.models.DroneCommander;
 import drones.models.Location;
 
+import java.io.Serializable;
+
 /**
  * Created by Ronald on 18/03/2015.
  */
-public class DroneArrivalMessage {
+public class DroneArrivalMessage implements Serializable{
 
     private Drone drone;
     private Location location;

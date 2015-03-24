@@ -30,6 +30,10 @@ public class DroneCommander implements DroneControl, DroneStatus {
         this.droneActor = droneActor;
     }
 
+    public boolean isInitialized() {
+        return initialized;
+    }
+
     @Override
     public Future<Void> init() {
         if (!initialized) {

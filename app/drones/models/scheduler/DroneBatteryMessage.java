@@ -3,10 +3,12 @@ package drones.models.scheduler;
 import drones.models.Location;
 import models.Drone;
 
+import java.io.Serializable;
+
 /**
  * Created by Ronald on 23/03/2015.
  */
-public class DroneBatteryMessage {
+public class DroneBatteryMessage implements Serializable{
 
     private Drone drone;
     private Location location;
