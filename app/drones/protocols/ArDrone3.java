@@ -6,14 +6,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
-import akka.japi.Procedure;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.messages.DroneDiscoveredMessage;
 import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
@@ -22,7 +20,6 @@ import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
 import scala.concurrent.duration.Duration;
 
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -333,16 +330,20 @@ public class ArDrone3 extends UntypedActor {
                     .match(StopMessage.class, s -> stop())
 
                             // Drone commands
-                    .match(FlatTrimCommand.class, s -> handleFlatTrim())
-                    .match(TakeOffCommand.class, s -> handleTakeoff())
-                    .match(LandCommand.class, s -> handleLand())
-                    .match(RequestStatusCommand.class, s -> handleRequestStatus())
-                    .match(OutdoorCommand.class, s -> handleOutdoor(s))
-                    .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .match(FlatTrimCommand.class, s -> flatTrim())
+                    .match(TakeOffCommand.class, s -> takeOff())
+                    .match(LandCommand.class, s -> land())
+                    .match(RequestStatusCommand.class, s -> requestStatus())
+                    .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
+                    .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
-                    .match(SetVideoStreamingStateCommand.class,  s -> handleSetVideoStreaming(s.isEnabled()))
-                    .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
-                    .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
+                    .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
+                    .match(SetMaxHeightCommand.class, s -> setMaxHeight(s.getMeters()))
+                    .match(SetMaxTiltCommand.class, s -> setMaxTilt(s.getDegrees()))
+                    .match(SetHullCommand.class, s -> setHull(s.hasHull()))
+                    .match(SetCountryCommand.class, s -> setCountry(s.getCountry()))
+                    .match(SetHomeCommand.class, s -> setHome(s.getLatitude(), s.getLongitude(), s.getAltitude()))
+                    .match(NavigateHomeCommand.class, s -> navigateHome(s.isStart()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -358,17 +359,20 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void handleMove(MoveCommand cmd) {
-        log.debug("ArDrone3 MOVE command.");
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
+        boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-        float v[] = new float[]{-20f * (float) cmd.getVy(), -20f * (float) cmd.getVx(), 20f * (float) cmd.getVz(), -50f * (float) cmd.getVr()};
-        boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
+        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        for(int i = 0; i < 4; i++){
+            vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
-        // Normalize [-100;+100]
-        for (int i = 0; i < 4; i++) {
-            if (Math.abs(v[i]) > 100f) v[i] /= Math.abs(v[i]);
+            if(Math.abs(vars[i]) > 100d){
+                vars[i] = 100d * Math.signum(vars[i]);
+            }
         }
 
         /*
+        Roll = vy = left-right, pitch = vx = front-back, vz = yaw = up-down, vr = rotation
         Quad reference: https://developer.valvesoftware.com/w/images/7/7e/Roll_pitch_yaw.gif
 
         The left-right tilt (aka. "drone roll" or phi angle) argument is a percentage of the maximum
@@ -391,8 +395,7 @@ public class ArDrone3 extends UntypedActor {
         A positive value makes the drone spin right; a negative value makes it spin left.
          */
 
-        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) v[0], (byte) v[1], (byte) v[2], (byte) v[3]));
-
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)vars[0], (byte)vars[1], (byte)vars[2], (byte)vars[3]));
     }
 
 
@@ -447,40 +450,56 @@ public class ArDrone3 extends UntypedActor {
 
     // All command handlers
     //TODO: move these to seperate class statically
-    private void handleFlatTrim() {
+    private void flatTrim() {
         sendDataAck(PacketCreator.createFlatTrimPacket());
     }
 
-    private void handleTakeoff() {
+    private void takeOff() {
         sendDataAck(PacketCreator.createTakeOffPacket());
     }
 
-    private void handleLand() {
+    private void land() {
         sendDataAck(PacketCreator.createLandingPacket());
     }
 
-    private void handleRequestStatus() {
+    private void requestStatus() {
         sendDataAck(PacketCreator.createRequestStatusPacket());
     }
 
-    private void handleSetVideoStreaming(boolean enabled){
+    private void setVideoStreaming(boolean enabled) {
         sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
-    private void handleRequestSettings() {
+    private void requestSettings() {
         sendDataAck(PacketCreator.createRequestAllSettingsCommand());
     }
 
-    private void handleOutdoor(OutdoorCommand cmd) {
-        sendDataAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor()));
+    private void setOutdoor(boolean outdoor) {
+        sendDataAck(PacketCreator.createOutdoorStatusPacket(outdoor));
     }
 
-    private void handleSetMaxHeight(float meters) {
+    private void setMaxHeight(float meters) {
         sendDataAck(PacketCreator.createSetMaxAltitudePacket(meters));
     }
 
-    private void handleSetMaxTilt(float degrees) {
+    private void setMaxTilt(float degrees) {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
+    }
+
+    private void setHull(boolean hull) {
+        sendDataAck(PacketCreator.createSetHullPacket(hull));
+    }
+
+    private void setCountry(String ctry) {
+        sendDataAck(PacketCreator.createSetCountryPacket(ctry));
+    }
+
+    private void setHome(double latitude, double longitude, double altitude) {
+        sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
+    }
+
+    private void navigateHome(boolean start) {
+        sendDataAck(PacketCreator.createNavigateHomePacket(start));
     }
 
 }

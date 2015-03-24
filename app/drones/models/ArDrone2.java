@@ -7,7 +7,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.PingMessage;
+import drones.messages.InitCompletedMessage;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -25,7 +25,7 @@ public class ArDrone2 extends DroneActor {
     private final Object lock = new Object();
 
 
-    public ArDrone2(String ip, boolean indoor) {
+    public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;
         this.indoor = indoor;
     }
@@ -40,15 +40,15 @@ public class ArDrone2 extends DroneActor {
                 initPromise = p;
 
                 // @TODO change hard coded ports
-                protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.class,
-                        () -> new drones.protocols.ArDrone2(new DroneConnectionDetails(ip, 5556, 5554), ArDrone2.this.self())));
+                protocol = getContext().actorOf(Props.create(drones.protocols.ArDrone2.ArDrone2.class,
+                        () -> new drones.protocols.ArDrone2.ArDrone2(new DroneConnectionDetails(ip, 5556, 5554), ArDrone2.this.self())));
             }
         }
 
         p.success(null);
     }
 
-    private void handlePingResponse() {
+    private void handleInitCompletedResponse() {
         log.info("ArDrone Ping message received");
         setupDrone();
     }
@@ -99,6 +99,16 @@ public class ArDrone2 extends DroneActor {
     }
 
     @Override
+    protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
+        p.failure(new DroneException("Command not implemented"));
+    }
+
+    @Override
+    protected void cancelMoveToLocation(Promise<Void> p) {
+        p.failure(new DroneException("Command not implemented"));
+    }
+
+    @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
         if (sendMessage(new SetMaxHeightCommand(meters))) {
             p.success(null);
@@ -118,9 +128,36 @@ public class ArDrone2 extends DroneActor {
     }
 
     @Override
+    protected void setOutdoor(Promise<Void> p, boolean outdoor) {
+        if (sendMessage(new SetOutdoorCommand(outdoor))) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setHull(Promise<Void> p, boolean hull) {
+        if (sendMessage(new SetHullCommand(hull))) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void flatTrim(Promise<Void> p) {
+        if (sendMessage(new FlatTrimCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(PingMessage.class, s -> handlePingResponse());
+                match(InitCompletedMessage.class, s -> handleInitCompletedResponse());
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {

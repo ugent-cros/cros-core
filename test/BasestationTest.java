@@ -33,12 +33,8 @@ public class BasestationTest extends TestSuperclass {
     }
 
     private static void initialiseDatabase() {
-        Checkpoint cp1 = new Checkpoint(88.0,88.0,0.0);
-        cp1.save();
-        Checkpoint cp2 = new Checkpoint(77.0,77.0,0.0);
-        cp2.save();
-        testBasestations.add(new Basestation("Bar 1", cp1));
-        testBasestations.add(new Basestation("Bar 2", cp2));
+        testBasestations.add(new Basestation("Bar 1", 88.0,88.0,88.0));
+        testBasestations.add(new Basestation("Bar 2", 77.0,77.0,77.0));
         Ebean.save(testBasestations);
     }
 
@@ -54,7 +50,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, true);
             if (node.isArray()) {
                 for (int i = 0; i < testBasestations.size(); ++i) {
                     Basestation testBasestation = testBasestations.get(i);
@@ -77,7 +73,7 @@ public class BasestationTest extends TestSuperclass {
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
             assertThat(testBasestation).isEqualTo(receivedBasestation);
         } catch(JsonHelper.InvalidJSONException ex) {
@@ -94,20 +90,19 @@ public class BasestationTest extends TestSuperclass {
 
     @Test
     public void create_AuthorizedRequest_BasestationCreated() {
-        Basestation basestationToBeAdded = new Basestation("A new testing basestation", new Checkpoint(23, 23, 0));
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestationToBeAdded), Basestation.class);
+        Basestation basestationToBeAdded = new Basestation("A new testing basestation", 23.0, 23.0, 0.0);
+        JsonNode nodeWithRoot = JsonHelper.createJsonNode(basestationToBeAdded, Basestation.class);
 
         Result result = callAction(routes.ref.BasestationController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
 
             // bypass id check because basestationToBeAdded isn't saved
             basestationToBeAdded.setId(receivedBasestation.getId());
-            basestationToBeAdded.getCheckpoint().setId(receivedBasestation.getCheckpoint().getId());
             assertThat(basestationToBeAdded).isEqualTo(receivedBasestation);
 
             Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
@@ -119,19 +114,18 @@ public class BasestationTest extends TestSuperclass {
 
     @Test
     public void update_AuthorizedRequestWithValidId_BasestationUpdated() {
-        Basestation basestation = new Basestation("Another basestation", new Checkpoint(3, 2, 1));
+        Basestation basestation = new Basestation("Another basestation", 3.0, 2.0, 1.0);
         basestation.save();
         basestation.setName("Changed name");
-        JsonNode nodeWithRoot = JsonHelper.addRootElement(Json.toJson(basestation), Basestation.class);
+        JsonNode nodeWithRoot = JsonHelper.createJsonNode(basestation, Basestation.class);
         Result result = callAction(routes.ref.BasestationController.update(basestation.getId()),
                 authorizeRequest(fakeRequest().withJsonBody(nodeWithRoot), getAdmin()));
 
         String jsonString = contentAsString(result);
         try {
-            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class);
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Basestation.class, false);
             Basestation receivedBasestation = Json.fromJson(node, Basestation.class);
             assertThat(basestation.getId()).isEqualTo(receivedBasestation.getId());
-            assertThat(basestation.getCheckpoint()).isEqualTo(receivedBasestation.getCheckpoint());
 
             Basestation fetchedBasestation = Basestation.FIND.byId(receivedBasestation.getId());
             assertThat(fetchedBasestation).isEqualTo(receivedBasestation);
@@ -141,7 +135,7 @@ public class BasestationTest extends TestSuperclass {
     }
     @Test
     public void delete_AuthorizedRequestWithValidId_BasestationDeleted() {
-        Basestation basestationToBeRemoved = new Basestation("remove this drone", new Checkpoint(7,8,9));
+        Basestation basestationToBeRemoved = new Basestation("remove this drone", 7.0,8.0,9.0);
         basestationToBeRemoved.save();
 
         callAction(routes.ref.BasestationController.delete(basestationToBeRemoved.getId()),

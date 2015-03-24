@@ -1,4 +1,4 @@
-package drones.protocols;
+package drones.protocols.ArDrone2;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
@@ -31,7 +31,6 @@ public class ArDrone2ResetWDG extends UntypedActor {
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddressATC;
 
-    private static final int AT_PORT = 5556;
     private ByteString data = PacketCreator.createPacket(new ATCommandCOMWDG(1));
 
     public ArDrone2ResetWDG(DroneConnectionDetails details) {
@@ -40,7 +39,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPort())), getSelf());
 
-        this.senderAddressATC = new InetSocketAddress(details.getIp(), AT_PORT);
+        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
     }
 
     @Override
@@ -74,14 +73,14 @@ public class ArDrone2ResetWDG extends UntypedActor {
 
     private void sendComWDG() {
         if (senderAddressATC != null && senderRef != null) {
-            senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
+            //senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
         } else {
             log.info("[ARDRONE2COMWDG] Sending data failed (senderAddressATC or senderRef is null).");
         }
     }
 
     private void runComWDG() {
-        Akka.system().scheduler().schedule(Duration.create(50, TimeUnit.MILLISECONDS), Duration.create(50, TimeUnit.MILLISECONDS),
+        Akka.system().scheduler().schedule(Duration.create(0, TimeUnit.MILLISECONDS), Duration.create(50, TimeUnit.MILLISECONDS),
                 getSelf(), new ComWDGMessage(), Akka.system().dispatcher(), null);
     }
 

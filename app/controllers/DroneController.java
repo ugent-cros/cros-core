@@ -1,19 +1,22 @@
 package controllers;
 
+import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.DroneCommander;
+import drones.models.Fleet;
 import models.Drone;
+import models.Location;
 import models.User;
 import play.data.Form;
+import play.libs.F;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -30,50 +33,34 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false);
+        ExpressionList<Drone> exp = QueryHelper.buildQuery(Drone.class, Drone.FIND.where());
 
-        ArrayNode array = objectMapper.createArrayNode();
-        for(Drone drone : Drone.FIND.all()) {
-            try {
-                ObjectNode droneNode = (ObjectNode) Json.parse(objectMapper.writerWithView(ControllerHelper.Summary.class).writeValueAsString(drone));
-
-                List<ControllerHelper.Link> links = new ArrayList<>();
-                links.add(new ControllerHelper.Link("details", controllers.routes.DroneController.get(drone.getId()).url()));
-                droneNode.put("links", (JsonNode) objectMapper.valueToTree(links));
-                array.add(droneNode);
-            } catch (JsonProcessingException e) {
-                play.Logger.error(e.getMessage(), e);
-                return internalServerError();
-            }
+        List<JsonHelper.Tuple> tuples = new ArrayList<>();
+        for(Drone drone : exp.findList()) {
+            tuples.add(new JsonHelper.Tuple(drone, new ControllerHelper.Link("self",
+                    controllers.routes.DroneController.get(drone.getId()).url())));
         }
 
-        ObjectNode node = (ObjectNode) JsonHelper.addRootElement(array, Drone.class);
+        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("create", controllers.routes.DroneController.create().url()));
-        node.put("links", (JsonNode) objectMapper.valueToTree(links));
 
-        return ok(node);
+        try {
+            return ok(JsonHelper.createJsonNode(tuples, links, Drone.class));
+        } catch(JsonProcessingException ex) {
+            play.Logger.error(ex.getMessage(), ex);
+            return internalServerError();
+        }
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result get(long i) {
-        Drone drone = Drone.FIND.byId(i);
+    public static Result get(long id) {
+        Drone drone = Drone.FIND.byId(id);
 
         if (drone == null)
             return notFound();
 
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = (ObjectNode) Json.toJson(drone);
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.getId()).url()));
-        node.put("links", (JsonNode) mapper.valueToTree(links));
-
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        return ok(JsonHelper.createJsonNode(drone, getAllLinks(id), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -82,29 +69,20 @@ public class DroneController {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
-        Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
+        Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
 
-        if (droneForm.hasErrors())
-            return badRequest(droneForm.errorsAsJson());
+        if (form.hasErrors())
+            return badRequest(form.errorsAsJson());
 
-        Drone drone = droneForm.get();
+        Drone drone = form.get();
         drone.save();
 
-        ObjectNode responseNode = (ObjectNode) Json.toJson(drone);
-
-        // Add links to result
-        List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("all", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("delete", controllers.routes.DroneController.delete(drone.getId()).url()));
-        links.add(new ControllerHelper.Link("update", controllers.routes.DroneController.update(drone.getId()).url()));
-        responseNode.put("links", (JsonNode) new ObjectMapper().valueToTree(links));
-
-        return created(JsonHelper.addRootElement(responseNode, Drone.class));
+        return created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -112,12 +90,15 @@ public class DroneController {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
+        if (drone.getStatus() != Drone.Status.AVAILABLE)
+            return badRequest("cannot update drone which is in flight.");
 
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
-            strippedBody = JsonHelper.removeRootElement(body, Drone.class);
+            strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
+            play.Logger.error(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
@@ -126,41 +107,74 @@ public class DroneController {
             return badRequest(droneForm.errors().toString());
 
         Drone updatedDrone = droneForm.get();
+        updatedDrone.setVersion(drone.getVersion());
         updatedDrone.setId(drone.getId());
         updatedDrone.update();
-        return get(updatedDrone.getId());
+        return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result location(Long id) {
+    public static F.Promise<Result> location(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        JsonNode node = JsonHelper.addRootElement(Json.toJson(drone.getLocation()), Drone.Location.class);
-        return ok(node);
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
+            Location l = new Location(v.getLongtitude(),v.getLatitude(), altitude);
+            return ok(JsonHelper.addRootElement(Json.toJson(l), Location.class));
+        }));
+
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result testConnection(Long id) {
+    public static F.Promise<Result> testConnection(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
         ObjectNode node = Json.newObject();
-        node.put("connection", drone.testConnection());
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        node.put("connection", true); // TODO: call connection Test
+        return F.Promise.pure(ok(JsonHelper.addRootElement(node, Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result battery(Long id) {
+    public static F.Promise<Result> battery(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        ObjectNode node = Json.newObject();
-        node.put("battery", drone.getBatteryStatus());
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getBatteryPercentage()).map(percentage -> {
+            ObjectNode node = Json.newObject().put("battery", percentage);
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> rotation(Long id) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getRotation()).map(rotation -> {
+            JsonNode node = Json.newObject().put("rotation", Json.toJson(rotation));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> speed(Long id) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getSpeed()).map(speed -> {
+            JsonNode node = Json.newObject().put("speed", Json.toJson(speed));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -170,18 +184,19 @@ public class DroneController {
             return notFound();
 
         ObjectNode node = Json.newObject();
-        node.put("cameraCapture", drone.getCameraCapture());
+        node.put("cameraCapture", "nothing"); // TODO: call cameraCapture
         return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
     @Authentication({User.Role.ADMIN})
-    public static Result emergency(Long id) {
+    public static F.Promise<Result> emergency(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        drone.emergency();
-        return ok();
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        F.Promise.wrap(commander.land()).get(500); // TODO: resend command if land has not responded
+        return F.Promise.pure(ok());
     }
 
     @Authentication({User.Role.ADMIN})
@@ -200,6 +215,18 @@ public class DroneController {
         return ok();
     }
 
-
+    private static final List<ControllerHelper.Link> getAllLinks(long id) {
+        // TODO: add links when available
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).url()));
+        links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).url()));
+        links.add(new ControllerHelper.Link("battery", controllers.routes.DroneController.battery(id).url()));
+        links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
+        links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
+        links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
+        links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).url()));
+        links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).url()));
+        return links;
+    }
 
 }
