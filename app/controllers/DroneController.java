@@ -224,6 +224,8 @@ public class DroneController {
         links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
         links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
         links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
+        links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).url()));
+        links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).url()));
         return links;
     }
 
