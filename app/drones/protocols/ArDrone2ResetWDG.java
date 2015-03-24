@@ -1,12 +1,9 @@
 package drones.protocols;
 
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.io.Tcp;
-import akka.io.TcpMessage;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
@@ -43,9 +40,6 @@ public class ArDrone2ResetWDG extends UntypedActor {
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPort())), getSelf());
 
-        final ActorRef tcpManager = Tcp.get(getContext().system()).manager();
-        tcpManager.tell(TcpMessage.connect(new InetSocketAddress("192.168.1.1", 44444)), getSelf());
-
         this.senderAddressATC = new InetSocketAddress(details.getIp(), AT_PORT);
     }
 
@@ -67,9 +61,6 @@ public class ArDrone2ResetWDG extends UntypedActor {
                     .build());
 
             runComWDG();
-        } else if(msg.equals("sendComWDG")) {
-            log.info("[ARDRONE2COMWDG] SendComWDG received");
-            sendComWDG();
         } else {
             log.info("[ARDRONE2COMWDG] Unhandled message received - ArDrone2ResetWDG protocol");
             unhandled(msg);
@@ -81,11 +72,9 @@ public class ArDrone2ResetWDG extends UntypedActor {
         getContext().stop(self());
     }
 
-    private int temp;
     private void sendComWDG() {
         if (senderAddressATC != null && senderRef != null) {
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
-            log.info("[ARDRONE2COMWDG] Sending ComWDG succeeded [{}]", ++temp);
         } else {
             log.info("[ARDRONE2COMWDG] Sending data failed (senderAddressATC or senderRef is null).");
         }

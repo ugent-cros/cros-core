@@ -238,9 +238,9 @@ public class ArDrone2 extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
 
         // 3m max height
-        //sendData(PacketCreator.createPacket(getConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(getConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "3000")));
-        //sendData(PacketCreator.createPacket(getConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(getConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "FALSE")));
 
         // Enable nav data
