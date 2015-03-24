@@ -38,7 +38,7 @@ public class Application extends Controller {
         links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
-        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.socket().url()));
+        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().url()));
 
         ObjectNode node = Json.newObject();
         for(ControllerHelper.Link link : links)
@@ -109,7 +109,7 @@ public class Application extends Controller {
         return ok(result);
     }
 
-    public static WebSocket<String> socket() {
+    public static WebSocket<String> testSocket() {
         return WebSocket.withActor(MessageWebSocket::props);
     }
 
