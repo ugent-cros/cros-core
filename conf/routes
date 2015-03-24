@@ -17,6 +17,8 @@ GET            /takeoff                              controllers.Application.tak
 GET            /land                                 controllers.Application.land()
 GET            /subscribe                            controllers.Application.subscribeMonitor()
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor()
+GET            /socket                               controllers.Application.socket()
+
 
 # Drone calls
 GET            /drones                               controllers.DroneController.getAll()

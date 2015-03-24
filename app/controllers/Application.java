@@ -16,8 +16,10 @@ import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
+import utilities.MessageWebSocket;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ public class Application extends Controller {
         links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
+        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.socket().url()));
 
         ObjectNode node = Json.newObject();
         for(ControllerHelper.Link link : links)
@@ -104,6 +107,10 @@ public class Application extends Controller {
         ObjectNode result = Json.newObject();
         result.put("status", "subscribed");
         return ok(result);
+    }
+
+    public static WebSocket<String> socket() {
+        return WebSocket.withActor(MessageWebSocket::props);
     }
 
     public static Result unsubscribeMonitor(){
