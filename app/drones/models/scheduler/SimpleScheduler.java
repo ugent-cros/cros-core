@@ -91,7 +91,7 @@ public class SimpleScheduler extends Scheduler{
         // Create SimplePilot
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(),drone,route)));
+                        () -> new SimplePilot(self(),drone,false,route)));
         // Tell the pilot to start the flight
         pilot.tell(new StartFlightControlMessage(),self());
     }
