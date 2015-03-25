@@ -25,6 +25,7 @@ GET            /land                                 controllers.Application.lan
 GET            /subscribe                            controllers.Application.subscribeMonitor()
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor()
 GET            /testSocket                           controllers.Application.testSocket()
+GET            /socket                               controllers.Application.socket()
 
 
 # Drone calls
