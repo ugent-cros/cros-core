@@ -31,12 +31,15 @@ public class Assignment extends Model {
     @Constraints.Required
     private int progress;
 
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     private int priority;
 
+    @JsonView(JsonHelper.Summary.class)
     @OneToOne
     private User creator;
 
+    @JsonView(JsonHelper.Summary.class)
     @OneToOne
     private Drone assignedDrone;
 
