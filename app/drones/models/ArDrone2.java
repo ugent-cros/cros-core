@@ -32,7 +32,7 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void init(Promise<Void> p) {
-        log.info("Starting ARDrone 2.0 INIT - In ACTOR");
+        log.info("[ARDRONE2 MODEL] Starting ARDrone 2.0 INIT");
 
         // Setup actor
         synchronized (lock) {
@@ -49,12 +49,12 @@ public class ArDrone2 extends DroneActor {
     }
 
     private void handleInitCompletedResponse() {
-        log.info("ArDrone Ping message received");
+        log.info("[ARDRONE2 MODEL] ArDrone Ping message received");
         setupDrone();
     }
 
     private void setupDrone() {
-        log.info("Forwarding connection details to protocol");
+        log.info("[ARDRONE2 MODEL] Forwarding connection details to protocol");
         protocol.tell(new DroneConnectionDetails(ip, 5556, 5556), self());
 
         //sendMessage(new OutdoorCommand(!indoor));
@@ -148,6 +148,15 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected void flatTrim(Promise<Void> p) {
         if (sendMessage(new FlatTrimCommand())) {
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void reset(Promise<Void> p) {
+        if (sendMessage(new ResetCommand())) {
             p.success(null);
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));

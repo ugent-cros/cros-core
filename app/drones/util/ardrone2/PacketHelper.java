@@ -3,6 +3,8 @@ package drones.util.ardrone2;
 import akka.util.ByteString;
 import drones.commands.ardrone2.atcommand.ATCommand;
 
+import static drones.models.ardrone2.NavData.NAV_BATTERY_OFFSET;
+
 /**
  * Created by brecht on 3/9/15.
  */
@@ -14,7 +16,7 @@ public class PacketHelper {
      * @return
      */
     public static int getInt(byte[] data, int offset) {
-        int n = 0, tmp = 0;
+        int tmp = 0, n = 0;
 
         for (int i=3; i>=0; i--) {
             n <<= 8;
@@ -23,11 +25,6 @@ public class PacketHelper {
         }
 
         return n;
-        /*for (int i = 3; i >= 0; i--) {
-            n |= (data[offset + i] & 0xFF) << ((3 - i) * 8);
-        }
-
-        return n;*/
     }
 
     /**

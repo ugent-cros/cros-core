@@ -92,7 +92,6 @@ public class Fleet {
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
-
         DroneCommander commander = drones.get(droneEntity);
 
         // If commander does not exist yet, create it
@@ -101,7 +100,7 @@ public class Fleet {
             DroneDriver driver = getDriver(droneEntity.getDroneType());
             if (driver == null)
                 return null;
-            System.out.println("---------->hierhier");
+
             // Create commander
             ActorRef ref = Akka.system().actorOf(
                     Props.create(driver.getActorClass(),

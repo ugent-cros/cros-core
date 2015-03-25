@@ -30,6 +30,8 @@ public class ArDrone2 extends UntypedActor {
     private ActorRef senderRef;
 
     private final ActorRef udpManager;
+    //private final ActorRef udpNAVManager;
+    //private final ActorRef udpATCManager;
     private final ActorRef listener;
 
     // UDP connection details
@@ -50,22 +52,29 @@ public class ArDrone2 extends UntypedActor {
 
     // Watchdog reset actor
     private ActorRef ardrone2ResetWDG;
+    private ActorRef ardrone2NavData;
+    private ActorRef ardrone2VideoData;
 
     public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
+        // Connection details
         this.details = details;
 
+        // ArDrone 2 Model
         this.listener = listener;
 
+        // UDP listener and sender for NAV data
+        //udpNAVManager = Udp.get(getContext().system()).getManager();
+        //udpNAVManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 5554)), getSelf()); // @TODO
+        // UDP sender for AT Commands
+        //udpATCManager = Udp.get(getContext().system()).getManager();
+        //udpATCManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 5556)), getSelf()); // @TODO
+
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.NAV_DATA.getPort())), getSelf());
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.VIDEO_DATA.getPort())), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.AT_COMMAND.getPort())), getSelf());
+        // udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.NAV_DATA.getPort())), getSelf());
+        //udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.VIDEO_DATA.getPort())), getSelf());
 
-        log.info("Starting ARDrone 2.0 Protocol, listening on port: [{}]", details.getReceivingPort());
-    }
-
-    @Override
-    public void preStart() {
-        log.info("[ARDRONE2] Starting ARDrone 2.0 communication to [{}]:[{}]", details.getIp(), details.getSendingPort());
+        log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
 
     @Override
@@ -80,10 +89,11 @@ public class ArDrone2 extends UntypedActor {
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
-
+                    .match(InitCompletedMessage.class, s -> sendInitNavData())
                             // Drone commands
                             //.match(DroneCommandMessage.class, s -> dispatchCommand(s))
                     .match(InitDroneCommand.class, s -> handleInit())
+                    .match(ResetCommand.class, s -> handleReset())
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
@@ -94,7 +104,7 @@ public class ArDrone2 extends UntypedActor {
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .matchAny(s -> {
-                        log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
                     })
                     .build());
@@ -112,21 +122,30 @@ public class ArDrone2 extends UntypedActor {
         }
     }
 
+    private void handleReset() {
+        log.info("[ARDRONE2] Reset");
+        sendData(PacketCreator.createEmergencyPacket(seq++));
+    }
+
     private void droneDiscovered(DroneConnectionDetails details) {
         this.details = details;
-        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
-        this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
+        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort()); // @TODO vervangen door conn details
+        //this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort()); // @TODO vervangen door conn details
         log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
     private void stop() {
         udpManager.tell(UdpMessage.unbind(), self());
+
+        //udpNAVManager.tell(UdpMessage.unbind(), self());
+        //udpATCManager.tell(UdpMessage.unbind(), self());
+
         getContext().stop(self());
     }
 
     public boolean sendData(ByteString data) {
         if (senderAddressATC != null && senderRef != null) {
-            log.info("[ARDRONE2] Sending RAW data to: [{}] - [{}]", senderAddressATC.getAddress().getHostAddress(), DefaultPorts.AT_COMMAND.getPort());
+            log.info("[ARDRONE2] Sending AT_COMMAND data");
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
             return true;
         } else {
@@ -137,7 +156,7 @@ public class ArDrone2 extends UntypedActor {
 
     public boolean sendNavData(ByteString data) {
         if (senderAddressNAV != null && senderRef != null) {
-            log.info("[ARDRONE2] Sending NAV INIT data to: [{}] - [{}]", senderAddressNAV.getAddress().getHostAddress(), DefaultPorts.NAV_DATA.getPort());
+            log.info("[ARDRONE2] Sending NAV INIT data");
             senderRef.tell(UdpMessage.send(data, senderAddressNAV), getSelf());
             return true;
         } else {
@@ -147,7 +166,7 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        log.info("[ARDRONE2] Message received");
+        //log.info("[ARDRONE2] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -167,18 +186,8 @@ public class ArDrone2 extends UntypedActor {
         float pitch     = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
         float roll      = PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000f;
         float yaw       = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
-        float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
-        float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
-
-        // TODO nog te verwijderen
-        int tmp = 0, n = 0;
-
-        for (int i=3; i>=0; i--) {
-            n <<= 8;
-            tmp = navdata[NAV_BATTERY_OFFSET.getOffset() + i] & 0xFF;
-            n |= tmp;
-        }
-        log.info("BATTERY OLD METHOD: {}", n);
+        //float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
+        //float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
 
         Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
         listener.tell(batteryMessage, getSelf());
@@ -188,12 +197,13 @@ public class ArDrone2 extends UntypedActor {
 
         Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
         listener.tell(attitudeMessage, getSelf());
-
-        String debug = String.format(
-                "[ARDRONE2] NavData received \n " +
-                        "- Battery: %d \n " +
-                        "- Altitude: %f", battery, altitude);
-        log.info(debug);
+        //System.out.println( );
+        //String debug = String.format(
+        //        "[ARDRONE2] NavData received \n " +
+        //                "- Pitch: %f \n " +
+        //                "- yaw: %f \n" +
+        //                "- Roll: %f", pitch, yaw, roll);
+        //log.info(debug);
 
     }
 
@@ -232,14 +242,29 @@ public class ArDrone2 extends UntypedActor {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "3000")));
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL()));
 
-        // Enable nav data
-        sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
-
+        // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
                 () -> new ArDrone2ResetWDG(details)));
+
+        // Create nav data actor
+        ardrone2NavData = getContext().actorOf(Props.create(ArDrone2NavData.class,
+                () -> new ArDrone2NavData(details, listener, getSelf())));
+
+
+        // Create video data actor
+        //ardrone2VideoData = getContext().actorOf(Props.create(ArDrone2Video.class,
+        //        () -> new ArDrone2Video(details, listener)));
+    }
+
+    private void sendInitNavData() {
+        log.info("[ARDRONE2] Init completed");
+        // Enable nav data
+        //sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
+        // Disable bootstrap
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
+        // Send ACK
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL()));
     }
 
     private ATCommandCONFIGIDS createConfigIDS(int seq) {

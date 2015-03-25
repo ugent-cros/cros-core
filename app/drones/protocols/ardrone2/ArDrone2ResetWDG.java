@@ -37,7 +37,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
         this.details = details;
 
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPort())), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", /*DefaultPorts.AT_COMMAND.getPort()*/43256)), getSelf());
 
         this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
     }
@@ -54,7 +54,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
                     .match(StopMessage.class, s -> stop())
                     .match(ComWDGMessage.class, s -> sendComWDG())
                     .matchAny(s -> {
-                        log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        log.warning("[ARDRONE2COMWDG] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
                     })
                     .build());
@@ -73,7 +73,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
 
     private void sendComWDG() {
         if (senderAddressATC != null && senderRef != null) {
-            //senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
+            senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
         } else {
             log.info("[ARDRONE2COMWDG] Sending data failed (senderAddressATC or senderRef is null).");
         }
