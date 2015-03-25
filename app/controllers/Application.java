@@ -19,7 +19,7 @@ import play.mvc.Result;
 import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
-import utilities.MessageWebSocket;
+import utilities.TestWebSocket;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,7 +110,7 @@ public class Application extends Controller {
     }
 
     public static WebSocket<String> testSocket() {
-        return WebSocket.withActor(MessageWebSocket::props);
+        return WebSocket.withActor(TestWebSocket::props);
     }
 
     public static Result unsubscribeMonitor(){
