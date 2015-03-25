@@ -12,13 +12,13 @@ import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
-import static akka.pattern.Patterns.ask;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+
+import static akka.pattern.Patterns.ask;
 
 /**
  * Created by Yasser.
@@ -65,7 +65,7 @@ public class Fleet {
 
     /* Instance */
 
-    private ConcurrentMap<Drone, DroneCommander> drones;
+    private ConcurrentMap<Long, DroneCommander> drones;
 
     public Fleet(){
         drones = new ConcurrentHashMap<>();
@@ -90,7 +90,7 @@ public class Fleet {
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
 
-        DroneCommander commander = drones.get(droneEntity);
+        DroneCommander commander = drones.get(droneEntity.getId());
 
         // If commander does not exist yet, create it
         if (commander == null) {
@@ -105,7 +105,7 @@ public class Fleet {
                     Props.create(driver.getActorClass(),
                             () -> driver.createActor(droneEntity)));
             commander = new DroneCommander(ref);
-            drones.put(droneEntity, commander);
+            drones.put(droneEntity.getId(), commander);
         }
 
         return commander;
