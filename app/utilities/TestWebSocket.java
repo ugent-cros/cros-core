@@ -36,6 +36,7 @@ public class TestWebSocket extends UntypedActor {
         byte amoutOfTypes = 4;
         int notification = 1;
         byte currentType = 0;
+        int currentId = 1;
         while(true) {
             Serializable message = null;
             switch (currentType) {
@@ -53,6 +54,8 @@ public class TestWebSocket extends UntypedActor {
                     break;
                 case 3:
                     message = new NotificationMessage("this is notification number " + notification);
+                    notification++;
+                    currentId = currentId == 4 ? 1 : (++currentId);
                     break;
             }
 
@@ -74,7 +77,7 @@ public class TestWebSocket extends UntypedActor {
             // TODO: fix adding root element
             ObjectNode node = Json.newObject();
             node.put("type", type);
-            node.put("id", testDroneEntity.getId());
+            node.put("id", currentId);
             node.put("value", Json.toJson(message));
             try {
                 out.tell(node.toString(), self());

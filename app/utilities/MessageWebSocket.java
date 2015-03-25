@@ -11,6 +11,8 @@ import drones.models.Fleet;
 import models.Drone;
 import play.libs.Json;
 
+import java.util.List;
+
 /**
  * Created by matthias on 25/03/2015.
  */
@@ -25,8 +27,8 @@ public class MessageWebSocket extends AbstractActor {
     public MessageWebSocket(ActorRef out) {
         this.out = out;
 
-        Drone d = Drone.FIND.where().eq("name", "bepop").findUnique();
-        System.out.println(d.getDroneType());
+        List<Drone> drones = Drone.FIND.where().eq("name", "bepop").findList();
+        Drone d = drones.get(drones.size()-1);
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(d);
         commander.subscribeTopic(self(), BatteryPercentageChangedMessage.class);
 

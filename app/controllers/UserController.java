@@ -40,7 +40,7 @@ public class UserController {
         List<JsonHelper.Tuple> tuples = new ArrayList<>();
         for(User user : exp.findList()) {
             tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
-                    controllers.routes.DroneController.get(user.getId()).url())));
+                    controllers.routes.UserController.get(user.getId()).url())));
         }
 
         // TODO: add links when available
