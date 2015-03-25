@@ -6,6 +6,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.DroneDiscoveredMessage;
+import drones.messages.HomeChangedMessage;
 import drones.messages.StopMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
@@ -23,13 +24,17 @@ public class Bepop extends DroneActor {
 
     private final String ip;
     private final boolean indoor;
+    private final boolean hull;
 
     private final Object lock = new Object();
+
+    private int homeLocationSum = 0; // check to store latest requested home location
 
     private Promise<Void> initPromise;
 
     //TODO: use configuration class to pass here
-    public Bepop(String ip, boolean indoor) {
+    public Bepop(String ip, boolean indoor, boolean hull) {
+        this.hull = hull;
         this.ip = ip;
         this.indoor = indoor;
     }
@@ -37,7 +42,8 @@ public class Bepop extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse);
+                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse).
+                match(HomeChangedMessage.class, this::handleHomeChangedResponse);
     }
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
@@ -68,14 +74,17 @@ public class Bepop extends DroneActor {
 
     private void setupDrone(final DroneDiscoveredMessage details) {
         // Assumes the drone is on the ground
-        log.info("Discovery finished, forwarding connection details to protocl");
+        log.info("Discovery finished, forwarding connection details to protocol");
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
-
         sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
-        sendMessage(new OutdoorCommand(!indoor));
+        sendMessage(new SetOutdoorCommand(!indoor));
+        sendMessage(new SetHullCommand(hull));
+        sendMessage(new SetMaxTiltCommand(60f)); //default max tilt to 60 degrees
+        sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
+        sendMessage(new FlatTrimCommand());
     }
 
     @Override
@@ -105,8 +114,7 @@ public class Bepop extends DroneActor {
     @Override
     protected void takeOff(Promise<Void> p) {
         //TODO: only return when status changes to taking off promises
-        if (sendMessage(new FlatTrimCommand()) &&
-                sendMessage(new TakeOffCommand())) {
+        if (sendMessage(new TakeOffCommand())) {
             p.success(null);
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
@@ -131,6 +139,45 @@ public class Bepop extends DroneActor {
         }
     }
 
+    private void handleHomeChangedResponse(HomeChangedMessage msg){
+        int check = getLocationHashcode(msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+        if(check == homeLocationSum){
+            //TODO: enable this message for actual movement
+            sendMessage(new NavigateHomeCommand(true));
+            log.info("Issueing navigate home command.");
+            //log.warning("MOVE TO LOCATION MESSAGE DISABLED FOR TESTING. ENABLE ME WHEN NECESSARY");
+        } else {
+            log.debug("Home location changed to non-requested value (ignoring) (lat=[{}], lon=[{}], alt=[{}]), hash=[{}]",
+                    msg.getLatitude(), msg.getLongitude(), msg.getAltitude(), check);
+        }
+    }
+
+    private static int getLocationHashcode(double lat, double lon, double alt){
+        return Double.valueOf(lat).hashCode() ^ Double.valueOf(lon).hashCode() ^ Double.valueOf(alt).hashCode();
+    }
+
+    @Override
+    protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
+        if(indoor) {
+            p.failure(new DroneException("Cannot move to location indoor."));
+        } else {
+            if(sendMessage(new SetHomeCommand(latitude, longitude, altitude))){
+                // Now we have to wait for home location set
+                homeLocationSum = getLocationHashcode(latitude, longitude, altitude);
+                p.success(null);
+            } else {
+                p.failure(new DroneException("Failed to send command. Not initialized yet."));
+            }
+        }
+    }
+
+    @Override
+    protected void cancelMoveToLocation(Promise<Void> p) {
+        if(sendMessage(new NavigateHomeCommand(false))){
+            p.success(null);
+        }
+    }
+
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
         if(sendMessage(new SetMaxHeightCommand(meters))){
@@ -143,6 +190,33 @@ public class Bepop extends DroneActor {
     @Override
     protected void setMaxTilt(Promise<Void> p, float degrees) {
         if(sendMessage(new SetMaxTiltCommand(degrees))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setOutdoor(Promise<Void> p, boolean outdoor) {
+        if(sendMessage(new SetOutdoorCommand(outdoor))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void setHull(Promise<Void> p, boolean hull) {
+        if(sendMessage(new SetHullCommand(hull))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
+    protected void flatTrim(Promise<Void> p) {
+        if(sendMessage(new FlatTrimCommand())){
             p.success(null);
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));

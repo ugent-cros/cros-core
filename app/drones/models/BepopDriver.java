@@ -28,7 +28,7 @@ public class BepopDriver implements DroneDriver {
 
     @Override
     public <T extends DroneActor> T createActor(Drone droneEntity) {
-        // TODO: set indoor property to true
-        return (T) new Bepop(droneEntity.getAddress(), true);
+        // TODO: set indoor, hull property to true
+        return (T) new Bepop(droneEntity.getAddress(), false, true);
     }
 }

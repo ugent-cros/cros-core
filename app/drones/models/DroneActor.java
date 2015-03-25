@@ -7,16 +7,12 @@ import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
-import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
-import scala.Function1;
-import scala.PartialFunction;
+import play.libs.Akka;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
-import scala.runtime.BoxedUnit;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -32,6 +28,9 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Speed> speed;
     protected LazyProperty<Double> altitude;
     protected LazyProperty<DroneVersion> version;
+    protected LazyProperty<NavigationState> navigationState;
+    protected LazyProperty<NavigationStateReason> navigationStateReason;
+    protected LazyProperty<Boolean> gpsFix;
 
     protected DroneEventBus eventBus;
 
@@ -52,6 +51,10 @@ public abstract class DroneActor extends AbstractActor {
         speed = new LazyProperty<>();
         altitude = new LazyProperty<>();
         version = new LazyProperty<>();
+        navigationState = new LazyProperty<>(NavigationState.UNAVAILABLE);
+        navigationStateReason = new LazyProperty<>(NavigationStateReason.CONNECTION_LOST);
+        gpsFix = new LazyProperty<>(false);
+
 
         // TODO: build pipeline that directly forwards to the eventbus
 
@@ -61,19 +64,30 @@ public abstract class DroneActor extends AbstractActor {
                 match(PropertyRequestMessage.class, this::handlePropertyRequest).
 
                 // General commands (can be converted to switch as well, depends on embedded data)
-                        match(InitRequestMessage.class, s -> initInternal(sender(), self())).
+                match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
+                match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
+                match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
+                match(SetHullRequestMessage.class, s -> setHullInternal(sender(), self(), s.hasHull())).
+                match(SetOutdoorRequestMessage.class, s -> setOutdoorInternal(sender(), self(), s.isOutdoor())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
                 match(SetMaxHeigthRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
+                match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
+                match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClass())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
 
                 // Drone -> external
-                        match(LocationChangedMessage.class, s -> {
+                match(LocationChangedMessage.class, s -> {
                     location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()));
+                    eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(GPSFixChangedMessage.class, s -> {
+                    log.info("GPS fix changed: [{}]", s.isFixed());
+                    gpsFix.setValue(s.isFixed());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
@@ -106,6 +120,11 @@ public abstract class DroneActor extends AbstractActor {
                 }).
                 match(ProductVersionChangedMessage.class, s -> {
                     version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()));
+                    eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(NavigationStateChangedMessage.class, s -> {
+                    navigationState.setValue(s.getState());
+                    navigationStateReason.setValue(s.getReason());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
@@ -149,6 +168,15 @@ public abstract class DroneActor extends AbstractActor {
             case VERSION:
                 handleMessage(version.getValue(), sender(), self());
                 break;
+            case NAVIGATIONSTATE:
+                handleMessage(navigationState.getValue(), sender(), self());
+                break;
+            case NAVIGATIONREASON:
+                handleMessage(navigationStateReason.getValue(), sender(), self());
+                break;
+            case GPSFIX:
+                handleMessage(gpsFix.getValue(), sender(), self());
+                break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());
                 break;
@@ -170,6 +198,89 @@ public abstract class DroneActor extends AbstractActor {
                 sender.tell(new akka.actor.Status.Failure(failure), self);
             }
         }, ec);
+    }
+
+    private void setOutdoorInternal(final ActorRef sender, final ActorRef self, boolean outdoor){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone status cannot be changed when not initialized")), self);
+        } else {
+            log.info("Setting outdoor property.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            setOutdoor(v, outdoor);
+        }
+    }
+
+    private void setHullInternal(final ActorRef sender, final ActorRef self, boolean hull){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone status cannot be changed when not initialized")), self);
+        } else {
+            log.info("Setting hull property.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            setHull(v, hull);
+        }
+    }
+
+    private void flatTrimInternal(final ActorRef sender, final ActorRef self){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone flattrim cannot be changed when not initialized")), self);
+        } else {
+            log.info("Flat trim requested.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            flatTrim(v);
+        }
+    }
+
+    private void calibrateInternal(final ActorRef sender, final ActorRef self, boolean hull, boolean outdoor){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone calibration not available when not initialized.")), self);
+        } else {
+            log.info("Calibration requested.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+
+            Promise<Void> outdoorPromise = Futures.promise();
+
+            // Chain promises of outdoor -> hull -> flatTrim
+            outdoorPromise.future().onSuccess(new OnSuccess<Void>() {
+                @Override
+                public void onSuccess(Void result) throws Throwable {
+                    Promise<Void> hullPromise = Futures.promise();
+                    hullPromise.future().onSuccess(new OnSuccess<Void>(){
+                        @Override
+                        public void onSuccess(Void result) throws Throwable {
+                            flatTrim(v);
+                        }
+                    }, getContext().system().dispatcher());
+                    setHull(hullPromise, hull);
+                }
+            }, getContext().system().dispatcher());
+            setOutdoor(outdoorPromise, outdoor);
+        }
+    }
+
+    private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self) {
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
+        } else {
+            log.info("Cancelling move to location.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            cancelMoveToLocation(v);
+        }
+    }
+
+    private void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg) {
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
+        } else {
+            log.info("Navigating to lat=[{}], long=[{}], alt=[{}]", msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+        }
     }
 
     private void moveInternal(final ActorRef sender, final ActorRef self, final MoveRequestMessage msg) {
@@ -260,9 +371,19 @@ public abstract class DroneActor extends AbstractActor {
 
     protected abstract void move3d(Promise<Void> p, double vx, double vy, double vz, double vr);
 
+    protected abstract void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude);
+
+    protected abstract void cancelMoveToLocation(Promise<Void> p);
+
     protected abstract void setMaxHeight(Promise<Void> p, float meters);
 
     protected abstract void setMaxTilt(Promise<Void> p, float degrees);
+
+    protected abstract void setOutdoor(Promise<Void> p, boolean outdoor);
+
+    protected abstract void setHull(Promise<Void> p, boolean hull);
+
+    protected abstract void flatTrim(Promise<Void> p);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }
