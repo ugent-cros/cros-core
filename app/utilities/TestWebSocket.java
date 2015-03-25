@@ -31,12 +31,13 @@ public class TestWebSocket extends UntypedActor {
         /*DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         d.subscribeTopic(out, BatteryPercentageChangedMessage.class);*/
         byte percentage = 100;
-        double altitude = 1.0;
+        double altitude = 2.0;
         double longitude = 1.0;
         byte amoutOfTypes = 4;
         int notification = 1;
         byte currentType = 0;
         int currentId = 1;
+        int notificationSkip = 0;
         while(true) {
             Serializable message = null;
             switch (currentType) {
@@ -46,7 +47,7 @@ public class TestWebSocket extends UntypedActor {
                     break;
                 case 1:
                     message = new AltitudeChangedMessage(altitude);
-                    altitude = 1.0 - altitude;
+                    altitude = (altitude <= 0.1) ? 2.0 : (altitude - 0.1);
                     break;
                 case 2:
                     message = new LocationChangedMessage(longitude,5.,1.);
@@ -72,6 +73,7 @@ public class TestWebSocket extends UntypedActor {
                     break;
                 case 3:
                     type = "notification";
+                    notificationSkip = (++notificationSkip) % 5;
                     break;
             }
             // TODO: fix adding root element
@@ -80,8 +82,10 @@ public class TestWebSocket extends UntypedActor {
             node.put("id", currentId);
             node.put("value", Json.toJson(message));
             try {
-                out.tell(node.toString(), self());
-                Thread.sleep(500);
+                if (!type.equals("notification") || notificationSkip == 0) {
+                    out.tell(node.toString(), self());
+                }
+                Thread.sleep(100);
             } catch (Exception e) {
                 //e.printStackTrace();
                 break;
