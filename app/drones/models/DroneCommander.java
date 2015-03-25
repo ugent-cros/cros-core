@@ -31,7 +31,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> init() {
-        if(!initialized) {
+        if (!initialized) {
             return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
                 public Void apply(Object s) {
                     initialized = true;
@@ -75,6 +75,8 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> setMaxHeight(float meters) {
+        if(meters <= 0.5)
+            throw new IllegalArgumentException("Max height cannot be lower than 0.5m");
         return ask(droneActor, new SetMaxHeigthRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
@@ -85,6 +87,64 @@ public class DroneCommander implements DroneControl, DroneStatus {
     @Override
     public Future<Void> setMaxTilt(float degrees) {
         return ask(droneActor, new SetMaxTiltRequestMessage(degrees), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> moveToLocation(double latitude, double longitude, double altitude) {
+        // Lat is bound by 90 degrees (north/south), longitude by 180 east/west
+        if(Math.abs(latitude) > 90.0d || Math.abs(longitude) > 180.0d || altitude <= 0.0d)
+            throw new IllegalArgumentException("invalid coordinates");
+
+        return ask(droneActor, new MoveToLocationRequestMessage(latitude, longitude, altitude), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> cancelMoveToLocation() {
+        return ask(droneActor, new MoveToLocationCancellationMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> calibrate(boolean outdoor, boolean hull) {
+        return ask(droneActor, new CalibrateRequestMessage(hull, outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> flatTrim() {
+        return ask(droneActor, new FlatTrimRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> setOutdoor(boolean outdoor) {
+        return ask(droneActor, new SetOutdoorRequestMessage(outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Void> setHull(boolean hull) {
+        return ask(droneActor, new SetHullRequestMessage(hull), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
             }
@@ -154,29 +214,59 @@ public class DroneCommander implements DroneControl, DroneStatus {
         }, Akka.system().dispatcher());
     }
 
+    @Override
+    public Future<NavigationState> getNavigationState() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONSTATE), TIMEOUT).map(new Mapper<Object, NavigationState>() {
+            public NavigationState apply(Object s) {
+                return (NavigationState) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<NavigationStateReason> getNavigationStateReason() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONREASON), TIMEOUT).map(new Mapper<Object, NavigationStateReason>() {
+            public NavigationStateReason apply(Object s) {
+                return (NavigationStateReason) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Boolean> isGPSFixed() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.GPSFIX), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
     /**
      * Subscribe to messages of given topic
+     *
      * @param sub The actor to which the events have to be sent
-     * @param cl The topic class of the message to subscribe to
+     * @param cl  The topic class of the message to subscribe to
      */
-    public void subscribeTopic(final ActorRef sub, Class cl){
+    public void subscribeTopic(final ActorRef sub, Class cl) {
         droneActor.tell(new SubscribeEventMessage(cl), sub);
     }
 
     /**
      * Unsubscribe for a given topic
+     *
      * @param sub The currently subscribed actor
-     * @param cl The topic class of the messages to unsubscribe
+     * @param cl  The topic class of the messages to unsubscribe
      */
-    public void unsubscribeTopic(final ActorRef sub, Class cl){
+    public void unsubscribeTopic(final ActorRef sub, Class cl) {
         droneActor.tell(new UnsubscribeEventMessage(cl), sub);
     }
 
     /**
      * Unsubscribe all messages
+     *
      * @param sub The actor to unsubscribe
      */
-    public void unsubscribe(final ActorRef sub){
+    public void unsubscribe(final ActorRef sub) {
         droneActor.tell(new UnsubscribeEventMessage(null), sub);
     }
 }

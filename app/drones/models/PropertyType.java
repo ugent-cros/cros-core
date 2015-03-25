@@ -11,5 +11,8 @@ public enum PropertyType {
     FLATTRIMSTATUS,
     FLYINGSTATE,
     ROTATION,
-    VERSION
+    VERSION,
+    NAVIGATIONSTATE,
+    NAVIGATIONREASON,
+    GPSFIX
 }

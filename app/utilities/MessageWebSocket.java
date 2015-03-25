@@ -1,17 +1,20 @@
 package utilities;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.japi.pf.ReceiveBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
+import drones.models.DroneCommander;
+import drones.models.Fleet;
+import models.Drone;
 import play.libs.Json;
 
 /**
- * Created by matthias on 24/03/2015.
+ * Created by matthias on 25/03/2015.
  */
-public class MessageWebSocket extends UntypedActor {
+public class MessageWebSocket extends AbstractActor {
 
     public static Props props(ActorRef out) {
         return Props.create(MessageWebSocket.class, out);
@@ -22,31 +25,19 @@ public class MessageWebSocket extends UntypedActor {
     public MessageWebSocket(ActorRef out) {
         this.out = out;
 
-        /*Drone testDroneEntity = Drone.FIND.byId((long) 1);
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
-        d.subscribeTopic(out, BatteryPercentageChangedMessage.class);*/
-        byte percentage = 100;
-        while(true) {
-            BatteryPercentageChangedMessage message = new BatteryPercentageChangedMessage(percentage);
-            // TODO: fix adding root element
+        Drone d = Drone.FIND.where().eq("name", "bepop").findUnique();
+        System.out.println(d.getDroneType());
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(d);
+        commander.subscribeTopic(self(), BatteryPercentageChangedMessage.class);
+
+        receive(ReceiveBuilder.match(BatteryPercentageChangedMessage.class,s -> {
             ObjectNode node = Json.newObject();
             node.put("type", "batteryPercentageChanged");
-            node.put("value", Json.toJson(message));
-            try {
-                out.tell(node.toString(), self());
-                Thread.sleep(500);
-            } catch (Exception e) {
-                //e.printStackTrace();
-                break;
-            }
-            percentage = (byte) (percentage == 0 ? 100 : percentage - 10);
-        }
+            node.put("id", d.getId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        }).build());
 
-        self().tell(PoisonPill.getInstance(), self());
     }
 
-    @Override
-    public void onReceive(Object message) throws Exception {
-        System.out.println(message);
-    }
 }
