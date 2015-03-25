@@ -9,6 +9,7 @@ import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import play.libs.Akka;
@@ -60,12 +61,14 @@ public abstract class DroneActor extends AbstractActor {
 
 
         // TODO: build pipeline that directly forwards to the eventbus
-
-        receive(createListeners(). //register specific handlers for implementation
-
-                // General property requests
-                match(PropertyRequestMessage.class, this::handlePropertyRequest).
-
+        //TODO: revert quickfix and support null
+        UnitPFBuilder<Object> extraListeners = createListeners();
+        if(extraListeners == null){
+            extraListeners = ReceiveBuilder.match(PropertyRequestMessage.class, this::handlePropertyRequest);
+        } else {
+            extraListeners = extraListeners.match(PropertyRequestMessage.class, this::handlePropertyRequest);
+        }
+        receive(extraListeners.
                 // General commands (can be converted to switch as well, depends on embedded data)
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
