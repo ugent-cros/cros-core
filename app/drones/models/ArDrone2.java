@@ -153,7 +153,8 @@ public class ArDrone2 extends DroneActor {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
         }
     }
-    
+
+    @Override
     protected void reset(Promise<Void> p) {
         if (sendMessage(new ResetCommand())) {
             p.success(null);

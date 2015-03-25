@@ -285,6 +285,10 @@ public class ArDrone2 extends UntypedActor {
         //sendData(PacketCreator.createPacket(null));
     }
 
+    private void handleSetHull(boolean hull) {
+
+    }
+
     private void handleSetMaxHeight(float meters) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,

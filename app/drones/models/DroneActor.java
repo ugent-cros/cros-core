@@ -387,5 +387,7 @@ public abstract class DroneActor extends AbstractActor {
 
     protected abstract void flatTrim(Promise<Void> p);
 
+    protected abstract void reset(Promise<Void> p);
+
     protected abstract UnitPFBuilder<Object> createListeners();
 }

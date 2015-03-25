@@ -131,11 +131,6 @@ public class Bepop extends DroneActor {
     }
 
     @Override
-    protected void emergency(Promise<Void> p) {
-
-    }
-
-    @Override
     protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
         if(sendMessage(new MoveCommand(vx, vy, vz, vr))){
             p.success(null); //ack the command
@@ -226,5 +221,15 @@ public class Bepop extends DroneActor {
         } else {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
         }
+    }
+
+    @Override
+    protected void reset(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
+    }
+
+    @Override
+    protected void emergency(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
     }
 }
