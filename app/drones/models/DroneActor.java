@@ -2,6 +2,8 @@ package drones.models;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
@@ -13,6 +15,7 @@ import play.libs.Akka;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
+import scala.concurrent.duration.Duration;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -128,6 +131,15 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(10, Duration.create("1 minute"),
+                t -> {
+                    log.error(t, "DroneActor failure caught by supervisor.");
+                    return SupervisorStrategy.resume(); // Continue on all exceptions!
+                }, false);
     }
 
     private void handleSubscribeMessage(final ActorRef sub, Class cl) {
