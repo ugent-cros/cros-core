@@ -2,17 +2,21 @@ package drones.models;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import play.libs.Akka;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
+import scala.concurrent.duration.Duration;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -57,12 +61,14 @@ public abstract class DroneActor extends AbstractActor {
 
 
         // TODO: build pipeline that directly forwards to the eventbus
-
-        receive(createListeners(). //register specific handlers for implementation
-
-                // General property requests
-                match(PropertyRequestMessage.class, this::handlePropertyRequest).
-
+        //TODO: revert quickfix and support null
+        UnitPFBuilder<Object> extraListeners = createListeners();
+        if(extraListeners == null){
+            extraListeners = ReceiveBuilder.match(PropertyRequestMessage.class, this::handlePropertyRequest);
+        } else {
+            extraListeners = extraListeners.match(PropertyRequestMessage.class, this::handlePropertyRequest);
+        }
+        receive(extraListeners.
                 // General commands (can be converted to switch as well, depends on embedded data)
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
@@ -128,6 +134,15 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(10, Duration.create("1 minute"),
+                t -> {
+                    log.error(t, "DroneActor failure caught by supervisor.");
+                    return SupervisorStrategy.resume(); // Continue on all exceptions!
+                }, false);
     }
 
     private void handleSubscribeMessage(final ActorRef sub, Class cl) {

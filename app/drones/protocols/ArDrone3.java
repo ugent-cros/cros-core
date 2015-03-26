@@ -1,6 +1,8 @@
 package drones.protocols;
 
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -24,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Created by Cedric on 3/6/2015.
@@ -71,6 +74,16 @@ public class ArDrone3 extends UntypedActor {
         udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(10, Duration.create("1 minute"),
+                t -> {
+                    log.error(t, "Bepop actor failure caught by supervisor.");
+                    return SupervisorStrategy.resume(); // Continue on all exceptions!
+                }, false);
+    }
+
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {

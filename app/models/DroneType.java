@@ -55,7 +55,7 @@ public class DroneType {
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
+        int result = 57;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         result = 31 * result + (versionNumber != null ? versionNumber.hashCode() : 0);
         return result;

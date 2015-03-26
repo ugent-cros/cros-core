@@ -8,22 +8,17 @@ import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.commands.ardrone2.atcommand.*;
 import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
-import drones.util.ardrone2.PacketHelper;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
-
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
-
-import static drones.models.ardrone2.NavData.*;
 
 /**
  * Created by brecht on 3/7/15.

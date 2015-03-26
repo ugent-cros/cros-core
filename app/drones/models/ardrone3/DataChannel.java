@@ -112,11 +112,13 @@ public class DataChannel {
 
     public Frame receivedAck(byte seq, long time) {
         synchronized (lock) {
-            Frame f = frameQueue.peek();
-            if (f.getSeq() == seq) {
-                frameQueue.poll();
-                lastSend = 0;
-                retried = 0;
+            if(!frameQueue.isEmpty()) {
+                Frame f = frameQueue.peek();
+                if (f.getSeq() == seq) {
+                    frameQueue.poll();
+                    lastSend = 0;
+                    retried = 0;
+                }
             }
         }
         return tick(time);
