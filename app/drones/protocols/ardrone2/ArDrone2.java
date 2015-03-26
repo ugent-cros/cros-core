@@ -276,10 +276,6 @@ public class ArDrone2 extends UntypedActor {
                     1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
             boolean mode = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0);
 
-            if(v[0] != 0f || v[0] != -0f) {
-                v[0] = -v[0];
-            }
-
             // Nomarization (-1.0 to +1.0)
             for (int i = 0; i < 4; i++) {
                 if (Math.abs(v[i]) > 1.0) v[i] /= Math.abs(v[i]);
