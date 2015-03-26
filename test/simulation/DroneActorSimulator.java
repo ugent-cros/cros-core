@@ -4,14 +4,34 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
+import play.libs.Akka;
 import scala.concurrent.Promise;
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 import simulation.messages.SetConnectionLostMessage;
 import simulation.messages.SetCrashedMessage;
+
+import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by yasser on 25/03/15.
  */
 public class DroneActorSimulator extends DroneActor {
+
+    private class ProgressToDestinationMessage implements Serializable {
+
+        private Location destination;
+        private FiniteDuration timeStep;
+
+        public ProgressToDestinationMessage(Location destination, FiniteDuration timestep) {
+            this.destination = destination;
+            this.timeStep = timestep;
+        }
+
+        public Location getDestination() { return  destination; }
+        public FiniteDuration getTimeStep() { return timeStep; }
+    }
 
     private byte batteryLowLevel = 10;
     private byte batteryCriticalLevel = 5;
@@ -21,6 +41,9 @@ public class DroneActorSimulator extends DroneActor {
     private boolean connectionLost = false;
 
     private double maxHeight;
+    private double topSpeed; // assume m/s
+
+    private boolean flyingToDestination;
 
     // TODO: settable delay, sleep/suspend
 
@@ -31,36 +54,39 @@ public class DroneActorSimulator extends DroneActor {
 
         // TODO: create test messages for crash, low batter, out of range, …
 
-        ReceiveBuilder.
-                match(BatteryPercentageChangedMessage.class, m -> {
-                    if(m.getPercent() < batteryLowLevel) {
-
-                        if(m.getPercent() < batteryCriticalLevel) {
-                            if(!connectionLost) {
-                                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
-                                tellSelf(new LandRequestMessage());
-                                tellSelf(new NavigationStateChangedMessage(
-                                        NavigationState.UNAVAILABLE,
-                                        NavigationStateReason.BATTERY_LOW));
-                            } else {
-                                alertState.setValue(AlertState.BATTERY_CRITICAL);
-                                state.setValue(FlyingState.LANDED);
-                                navigationState.setValue(NavigationState.UNAVAILABLE);
-                                navigationStateReason.setValue(NavigationStateReason.BATTERY_LOW);
-                            }
-                        } else {
-                            if(!connectionLost) {
-                                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
-                            } else {
-                                alertState.setValue(AlertState.BATTERY_LOW);
-                            }
-                        }
-                    }
-                }).
+        return ReceiveBuilder.
+                match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
-                match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost()));
+                match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
+                match(ProgressToDestinationMessage.class, m -> progressToDestination(m.getDestination(), m.getTimeStep()));
+    }
 
-        return null;
+    protected void processBatteryLevel(byte percentage) {
+
+        if(percentage < batteryLowLevel) {
+            if(percentage < batteryCriticalLevel) {
+                if(!connectionLost) {
+                    tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
+                    tellSelf(new LandRequestMessage());
+                    tellSelf(new NavigationStateChangedMessage(
+                            NavigationState.UNAVAILABLE,
+                            NavigationStateReason.BATTERY_LOW));
+                } else {
+                    alertState.setValue(AlertState.BATTERY_CRITICAL);
+                    state.setValue(FlyingState.LANDED);
+                    navigationState.setValue(NavigationState.UNAVAILABLE);
+                    navigationStateReason.setValue(NavigationStateReason.BATTERY_LOW);
+                }
+            }
+            else {
+                if(!connectionLost) {
+                    tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
+                }
+                else {
+                    alertState.setValue(AlertState.BATTERY_LOW);
+                }
+            }
+        }
     }
 
     protected void setCrashed(boolean crashed) {
@@ -104,6 +130,86 @@ public class DroneActorSimulator extends DroneActor {
         this.connectionLost = connectionLost;
     }
 
+    protected void progressToDestination(Location destination, FiniteDuration timeFlown) {
+
+        // Check if moveToLocation wasn't cancelled
+        if(flyingToDestination) {
+
+            Location currentLocation = location.getRawValue();
+
+            // Calculate distance
+            double distance = Location.distance(currentLocation, destination);  // assume in meters
+            double timeTillArrival = distance/topSpeed;
+            double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
+
+            Location newLocation;
+            if (timeTillArrival > timeStep) {
+                // Not there yet
+                double deltaLongtitude = destination.getLongtitude() - currentLocation.getLongtitude();
+                double deltaLatitude = destination.getLatitude() - currentLocation.getLatitude();
+                double deltaAltitude = destination.getHeigth() - currentLocation.getHeigth();
+
+                double fraction = timeStep/timeTillArrival;
+                double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
+                double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
+                double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
+                newLocation = new Location(newLatitude, newLongtitude, newHeight);
+            } else {
+                newLocation = destination;
+            }
+
+            // Update current location
+            if (!connectionLost) {
+                tellSelf(new LocationChangedMessage(
+                        newLocation.getLongtitude(),
+                        newLocation.getLatitude(),
+                        newLocation.getHeigth()));
+            }
+            else {
+                location.setValue(newLocation);
+            }
+
+            // Check if we have arrived ore not
+            if (timeTillArrival < timeStep) {
+                // We have arrived
+                if(!connectionLost) {
+                    tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                    tellSelf(new NavigationStateChangedMessage(
+                            NavigationState.AVAILABLE,
+                            NavigationStateReason.FINISHED
+                    ));
+                } else {
+                    state.setValue(FlyingState.HOVERING);
+                    navigationState.setValue(NavigationState.AVAILABLE);
+                    navigationStateReason.setValue(NavigationStateReason.FINISHED);
+                }
+            }
+            else {
+
+                // Schedule to fly further
+                Akka.system().scheduler().scheduleOnce(
+                        timeFlown,
+                        self(),
+                        new ProgressToDestinationMessage(destination, timeFlown),
+                        Akka.system().dispatcher(),
+                        self());
+            }
+        } else {
+            // Flying aborted
+            if(!connectionLost) {
+                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                tellSelf(new NavigationStateChangedMessage(
+                        NavigationState.AVAILABLE,
+                        NavigationStateReason.STOPPED
+                ));
+            } else {
+                state.setValue(FlyingState.HOVERING);
+                navigationState.setValue(NavigationState.AVAILABLE);
+                navigationStateReason.setValue(NavigationStateReason.STOPPED);
+            }
+        }
+    }
+
     // Utility methods
     protected void tellSelf(Object msg) {
         self().tell(msg, self());
@@ -123,6 +229,7 @@ public class DroneActorSimulator extends DroneActor {
         gpsFix.setValue(false);
 
         maxHeight = 10;
+        topSpeed = 10;
     }
 
     // Implementation of DroneActor
@@ -248,14 +355,24 @@ public class DroneActorSimulator extends DroneActor {
 
         FlyingState flyingState = state.getRawValue();
         if(flyingState == FlyingState.FLYING || flyingState == FlyingState.HOVERING) {
-            tellSelf(new FlyingStateChangedMessage(FlyingState.FLYING));
-            // TODO: unit of speed? m/s km/h
-            tellSelf(new SpeedChangedMessage(10, 10, 10));
+
             double height = Math.min(altitude, maxHeight);
-            LocationChangedMessage locationMsg = new LocationChangedMessage(longitude, latitude, height);
-            tellSelf(locationMsg);
-            // TODO: simulate battery usage?
-            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+            Location destination = new Location(latitude, longitude, height);
+
+            tellSelf(new FlyingStateChangedMessage(FlyingState.FLYING));
+            tellSelf(new NavigationStateChangedMessage(
+                    NavigationState.IN_PROGRESS,
+                    NavigationStateReason.REQUESTED
+            ));
+            tellSelf(new SpeedChangedMessage(10, 10, 10));
+
+            // Schedule to fly further
+            Akka.system().scheduler().scheduleOnce(
+                    new FiniteDuration(1, TimeUnit.SECONDS),
+                    self(),
+                    new ProgressToDestinationMessage(destination, Duration.create(1, TimeUnit.SECONDS)),
+                    Akka.system().dispatcher(),
+                    self());
 
             p.success(null);
         } else {
@@ -284,7 +401,7 @@ public class DroneActorSimulator extends DroneActor {
         if(state.getRawValue() == FlyingState.EMERGENCY) {
             p.failure(new DroneException("Unable to send commands to drone in emergency state"));
         } else {
-            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+            flyingToDestination = false;
             p.success(null);
         }
     }
