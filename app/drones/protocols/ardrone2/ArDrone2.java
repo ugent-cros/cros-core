@@ -105,7 +105,7 @@ public class ArDrone2 extends UntypedActor {
         } else {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
-        };
+        }
     }
 
     private void handleStopMove() {
