@@ -51,10 +51,8 @@ public class ArDrone2NavData extends UntypedActor {
         this.parent = parent;
 
         udpManager = Udp.get(getContext().system()).getManager();
-        //udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", details.getReceivingPortNAV())), getSelf());
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.NAV_DATA.getPort())), getSelf());
 
-        //this.senderAddressNAV = new InetSocketAddress(details.getIp(), details.getSendingPortNAV);
         this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
     }
 

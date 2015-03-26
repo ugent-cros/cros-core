@@ -42,7 +42,6 @@ public class ArDrone2 extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
-                // @TODO change hard coded ports
                 protocol = getContext().actorOf(Props.create(drones.protocols.ardrone2.ArDrone2.class,
                         () -> new drones.protocols.ardrone2.ArDrone2(new DroneConnectionDetails(ip, 5556, 5554), ArDrone2.this.self())));
             }
@@ -60,7 +59,6 @@ public class ArDrone2 extends DroneActor {
         log.info("[ARDRONE2 MODEL] Forwarding connection details to protocol");
         protocol.tell(new DroneConnectionDetails(ip, 5556, 5556), self());
 
-        //sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new InitDroneCommand());
         sendMessage(new SetOutdoorCommand(!indoor));
         sendMessage(new SetHullCommand(hull));

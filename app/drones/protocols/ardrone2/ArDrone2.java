@@ -36,14 +36,11 @@ public class ArDrone2 extends UntypedActor {
     private ActorRef senderRef;
 
     private final ActorRef udpManager;
-    //private final ActorRef udpNAVManager;
-    //private final ActorRef udpATCManager;
     private final ActorRef listener;
 
     // UDP connection details
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddressATC;
-    private InetSocketAddress senderAddressNAV;
 
     // Sequence number of command
     private int seq = 0;
@@ -56,26 +53,15 @@ public class ArDrone2 extends UntypedActor {
     // Watchdog reset actor
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
-    private ActorRef ardrone2VideoData;
 
     public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
         this.details = details;
-
         // ArDrone 2 Model
         this.listener = listener;
-
-        // UDP listener and sender for NAV data
-        //udpNAVManager = Udp.get(getContext().system()).getManager();
-        //udpNAVManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 5554)), getSelf()); // @TODO
-        // UDP sender for AT Commands
-        //udpATCManager = Udp.get(getContext().system()).getManager();
-        //udpATCManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 5556)), getSelf()); // @TODO
-
+        // UPD manager
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.AT_COMMAND.getPort())), getSelf());
-        // udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.NAV_DATA.getPort())), getSelf());
-        //udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.VIDEO_DATA.getPort())), getSelf());
 
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
@@ -93,8 +79,7 @@ public class ArDrone2 extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitCompletedMessage.class, s -> sendInitNavData())
-                            // Drone commands
-                            //.match(DroneCommandMessage.class, s -> dispatchCommand(s))
+                    // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
                     .match(ResetCommand.class, s -> handleReset())
@@ -105,7 +90,6 @@ public class ArDrone2 extends UntypedActor {
                     .match(SetHullCommand.class, s -> setHull(s.hasHull()))
                     .match(MoveCommand.class, s -> handleMove(s))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
-                    .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -147,11 +131,10 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void stop() {
+        ardrone2ResetWDG.tell(new StopMessage(), self());
+        ardrone2NavData.tell(new StopMessage(), self());
+
         udpManager.tell(UdpMessage.unbind(), self());
-
-        //udpNAVManager.tell(UdpMessage.unbind(), self());
-        //udpATCManager.tell(UdpMessage.unbind(), self());
-
         getContext().stop(self());
     }
 
@@ -245,7 +228,6 @@ public class ArDrone2 extends UntypedActor {
         // 3m max height
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "3000")));
-        //sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -254,10 +236,6 @@ public class ArDrone2 extends UntypedActor {
         // Create nav data actor
         ardrone2NavData = getContext().actorOf(Props.create(ArDrone2NavData.class,
                 () -> new ArDrone2NavData(details, listener, getSelf())));
-
-        // Create video data actor
-        //ardrone2VideoData = getContext().actorOf(Props.create(ArDrone2Video.class,
-        //        () -> new ArDrone2Video(details, listener)));
     }
 
     private void sendInitNavData() {
@@ -277,11 +255,6 @@ public class ArDrone2 extends UntypedActor {
     private void handleFlatTrim() {
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
     }
-
-    private void handleSetMaxTilt(float degrees) {
-        // @TODO
-        //sendData(PacketCreator.createPacket(null));
-    }
 ;
     private void setHull(boolean hull) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
@@ -296,12 +269,8 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void handleMove(MoveCommand s) {
-        // Vx: pitch - front-back Must between -1..1
-        // Vy: roll  - left-right Must between -1..1
-        // Vr: yaw   - angular    Must between -1..1
-        // Vz: gaz   - vertical   Must between -1..1
         if(isMoveParamInRange((float) s.getVx()) && isMoveParamInRange((float) s.getVy())
-                && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVz())) {
+                && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVr())) {
 
             float[] v = {-0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
                     1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
@@ -332,11 +301,6 @@ public class ArDrone2 extends UntypedActor {
         return moveParam <= 1 && moveParam >= -1;
     }
 
-    /**
-     * Control message (p74 manual)
-     *
-     * @param cmd
-     */
     private void handleOutdoor(SetOutdoorCommand cmd) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
