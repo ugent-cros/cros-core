@@ -4,7 +4,6 @@ package drones.commands.ardrone2.atcommand;
  * Created by brecht on 3/26/15.
  */
 public class ATCommandCALIB extends ATCommand {
-    private static final String TYPE = "AT*CALIB";
     private int deviceNumber;
 
     public ATCommandCALIB(int seq, int deviceNumber) {
@@ -18,6 +17,6 @@ public class ATCommandCALIB extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("%s=%d,%d\r",TYPE, seq, deviceNumber);
+        return String.format("AT*CALIB=%d,%d\r", seq, deviceNumber);
     }
 }

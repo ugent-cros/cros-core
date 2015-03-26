@@ -4,8 +4,6 @@ package drones.commands.ardrone2.atcommand;
  * Created by brecht on 3/7/15.
  */
 public class ATCommandREF extends ATCommand {
-    private static final String TYPE = "AT*REF";
-
     // Params command REF
     private int input;
 
@@ -26,6 +24,6 @@ public class ATCommandREF extends ATCommand {
      */
     @Override
     public String toString() {
-        return String.format("%s=%d,%d\r",TYPE, seq, input);
+        return String.format("AT*REF=%d,%d\r",TYPE, seq, input);
     }
 }

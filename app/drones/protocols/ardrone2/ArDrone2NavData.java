@@ -9,23 +9,15 @@ import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
-import drones.commands.ardrone2.atcommand.ATCommandCONFIG;
-import drones.commands.ardrone2.atcommand.ATCommandCONFIGIDS;
-import drones.commands.ardrone2.atcommand.ATCommandCONTROL;
 import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.models.FlyingState;
-import drones.util.ardrone2.PacketCreator;
 import drones.util.ardrone2.PacketHelper;
-import play.libs.Akka;
-import scala.concurrent.duration.Duration;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
 
 import static drones.models.ardrone2.NavData.*;
 import static drones.models.ardrone2.NavData.NAV_BATTERY_OFFSET;
-import static drones.models.ardrone2.NavData.NAV_LONGITUDE_OFFSET;
 
 /**
  * Created by brecht on 3/25/15.
@@ -43,7 +35,6 @@ public class ArDrone2NavData extends UntypedActor {
 
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddressNAV;
-    private InetSocketAddress senderAddressATC;
 
     public ArDrone2NavData(DroneConnectionDetails details, ActorRef listener, ActorRef parent) {
         this.details = details;

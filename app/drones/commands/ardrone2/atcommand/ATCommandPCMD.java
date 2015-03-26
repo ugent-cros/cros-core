@@ -4,8 +4,6 @@ package drones.commands.ardrone2.atcommand;
  * Created by brecht on 3/7/15.
  */
 public class ATCommandPCMD extends ATCommand {
-    private static final String TYPE = "AT*PCMD";
-
     // Params command REF
     protected int flag;
     protected float roll;
@@ -28,6 +26,6 @@ public class ATCommandPCMD extends ATCommand {
      */
     @Override
     public String toString() {
-        return String.format("%s=%d,%d,%d,%d,%d,%d\r", TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
+        return String.format("AT*PCMD=%d,%d,%d,%d,%d,%d\r", TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
     }
 }

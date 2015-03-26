@@ -4,8 +4,6 @@ package drones.commands.ardrone2.atcommand;
  * Created by brecht on 3/22/15.
  */
 public class ATCommandCONFIGIDS extends ATCommand {
-    private static final String TYPE = "AT*CONFIG_IDS";
-
     private String session;
     private String user;
     private String appIDS;
@@ -20,6 +18,6 @@ public class ATCommandCONFIGIDS extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("%s=%d,\"%s\",\"%s\",\"%s\"\r", TYPE, seq, session, user, appIDS);
+        return String.format("AT*CONFIG_IDS=%d,\"%s\",\"%s\",\"%s\"\r", seq, session, user, appIDS);
     }
 }

@@ -5,8 +5,6 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.io.Tcp;
-import akka.io.TcpMessage;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
@@ -150,7 +148,6 @@ public class ArDrone2 extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        //log.info("[ARDRONE2] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -181,14 +178,6 @@ public class ArDrone2 extends UntypedActor {
 
         Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
         listener.tell(attitudeMessage, getSelf());
-        //System.out.println( );
-        //String debug = String.format(
-        //        "[ARDRONE2] NavData received \n " +
-        //                "- Pitch: %f \n " +
-        //                "- yaw: %f \n" +
-        //                "- Roll: %f", pitch, yaw, roll);
-        //log.info(debug);
-
     }
 
     private void handleTakeoff() {
@@ -281,7 +270,7 @@ public class ArDrone2 extends UntypedActor {
                 if (Math.abs(v[i]) > 1.0) v[i] /= Math.abs(v[i]);
             }
 
-            sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 1,
+            sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, (mode ? 1 : 0),
                     v[1], v[0], v[2], v[3])));
 
             log.info("[ARDRONE2 MOVE] y: {}, x: {}, z: {}, r: {}", v[0], v[1], v[2], v[3]);

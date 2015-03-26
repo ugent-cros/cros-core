@@ -7,7 +7,6 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.CalibrateRequestMessage;
 import drones.messages.InitCompletedMessage;
 import scala.concurrent.Promise;
 
