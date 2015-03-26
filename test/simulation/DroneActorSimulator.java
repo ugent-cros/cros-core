@@ -34,14 +34,26 @@ public class DroneActorSimulator extends DroneActor {
         ReceiveBuilder.
                 match(BatteryPercentageChangedMessage.class, m -> {
                     if(m.getPercent() < batteryLowLevel) {
+
                         if(m.getPercent() < batteryCriticalLevel) {
-                            tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
-                            tellSelf(new LandRequestMessage());
-                            tellSelf(new NavigationStateChangedMessage(
-                                    NavigationState.UNAVAILABLE,
-                                    NavigationStateReason.BATTERY_LOW));
+                            if(!connectionLost) {
+                                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
+                                tellSelf(new LandRequestMessage());
+                                tellSelf(new NavigationStateChangedMessage(
+                                        NavigationState.UNAVAILABLE,
+                                        NavigationStateReason.BATTERY_LOW));
+                            } else {
+                                alertState.setValue(AlertState.BATTERY_CRITICAL);
+                                state.setValue(FlyingState.LANDED);
+                                navigationState.setValue(NavigationState.UNAVAILABLE);
+                                navigationStateReason.setValue(NavigationStateReason.BATTERY_LOW);
+                            }
                         } else {
-                            tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
+                            if(!connectionLost) {
+                                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
+                            } else {
+                                alertState.setValue(AlertState.BATTERY_LOW);
+                            }
                         }
                     }
                 }).
@@ -118,7 +130,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void init(Promise<Void> p) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -130,7 +141,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void takeOff(Promise<Void> p) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -167,7 +177,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void land(Promise<Void> p) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -203,7 +212,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -225,7 +233,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -261,7 +268,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void cancelMoveToLocation(Promise<Void> p) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -287,7 +293,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void setMaxHeight(Promise<Void> p, float meters) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -311,7 +316,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void setMaxTilt(Promise<Void> p, float degrees) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -334,7 +338,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void setOutdoor(Promise<Void> p, boolean outdoor) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -358,7 +361,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void setHull(Promise<Void> p, boolean hull) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
@@ -382,7 +384,6 @@ public class DroneActorSimulator extends DroneActor {
     protected void flatTrim(Promise<Void> p) {
 
         if(connectionLost) {
-            p.failure(new DroneException("Drone is unreachable"));
             return;
         }
 
