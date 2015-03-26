@@ -29,6 +29,6 @@ public class ArDrone2Driver implements DroneDriver {
     @Override
     public <T extends DroneActor> T createActor(Drone droneEntity) {
         // TODO: set indoor, hull property to true
-        return (T) new ArDrone2(droneEntity.getAddress(), false, true);
+        return (T) new ArDrone2(droneEntity.getAddress(), true, true);
     }
 }

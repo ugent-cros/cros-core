@@ -4,6 +4,7 @@ package drones.protocols.ardrone2;
  * Created by brecht on 3/24/15.
  */
 public enum DefaultPorts {
+    FTP(5551),
     NAV_DATA(5554),
     VIDEO_DATA(5555),
     AT_COMMAND(5556);

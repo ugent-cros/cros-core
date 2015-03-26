@@ -7,11 +7,11 @@ public class ATCommandPCMD extends ATCommand {
     private static final String TYPE = "AT*PCMD";
 
     // Params command REF
-    private int flag;
-    private float roll;
-    private float pitch;
-    private float gaz;
-    private float yaw;
+    protected int flag;
+    protected float roll;
+    protected float pitch;
+    protected float gaz;
+    protected float yaw;
 
     public ATCommandPCMD(int seq, int flag, float roll, float pitch, float gaz, float yaw) {
         super(seq);

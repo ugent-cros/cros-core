@@ -5,6 +5,8 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.io.Tcp;
+import akka.io.TcpMessage;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
@@ -16,8 +18,12 @@ import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
 import drones.util.ardrone2.PacketHelper;
+import play.libs.Akka;
+import scala.concurrent.duration.Duration;
 
+import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 import static drones.models.ardrone2.NavData.*;
 
@@ -41,9 +47,6 @@ public class ArDrone2 extends UntypedActor {
 
     // Sequence number of command
     private int seq = 0;
-
-    // Bytes to be sent to enable navdata
-    private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
 
     // Session IDs
     private static final String ARDRONE_SESSION_ID     = "d2e081a3";      // SessionID
@@ -93,16 +96,17 @@ public class ArDrone2 extends UntypedActor {
                             // Drone commands
                             //.match(DroneCommandMessage.class, s -> dispatchCommand(s))
                     .match(InitDroneCommand.class, s -> handleInit())
+                    .match(CalibrateCommand.class, s -> handleCalibrate())
                     .match(ResetCommand.class, s -> handleReset())
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
-                    .match(RequestStatusCommand.class, s -> handleRequestStatus())
                     .match(SetOutdoorCommand.class, s -> handleOutdoor(s))
-                    .match(RequestSettingsCommand.class, s -> handleRequestSettings())
+                    .match(SetHullCommand.class, s -> setHull(s.hasHull()))
                     .match(MoveCommand.class, s -> handleMove(s))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> handleSetMaxTilt(s.getDegrees()))
+                    .match(StopMoveMessage.class, s -> handleStopMove())
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -119,7 +123,16 @@ public class ArDrone2 extends UntypedActor {
         } else {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
-        }
+        };
+    }
+
+    private void handleStopMove() {
+        sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 0, -0f, -0f, 0f, -0f)));
+    }
+
+    private void handleCalibrate() {
+        log.info("[ARDRONE2] Calibrate");
+        sendData(PacketCreator.createPacket(new ATCommandCALIB(seq++)));
     }
 
     private void handleReset() {
@@ -130,7 +143,6 @@ public class ArDrone2 extends UntypedActor {
     private void droneDiscovered(DroneConnectionDetails details) {
         this.details = details;
         this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort()); // @TODO vervangen door conn details
-        //this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort()); // @TODO vervangen door conn details
         log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
@@ -147,17 +159,6 @@ public class ArDrone2 extends UntypedActor {
         if (senderAddressATC != null && senderRef != null) {
             log.info("[ARDRONE2] Sending AT_COMMAND data");
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
-            return true;
-        } else {
-            log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
-            return false;
-        }
-    }
-
-    public boolean sendNavData(ByteString data) {
-        if (senderAddressNAV != null && senderRef != null) {
-            log.info("[ARDRONE2] Sending NAV INIT data");
-            senderRef.tell(UdpMessage.send(data, senderAddressNAV), getSelf());
             return true;
         } else {
             log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
@@ -210,6 +211,9 @@ public class ArDrone2 extends UntypedActor {
     private void handleTakeoff() {
         log.info("[ARDRONE2] TakeOff");
         sendData(PacketCreator.createTakeOffPacket(seq++));
+
+        Akka.system().scheduler().scheduleOnce(Duration.create(250, TimeUnit.MILLISECONDS),
+                getSelf(), new CalibrateCommand(), Akka.system().dispatcher(), null);
     }
 
     private void handleLand() {
@@ -241,7 +245,7 @@ public class ArDrone2 extends UntypedActor {
         // 3m max height
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "3000")));
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        //sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -251,7 +255,6 @@ public class ArDrone2 extends UntypedActor {
         ardrone2NavData = getContext().actorOf(Props.create(ArDrone2NavData.class,
                 () -> new ArDrone2NavData(details, listener, getSelf())));
 
-
         // Create video data actor
         //ardrone2VideoData = getContext().actorOf(Props.create(ArDrone2Video.class,
         //        () -> new ArDrone2Video(details, listener)));
@@ -260,20 +263,15 @@ public class ArDrone2 extends UntypedActor {
     private void sendInitNavData() {
         log.info("[ARDRONE2] Init completed");
         // Enable nav data
-        //sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
         // Disable bootstrap
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
         // Send ACK
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL()));
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
     }
 
     private ATCommandCONFIGIDS createConfigIDS(int seq) {
         return new ATCommandCONFIGIDS(seq, ARDRONE_SESSION_ID, ARDRONE_PROFILE_ID, ARDRONE_APPLOCATION_ID);
-    }
-
-    private void handleRequestStatus() {
-        // @TODO
-        //sendData(PacketCreator.createPacket(null));
     }
 
     private void handleFlatTrim() {
@@ -284,9 +282,11 @@ public class ArDrone2 extends UntypedActor {
         // @TODO
         //sendData(PacketCreator.createPacket(null));
     }
-
-    private void handleSetHull(boolean hull) {
-
+;
+    private void setHull(boolean hull) {
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                "control:flight_without_shell", Boolean.toString(!hull).toUpperCase())));
     }
 
     private void handleSetMaxHeight(float meters) {
@@ -301,10 +301,32 @@ public class ArDrone2 extends UntypedActor {
         // Vr: yaw   - angular    Must between -1..1
         // Vz: gaz   - vertical   Must between -1..1
         if(isMoveParamInRange((float) s.getVx()) && isMoveParamInRange((float) s.getVy())
-                && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVz()))
+                && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVz())) {
+
+            float[] v = {-0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
+                    1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
+            boolean mode = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0);
+
+            if(v[0] != 0f || v[0] != -0f) {
+                v[0] = -v[0];
+            }
+
+            // Nomarization (-1.0 to +1.0)
+            for (int i = 0; i < 4; i++) {
+                if (Math.abs(v[i]) > 1.0) v[i] /= Math.abs(v[i]);
+            }
+
             sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 1,
-                    (float) s.getVy(), (float) s.getVx(), (float) s.getVz(), (float) s.getVr())));
+                    v[1], v[0], v[2], v[3])));
+
+            log.info("[ARDRONE2 MOVE] y: {}, x: {}, z: {}, r: {}", v[0], v[1], v[2], v[3]);
+
+            Akka.system().scheduler().scheduleOnce(Duration.create(1000, TimeUnit.MILLISECONDS),
+                    getSelf(), new StopMoveMessage(), Akka.system().dispatcher(), null);
+        }
     }
+
+    private class StopMoveMessage implements Serializable {}
 
     private boolean isMoveParamInRange(float moveParam) {
         return moveParam <= 1 && moveParam >= -1;
@@ -319,11 +341,10 @@ public class ArDrone2 extends UntypedActor {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
                 "control:outdoor", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
-    }
 
-    private void handleRequestSettings() {
-        // @TODO
-        //sendData(PacketCreator.createPacket(null));
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                "control:flight_without_shell", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
     }
 
     public LoggingAdapter getLog(){

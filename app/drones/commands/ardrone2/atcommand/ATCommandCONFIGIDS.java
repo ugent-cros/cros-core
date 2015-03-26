@@ -20,6 +20,6 @@ public class ATCommandCONFIGIDS extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("%s=%d,%s,%s,%s\r", TYPE, seq, session, user, appIDS);
+        return String.format("%s=%d,\"%s\",\"%s\",\"%s\"\r", TYPE, seq, session, user, appIDS);
     }
 }

@@ -9,11 +9,19 @@ import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
+import drones.commands.ardrone2.atcommand.ATCommandCONFIG;
+import drones.commands.ardrone2.atcommand.ATCommandCONFIGIDS;
+import drones.commands.ardrone2.atcommand.ATCommandCONTROL;
 import drones.messages.*;
 import drones.models.DroneConnectionDetails;
+import drones.models.FlyingState;
+import drones.util.ardrone2.PacketCreator;
 import drones.util.ardrone2.PacketHelper;
+import play.libs.Akka;
+import scala.concurrent.duration.Duration;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 import static drones.models.ardrone2.NavData.*;
 import static drones.models.ardrone2.NavData.NAV_BATTERY_OFFSET;
@@ -35,6 +43,7 @@ public class ArDrone2NavData extends UntypedActor {
 
     private DroneConnectionDetails details;
     private InetSocketAddress senderAddressNAV;
+    private InetSocketAddress senderAddressATC;
 
     public ArDrone2NavData(DroneConnectionDetails details, ActorRef listener, ActorRef parent) {
         this.details = details;
@@ -55,6 +64,7 @@ public class ArDrone2NavData extends UntypedActor {
             log.info("[ARDRONE2NAVDATA] Socket ARDRone 2.0 bound.");
 
             senderRef = getSender();
+
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Received.class, s -> processRawData(s.data()))
@@ -107,23 +117,34 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processData(byte[] navdata) {
-        int state       = PacketHelper.getInt(navdata, NAV_STATE_OFFSET.getOffset());
-        int battery     = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
-        float altitude  = PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET.getOffset()) / 1000f;
-        float pitch     = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
-        float roll      = PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000f;
-        float yaw       = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
-        //float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
-        //float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
+        if(navdata.length >= 100 ) { // Otherwise this will crash
+            int state = PacketHelper.getInt(navdata, NAV_STATE_OFFSET.getOffset());
+            int battery = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
+            float altitude = PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET.getOffset()) / 1000f;
+            float pitch = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
+            float roll = PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000f;
+            float yaw = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
+            //float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
+            //float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
 
-        Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
-        listener.tell(batteryMessage, getSelf());
+            Object stateMessage;
+            if ((state & 1) == 0) {
+                stateMessage = new FlyingStateChangedMessage(FlyingState.LANDED);
+                log.info("Landed");
+            } else {
+                stateMessage = new FlyingStateChangedMessage(FlyingState.FLYING);
+                log.info("Flying");
+            }
+            listener.tell(stateMessage, getSelf());
 
-        Object altitudeMessage = new AltitudeChangedMessage(altitude);
-        listener.tell(altitudeMessage, getSelf());
+            Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
+            listener.tell(batteryMessage, getSelf());
 
-        Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
-        listener.tell(attitudeMessage, getSelf());
+            Object altitudeMessage = new AltitudeChangedMessage(altitude);
+            listener.tell(altitudeMessage, getSelf());
 
+            Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
+            listener.tell(attitudeMessage, getSelf());
+        }
     }
 }

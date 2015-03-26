@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
+import drones.messages.CalibrateRequestMessage;
 import drones.messages.InitCompletedMessage;
 import scala.concurrent.Promise;
 
@@ -21,6 +22,7 @@ public class ArDrone2 extends DroneActor {
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private Promise<Void> initPromise;
     private final boolean indoor;
+    private final boolean hull;
     private final String ip;
     private final Object lock = new Object();
 
@@ -28,6 +30,7 @@ public class ArDrone2 extends DroneActor {
     public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;
         this.indoor = indoor;
+        this.hull = hull;
     }
 
     @Override
@@ -59,7 +62,8 @@ public class ArDrone2 extends DroneActor {
 
         //sendMessage(new OutdoorCommand(!indoor));
         sendMessage(new InitDroneCommand());
-        sendMessage(new RequestSettingsCommand());
+        sendMessage(new SetOutdoorCommand(!indoor));
+        sendMessage(new SetHullCommand(hull));
     }
 
     @Override

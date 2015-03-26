@@ -284,14 +284,14 @@ public abstract class DroneActor extends AbstractActor {
     }
 
     private void moveInternal(final ActorRef sender, final ActorRef self, final MoveRequestMessage msg) {
-        //if (!loaded || state.getRawValue() == FlyingState.LANDED) {
-        //    sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when on the ground")), self);
-        //} else {
+        if (!loaded || state.getRawValue() == FlyingState.LANDED) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when on the ground")), self);
+        } else {
             log.debug("Attempting movement vx=[{}], vy=[{}], vz=[{}], vr=[{}]", msg.getVx(), msg.getVy(), msg.getVz(), msg.getVr());
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             move3d(v, msg.getVx(), msg.getVy(), msg.getVz(), msg.getVr());
-        //}
+        }
     }
 
     private void initInternal(final ActorRef sender, final ActorRef self) {
