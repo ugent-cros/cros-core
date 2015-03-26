@@ -3,8 +3,6 @@ package drones.util.ardrone2;
 import akka.util.ByteString;
 import drones.commands.ardrone2.atcommand.ATCommand;
 
-import static drones.models.ardrone2.NavData.NAV_BATTERY_OFFSET;
-
 /**
  * Created by brecht on 3/9/15.
  */

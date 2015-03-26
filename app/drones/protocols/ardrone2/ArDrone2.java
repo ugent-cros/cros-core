@@ -108,6 +108,10 @@ public class ArDrone2 extends UntypedActor {
         }
     }
 
+    private void processRawData(ByteString data) {
+        log.info("[ARDRONE2] Unexpected data received");
+    }
+
     private void handleStopMove() {
         sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 0, -0f, -0f, 0f, -0f)));
     }
@@ -145,39 +149,6 @@ public class ArDrone2 extends UntypedActor {
             log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
             return false;
         }
-    }
-
-    private void processRawData(ByteString data) {
-        byte[] received = new byte[data.length()];
-        ByteIterator it = data.iterator();
-
-        int i = 0;
-        while(it.hasNext()) {
-            received[i] = it.getByte();
-            i++;
-        }
-
-        processData(received);
-    }
-
-    private void processData(byte[] navdata) {
-        int state       = PacketHelper.getInt(navdata, NAV_STATE_OFFSET.getOffset());
-        int battery     = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
-        float altitude  = PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET.getOffset()) / 1000f;
-        float pitch     = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
-        float roll      = PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000f;
-        float yaw       = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
-        //float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
-        //float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
-
-        Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
-        listener.tell(batteryMessage, getSelf());
-
-        Object altitudeMessage = new AltitudeChangedMessage(altitude);
-        listener.tell(altitudeMessage, getSelf());
-
-        Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
-        listener.tell(attitudeMessage, getSelf());
     }
 
     private void handleTakeoff() {
@@ -244,7 +215,7 @@ public class ArDrone2 extends UntypedActor {
     private void handleFlatTrim() {
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
     }
-;
+
     private void setHull(boolean hull) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
@@ -263,14 +234,16 @@ public class ArDrone2 extends UntypedActor {
 
             float[] v = {-0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
                     1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
-            boolean mode = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0);
+            boolean mode = Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0;
 
             // Nomarization (-1.0 to +1.0)
             for (int i = 0; i < 4; i++) {
-                if (Math.abs(v[i]) > 1.0) v[i] /= Math.abs(v[i]);
+                if (Math.abs(v[i]) > 1.0) {
+                    v[i] /= Math.abs(v[i]);
+                }
             }
 
-            sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, (mode ? 1 : 0),
+            sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, mode ? 1 : 0,
                     v[1], v[0], v[2], v[3])));
 
             log.info("[ARDRONE2 MOVE] y: {}, x: {}, z: {}, r: {}", v[0], v[1], v[2], v[3]);

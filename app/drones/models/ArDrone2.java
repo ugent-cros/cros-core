@@ -24,7 +24,7 @@ public class ArDrone2 extends DroneActor {
     private final boolean hull;
     private final String ip;
     private final Object lock = new Object();
-
+    private final String DRONE_EXCEPTION = "Command not implemented";
 
     public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;
@@ -85,12 +85,12 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
-        p.failure(new DroneException("Command not implemented"));
+        p.failure(new DroneException(DRONE_EXCEPTION));
     }
 
     @Override
     protected void cancelMoveToLocation(Promise<Void> p) {
-        p.failure(new DroneException("Command not implemented"));
+        p.failure(new DroneException(DRONE_EXCEPTION));
     }
 
     @Override
@@ -100,7 +100,7 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void setMaxTilt(Promise<Void> p, float degrees) {
-        p.failure(new DroneException("Command not implemented"));
+        p.failure(new DroneException(DRONE_EXCEPTION));
     }
 
     @Override

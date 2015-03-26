@@ -101,7 +101,7 @@ public class ArDrone2NavData extends UntypedActor {
             received[i] = it.getByte();
             i++;
         }
-;
+
         processData(received); //@TODO
     }
 
