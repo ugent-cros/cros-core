@@ -10,6 +10,6 @@ public class ATCommandFTRIM extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("AT*FTRIM=%d\r",TYPE, seq);
+        return String.format("AT*FTRIM=%d\r", seq);
     }
 }

@@ -26,6 +26,6 @@ public class ATCommandPCMD extends ATCommand {
      */
     @Override
     public String toString() {
-        return String.format("AT*PCMD=%d,%d,%d,%d,%d,%d\r", TYPE, seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
+        return String.format("AT*PCMD=%d,%d,%d,%d,%d,%d\r", seq, flag, intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
     }
 }

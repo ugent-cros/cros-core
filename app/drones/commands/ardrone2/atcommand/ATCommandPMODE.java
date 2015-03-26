@@ -14,6 +14,6 @@ public class ATCommandPMODE extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("AT*PMODE=%d,%d\r",TYPE, seq, param1);
+        return String.format("AT*PMODE=%d,%d\r", seq, param1);
     }
 }

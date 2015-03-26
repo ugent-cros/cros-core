@@ -24,6 +24,6 @@ public class ATCommandREF extends ATCommand {
      */
     @Override
     public String toString() {
-        return String.format("AT*REF=%d,%d\r",TYPE, seq, input);
+        return String.format("AT*REF=%d,%d\r", seq, input);
     }
 }

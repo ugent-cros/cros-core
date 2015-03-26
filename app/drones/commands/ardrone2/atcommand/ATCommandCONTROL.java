@@ -10,6 +10,6 @@ public class ATCommandCONTROL extends ATCommand {
 
     @Override
     public String toString() {
-        return String.format("AT*CTRL=%d,%d,%d\r",TYPE, seq, 5, 0);
+        return String.format("AT*CTRL=%d,%d,%d\r", seq, 5, 0);
     }
 }

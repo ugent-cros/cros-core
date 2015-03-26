@@ -13,7 +13,7 @@ public class ATCommandPCMDMag extends ATCommandPCMD {
 
     @Override
     public String toString() {
-        return String.format("AT*PCMD_MAG=%d,%d,%d,%d,%d,%d,%d,%d\r", TYPE, seq, flag,
+        return String.format("AT*PCMD_MAG=%d,%d,%d,%d,%d,%d,%d,%d\r", seq, flag,
                 intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw),
                 intOfFloat(psi), intOfFloat(accPsi));
     }
