@@ -13,16 +13,19 @@ import scala.concurrent.Promise;
  */
 public class DroneActorSimulator extends DroneActor {
 
-
     private boolean initialized = false;
     private double maxHeight;
 
     // TODO: settable delay, sleep/suspend
 
+    // Control stuff
+
+    // Utility method
     protected void tellSelf(Object msg) {
         self().tell(msg, self());
     }
 
+    // Implementation of DroneActor
     @Override
     protected void init(Promise<Void> p) {
 
