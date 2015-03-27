@@ -1,4 +1,4 @@
-package simulation;
+package drones.simulation;
 
 import drones.models.DroneActor;
 import drones.models.DroneDriver;
@@ -13,7 +13,7 @@ import java.util.Set;
  */
 public class SimulatorDriver implements DroneDriver {
 
-    public static final DroneType SIMULATOR_TYPE = new DroneType("simulation.DroneActorSimulator", "0.1");
+    public static final DroneType SIMULATOR_TYPE = new DroneType("drones.simulation.DroneActorSimulator", "0.1");
 
     @Override
     public Set<DroneType> supportedTypes() {

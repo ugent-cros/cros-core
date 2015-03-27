@@ -1,4 +1,4 @@
-package simulation.messages;
+package drones.simulation.messages;
 
 import java.io.Serializable;
 

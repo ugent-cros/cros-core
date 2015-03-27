@@ -10,6 +10,7 @@ import drones.models.BepopDriver;
 import drones.models.DroneCommander;
 import drones.models.DroneMonitor;
 import drones.models.Fleet;
+import drones.simulation.SimulatorDriver;
 import models.*;
 import play.libs.Akka;
 import play.libs.F;
@@ -84,9 +85,10 @@ public class Application extends Controller {
     private static Drone testDroneEntity;
 
     public static F.Promise<Result> initDrone() {
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "localhost");
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,  "localhost");
         testDroneEntity.save();
 
+        Fleet.getFleet().registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();

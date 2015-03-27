@@ -1,4 +1,4 @@
-package simulation;
+package drones.simulation;
 
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
@@ -8,8 +8,8 @@ import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import simulation.messages.SetConnectionLostMessage;
-import simulation.messages.SetCrashedMessage;
+import drones.simulation.messages.SetConnectionLostMessage;
+import drones.simulation.messages.SetCrashedMessage;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +29,7 @@ public class BepopSimulator extends DroneActor {
 
     // Simulator properties
 
-    // TODO: make simulation properties settable
+    // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
@@ -148,7 +148,7 @@ public class BepopSimulator extends DroneActor {
         // Fly further
         progressFlight(stepDuration);
 
-        // TODO: set update to eventbus of all properties
+        // TODO: send update to eventbus of all properties that periodically update
     }
 
     private void progressFlight(FiniteDuration timeFlown) {
@@ -175,9 +175,16 @@ public class BepopSimulator extends DroneActor {
                 double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
                 double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
-                location.setValue(new Location(newLatitude, newLongtitude, newHeight));
+                tellSelf(new LocationChangedMessage(
+                        newLongtitude,
+                        newLatitude,
+                        newHeight));
             } else {
-                location.setValue(homeLocation);
+                tellSelf(new LocationChangedMessage(
+                        homeLocation.getLongtitude(),
+                        homeLocation.getLatitude(),
+                        homeLocation.getHeigth()
+                ));
             }
 
             // Check if we have arrived ore not
@@ -185,9 +192,11 @@ public class BepopSimulator extends DroneActor {
                 // We have arrived
                 flyingToHome = false;
                 // Update state
-                state.setValue(FlyingState.HOVERING);
-                navigationState.setValue(NavigationState.AVAILABLE);
-                navigationStateReason.setValue(NavigationStateReason.FINISHED);
+                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                tellSelf(new NavigationStateChangedMessage(
+                        NavigationState.AVAILABLE,
+                        NavigationStateReason.FINISHED
+                ));
             }
         }
     }
@@ -230,7 +239,7 @@ public class BepopSimulator extends DroneActor {
 
         rebootDrone();
 
-        // Schedule simulation loop
+        // Schedule drones.simulation loop
         Akka.system().scheduler().schedule(
                 Duration.Zero(),
                 simulationTimeStep,
@@ -304,6 +313,7 @@ public class BepopSimulator extends DroneActor {
             return;
         }
 
+        flyingToHome = false;
         switch (state.getRawValue()) {
             case EMERGENCY:
                 p.failure(new DroneException("Drone is in emergency status"));
@@ -470,7 +480,7 @@ public class BepopSimulator extends DroneActor {
         }
         */
 
-        // no effect on simulation
+        // no effect on drones.simulation
         p.success(null);
     }
 
@@ -493,7 +503,7 @@ public class BepopSimulator extends DroneActor {
         }
         */
 
-        // No effect on simulation
+        // No effect on drones.simulation
         p.success(null);
     }
 
