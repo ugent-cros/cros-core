@@ -19,22 +19,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class BepopSimulator extends DroneActor {
 
-    private class ProgressFlightMessage implements Serializable {
-
+    private static class StepSimulationMessage implements Serializable {
         private FiniteDuration timeStep;
-
-        public ProgressFlightMessage(FiniteDuration timeStep) {
+        public StepSimulationMessage(FiniteDuration timeStep) {
             this.timeStep = timeStep;
         }
-
         public FiniteDuration getTimeStep() { return timeStep; }
     }
 
     // Simulator properties
 
+    // TODO: make simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
-    protected FiniteDuration flightProgressStep = Duration.create(1, TimeUnit.SECONDS);
+    protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
@@ -48,8 +46,6 @@ public class BepopSimulator extends DroneActor {
     private Location homeLocation;
     private boolean flyingToHome;
 
-    // TODO: settable delay, sleep/suspend
-
     // Control stuff
 
     @Override
@@ -59,11 +55,10 @@ public class BepopSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(ProgressFlightMessage.class, m -> progressToDestination(m.getTimeStep()));
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
     }
 
     protected void processBatteryLevel(byte percentage) {
-
 
         if(percentage < batteryLowLevel) {
 
@@ -85,6 +80,7 @@ public class BepopSimulator extends DroneActor {
                 */
             }
             else {
+                // Return to home on low battery
                 tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
                 returnToHome(NavigationStateReason.BATTERY_LOW);
             }
@@ -96,6 +92,7 @@ public class BepopSimulator extends DroneActor {
         if (crashed) {
             flyingToHome = false;
             tellSelf(new AltitudeChangedMessage(0.0));
+            tellSelf(new SpeedChangedMessage(0, 0, 0));
             tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
             tellSelf(new AlertStateChangedMessage(AlertState.USER_EMERGENCY));
             tellSelf(new NavigationStateChangedMessage(
@@ -104,12 +101,7 @@ public class BepopSimulator extends DroneActor {
             ));
         }
         else {
-            tellSelf(new FlyingStateChangedMessage(FlyingState.LANDED));
-            tellSelf(new AlertStateChangedMessage(AlertState.NONE));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.AVAILABLE,
-                    NavigationStateReason.ENABLED
-            ));
+            rebootDrone();
         }
         this.crashed = crashed;
     }
@@ -148,20 +140,22 @@ public class BepopSimulator extends DroneActor {
                     reason
             ));
             tellSelf(new SpeedChangedMessage(10, 10, 10));
-
-            // Schedule to fly further
-            Akka.system().scheduler().scheduleOnce(
-                    new FiniteDuration(1, TimeUnit.SECONDS),
-                    self(),
-                    new ProgressFlightMessage(flightProgressStep),
-                    Akka.system().dispatcher(),
-                    self());
         }
     }
 
-    protected void progressToDestination(FiniteDuration timeFlown) {
+    private void stepSimulation(FiniteDuration stepDuration) {
+
+        // Fly further
+        progressFlight(stepDuration);
+
+        // TODO: set update to eventbus of all properties
+    }
+
+    private void progressFlight(FiniteDuration timeFlown) {
 
         // Check if moveToLocation wasn't cancelled
+        // If flying is aborted, the states, reasons & other properties
+        // should be set in the caller that set this flag to false
         if(flyingToHome) {
 
             Location currentLocation = location.getRawValue();
@@ -171,7 +165,6 @@ public class BepopSimulator extends DroneActor {
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
 
-            Location newLocation;
             if (timeTillArrival > timeStep) {
                 // Not there yet
                 double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
@@ -182,49 +175,26 @@ public class BepopSimulator extends DroneActor {
                 double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
                 double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
-                newLocation = new Location(newLatitude, newLongtitude, newHeight);
+                location.setValue(new Location(newLatitude, newLongtitude, newHeight));
             } else {
-                newLocation = homeLocation;
+                location.setValue(homeLocation);
             }
-
-            // Update current location
-            tellSelf(new LocationChangedMessage(
-                    newLocation.getLongtitude(),
-                    newLocation.getLatitude(),
-                    newLocation.getHeigth()));
 
             // Check if we have arrived ore not
             if (timeTillArrival < timeStep) {
                 // We have arrived
                 flyingToHome = false;
-                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-                tellSelf(new NavigationStateChangedMessage(
-                        NavigationState.AVAILABLE,
-                        NavigationStateReason.FINISHED
-                ));
+                // Update state
+                state.setValue(FlyingState.HOVERING);
+                navigationState.setValue(NavigationState.AVAILABLE);
+                navigationStateReason.setValue(NavigationStateReason.FINISHED);
             }
-
-            if (flyingToHome) {
-                // Schedule to fly further
-                Akka.system().scheduler().scheduleOnce(
-                        flightProgressStep,
-                        self(),
-                        new ProgressFlightMessage(flightProgressStep),
-                        Akka.system().dispatcher(),
-                        self());
-            }
-        }
-        else {
-            // If flying is aborted, the states and reasons should be set
-            // in the caller that set this flag to false
-            tellSelf(new SpeedChangedMessage(0, 0, 0));
         }
     }
 
     protected void tellSelf(Object msg) {
         self().tell(msg, self());
     }
-
 
     public void rebootDrone() {
 
@@ -259,6 +229,15 @@ public class BepopSimulator extends DroneActor {
         topSpeed = 10;
 
         rebootDrone();
+
+        // Schedule simulation loop
+        Akka.system().scheduler().schedule(
+                Duration.Zero(),
+                simulationTimeStep,
+                self(),
+                new StepSimulationMessage(simulationTimeStep),
+                Akka.system().dispatcher(),
+                self());
     }
 
     // Implementation of DroneActor
@@ -302,9 +281,8 @@ public class BepopSimulator extends DroneActor {
                 tellSelf(new FlyingStateChangedMessage(FlyingState.TAKINGOFF));
                 tellSelf(new AltitudeChangedMessage(1.0));
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-                // Fall-throug
+                // Fall-through
             default:
-                // TODO: set navigation status?
                 p.success(null);
         }
     }
@@ -418,6 +396,12 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Unable to send commands to drone in emergency state"));
         } else {
             flyingToHome = false;
+            tellSelf(new SpeedChangedMessage(0, 0, 0));
+            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+            tellSelf(new NavigationStateChangedMessage(
+                    NavigationState.AVAILABLE,
+                    NavigationStateReason.STOPPED
+            ));
             p.success(null);
         }
     }
