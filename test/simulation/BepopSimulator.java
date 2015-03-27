@@ -30,17 +30,20 @@ public class BepopSimulator extends DroneActor {
         public FiniteDuration getTimeStep() { return timeStep; }
     }
 
-    private byte batteryLowLevel = 10;
-    private byte batteryCriticalLevel = 5;
+    // Simulator properties
+
+    protected byte batteryLowLevel = 10;
+    protected byte batteryCriticalLevel = 5;
+    protected FiniteDuration flightProgressStep = Duration.create(1, TimeUnit.SECONDS);
+
+    protected double maxHeight;
+    protected double topSpeed; // assume m/s
 
     // internal state
     private boolean crashed = false;
     private boolean connectionLost = false;
 
     private boolean initialized = false;
-
-    private double maxHeight;
-    private double topSpeed; // assume m/s
 
     private Location homeLocation;
     private boolean flyingToHome;
@@ -83,7 +86,7 @@ public class BepopSimulator extends DroneActor {
             }
             else {
                 tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
-                returnToHome(homeLocation, NavigationStateReason.BATTERY_LOW);
+                returnToHome(NavigationStateReason.BATTERY_LOW);
             }
         }
     }
@@ -91,10 +94,10 @@ public class BepopSimulator extends DroneActor {
     protected void setCrashed(boolean crashed) {
 
         if (crashed) {
+            flyingToHome = false;
             tellSelf(new AltitudeChangedMessage(0.0));
             tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
             tellSelf(new AlertStateChangedMessage(AlertState.USER_EMERGENCY));
-            tellSelf(new SpeedChangedMessage(0, 0, 0));
             tellSelf(new NavigationStateChangedMessage(
                     NavigationState.UNAVAILABLE,
                     NavigationStateReason.STOPPED
@@ -113,18 +116,14 @@ public class BepopSimulator extends DroneActor {
 
     protected void setConnectionLost(boolean connectionLost) {
 
+        // Disable/re-enable event bus
         eventBus.setPublishDisabled(connectionLost);
 
         if(connectionLost) {
 
             // Should start navigation to home
-
-            // Don't tell self (we don't want this messages published as we are out of range
+            returnToHome(NavigationStateReason.CONNECTION_LOST);
             tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.IN_PROGRESS,
-                    NavigationStateReason.CONNECTION_LOST
-            ));
         }
         else {
             tellSelf(new AlertStateChangedMessage(AlertState.NONE));
@@ -132,12 +131,11 @@ public class BepopSimulator extends DroneActor {
         this.connectionLost = connectionLost;
     }
 
-    private void returnToHome(Location home, NavigationStateReason reason) {
+    private void returnToHome(NavigationStateReason reason) {
 
         // Check if drone is not already flying home
-        if(!flyingToHome) {
+        if(!flyingToHome && !crashed) {
 
-            homeLocation = home;
             flyingToHome = true;
 
             tellSelf(new NavigationStateChangedMessage(
@@ -155,7 +153,7 @@ public class BepopSimulator extends DroneActor {
             Akka.system().scheduler().scheduleOnce(
                     new FiniteDuration(1, TimeUnit.SECONDS),
                     self(),
-                    new ProgressFlightMessage(Duration.create(1, TimeUnit.SECONDS)),
+                    new ProgressFlightMessage(flightProgressStep),
                     Akka.system().dispatcher(),
                     self());
         }
@@ -169,7 +167,7 @@ public class BepopSimulator extends DroneActor {
             Location currentLocation = location.getRawValue();
 
             // Calculate distance
-            double distance = Location.distance(currentLocation, homeLocation);  // assume in meters
+            double distance = Location.distance(currentLocation, homeLocation)/1000;  // km/1000 -> m
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
 
@@ -209,19 +207,17 @@ public class BepopSimulator extends DroneActor {
             if (flyingToHome) {
                 // Schedule to fly further
                 Akka.system().scheduler().scheduleOnce(
-                        timeFlown,
+                        flightProgressStep,
                         self(),
-                        new ProgressFlightMessage(timeFlown),
+                        new ProgressFlightMessage(flightProgressStep),
                         Akka.system().dispatcher(),
                         self());
             }
-        } else {
-            // Flying aborted
-            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.AVAILABLE,
-                    NavigationStateReason.STOPPED
-            ));
+        }
+        else {
+            // If flying is aborted, the states and reasons should be set
+            // in the caller that set this flag to false
+            tellSelf(new SpeedChangedMessage(0, 0, 0));
         }
     }
 
@@ -389,10 +385,10 @@ public class BepopSimulator extends DroneActor {
         FlyingState flyingState = state.getRawValue();
         if(flyingState == FlyingState.FLYING || flyingState == FlyingState.HOVERING) {
 
+            // Set new home location & fly towards it
             double height = Math.min(altitude, maxHeight);
-            Location destination = new Location(latitude, longitude, height);
-
-            returnToHome(destination, NavigationStateReason.REQUESTED);
+            homeLocation = new Location(latitude, longitude, height);
+            returnToHome(NavigationStateReason.REQUESTED);
 
             p.success(null);
         } else {
