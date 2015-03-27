@@ -24,11 +24,11 @@ public class SimulatorDriver implements DroneDriver {
 
     @Override
     public <T extends DroneActor> Class<T> getActorClass() {
-        return (Class<T>) DroneActorSimulator.class;
+        return (Class<T>) BepopSimulator.class;
     }
 
     @Override
     public <T extends DroneActor> T createActor(Drone droneEntity) {
-        return (T) new DroneActorSimulator();
+        return (T) new BepopSimulator();
     }
 }

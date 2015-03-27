@@ -17,19 +17,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by yasser on 25/03/15.
  */
-public class DroneActorSimulator extends DroneActor {
+public class BepopSimulator extends DroneActor {
 
-    private class ProgressToDestinationMessage implements Serializable {
+    private class ProgressFlightMessage implements Serializable {
 
-        private Location destination;
         private FiniteDuration timeStep;
 
-        public ProgressToDestinationMessage(Location destination, FiniteDuration timestep) {
-            this.destination = destination;
-            this.timeStep = timestep;
+        public ProgressFlightMessage(FiniteDuration timeStep) {
+            this.timeStep = timeStep;
         }
 
-        public Location getDestination() { return  destination; }
         public FiniteDuration getTimeStep() { return timeStep; }
     }
 
@@ -43,7 +40,8 @@ public class DroneActorSimulator extends DroneActor {
     private double maxHeight;
     private double topSpeed; // assume m/s
 
-    private boolean flyingToDestination;
+    private Location homeLocation;
+    private boolean flyingToHome;
 
     // TODO: settable delay, sleep/suspend
 
@@ -56,12 +54,15 @@ public class DroneActorSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(ProgressToDestinationMessage.class, m -> progressToDestination(m.getDestination(), m.getTimeStep()));
+                match(ProgressFlightMessage.class, m -> progressToDestination(m.getTimeStep()));
     }
 
     protected void processBatteryLevel(byte percentage) {
 
         if(percentage < batteryLowLevel) {
+
+            // TODO: Start return to home
+
             if(percentage < batteryCriticalLevel) {
                 tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
                 tellSelf(new LandRequestMessage());
@@ -119,24 +120,45 @@ public class DroneActorSimulator extends DroneActor {
         this.connectionLost = connectionLost;
     }
 
-    protected void progressToDestination(Location destination, FiniteDuration timeFlown) {
+    private void returnToHome(Location home) {
+
+        homeLocation = home;
+        flyingToHome = true;
+
+        tellSelf(new FlyingStateChangedMessage(FlyingState.FLYING));
+        tellSelf(new NavigationStateChangedMessage(
+                NavigationState.IN_PROGRESS,
+                NavigationStateReason.REQUESTED
+        ));
+        tellSelf(new SpeedChangedMessage(10, 10, 10));
+
+        // Schedule to fly further
+        Akka.system().scheduler().scheduleOnce(
+                new FiniteDuration(1, TimeUnit.SECONDS),
+                self(),
+                new ProgressFlightMessage(Duration.create(1, TimeUnit.SECONDS)),
+                Akka.system().dispatcher(),
+                self());
+    }
+
+    protected void progressToDestination(FiniteDuration timeFlown) {
 
         // Check if moveToLocation wasn't cancelled
-        if(flyingToDestination) {
+        if(flyingToHome) {
 
             Location currentLocation = location.getRawValue();
 
             // Calculate distance
-            double distance = Location.distance(currentLocation, destination);  // assume in meters
+            double distance = Location.distance(currentLocation, homeLocation);  // assume in meters
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
 
             Location newLocation;
             if (timeTillArrival > timeStep) {
                 // Not there yet
-                double deltaLongtitude = destination.getLongtitude() - currentLocation.getLongtitude();
-                double deltaLatitude = destination.getLatitude() - currentLocation.getLatitude();
-                double deltaAltitude = destination.getHeigth() - currentLocation.getHeigth();
+                double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
+                double deltaLatitude = homeLocation.getLatitude() - currentLocation.getLatitude();
+                double deltaAltitude = homeLocation.getHeigth() - currentLocation.getHeigth();
 
                 double fraction = timeStep/timeTillArrival;
                 double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
@@ -144,7 +166,7 @@ public class DroneActorSimulator extends DroneActor {
                 double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
                 newLocation = new Location(newLatitude, newLongtitude, newHeight);
             } else {
-                newLocation = destination;
+                newLocation = homeLocation;
             }
 
             // Update current location
@@ -168,7 +190,7 @@ public class DroneActorSimulator extends DroneActor {
                 Akka.system().scheduler().scheduleOnce(
                         timeFlown,
                         self(),
-                        new ProgressToDestinationMessage(destination, timeFlown),
+                        new ProgressFlightMessage(timeFlown),
                         Akka.system().dispatcher(),
                         self());
             }
@@ -187,7 +209,7 @@ public class DroneActorSimulator extends DroneActor {
         self().tell(msg, self());
     }
 
-    public DroneActorSimulator() {
+    public BepopSimulator() {
         state.setValue(FlyingState.LANDED);
         alertState.setValue(AlertState.NONE);
         location.setValue(new Location(0.0, 0.0, 0.0));
@@ -331,20 +353,7 @@ public class DroneActorSimulator extends DroneActor {
             double height = Math.min(altitude, maxHeight);
             Location destination = new Location(latitude, longitude, height);
 
-            tellSelf(new FlyingStateChangedMessage(FlyingState.FLYING));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.IN_PROGRESS,
-                    NavigationStateReason.REQUESTED
-            ));
-            tellSelf(new SpeedChangedMessage(10, 10, 10));
-
-            // Schedule to fly further
-            Akka.system().scheduler().scheduleOnce(
-                    new FiniteDuration(1, TimeUnit.SECONDS),
-                    self(),
-                    new ProgressToDestinationMessage(destination, Duration.create(1, TimeUnit.SECONDS)),
-                    Akka.system().dispatcher(),
-                    self());
+            returnToHome(destination);
 
             p.success(null);
         } else {
@@ -373,7 +382,7 @@ public class DroneActorSimulator extends DroneActor {
         if(state.getRawValue() == FlyingState.EMERGENCY) {
             p.failure(new DroneException("Unable to send commands to drone in emergency state"));
         } else {
-            flyingToDestination = false;
+            flyingToHome = false;
             p.success(null);
         }
     }
