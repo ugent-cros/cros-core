@@ -52,8 +52,6 @@ public class DroneActorSimulator extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
 
-        // TODO: create test messages for crash, low batter, out of range, …
-
         return ReceiveBuilder.
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
@@ -65,26 +63,14 @@ public class DroneActorSimulator extends DroneActor {
 
         if(percentage < batteryLowLevel) {
             if(percentage < batteryCriticalLevel) {
-                if(!connectionLost) {
-                    tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
-                    tellSelf(new LandRequestMessage());
-                    tellSelf(new NavigationStateChangedMessage(
-                            NavigationState.UNAVAILABLE,
-                            NavigationStateReason.BATTERY_LOW));
-                } else {
-                    alertState.setValue(AlertState.BATTERY_CRITICAL);
-                    state.setValue(FlyingState.LANDED);
-                    navigationState.setValue(NavigationState.UNAVAILABLE);
-                    navigationStateReason.setValue(NavigationStateReason.BATTERY_LOW);
-                }
+                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
+                tellSelf(new LandRequestMessage());
+                tellSelf(new NavigationStateChangedMessage(
+                        NavigationState.UNAVAILABLE,
+                        NavigationStateReason.BATTERY_LOW));
             }
             else {
-                if(!connectionLost) {
-                    tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
-                }
-                else {
-                    alertState.setValue(AlertState.BATTERY_LOW);
-                }
+                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
             }
         }
     }
@@ -114,18 +100,21 @@ public class DroneActorSimulator extends DroneActor {
 
     protected void setConnectionLost(boolean connectionLost) {
 
+        eventBus.setPublishDisabled(connectionLost);
+
         if(connectionLost) {
+
+            // Should start navigation to home
+
             // Don't tell self (we don't want this messages published as we are out of range
-            alertState.setValue(AlertState.CUT_OUT);
-            navigationState.setValue(NavigationState.UNAVAILABLE);
-            navigationStateReason.setValue(NavigationStateReason.CONNECTION_LOST);
+            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
+            tellSelf(new NavigationStateChangedMessage(
+                    NavigationState.IN_PROGRESS,
+                    NavigationStateReason.CONNECTION_LOST
+            ));
         }
         else {
             tellSelf(new AlertStateChangedMessage(AlertState.NONE));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.AVAILABLE,
-                    NavigationStateReason.ENABLED
-            ));
         }
         this.connectionLost = connectionLost;
     }
@@ -159,30 +148,19 @@ public class DroneActorSimulator extends DroneActor {
             }
 
             // Update current location
-            if (!connectionLost) {
-                tellSelf(new LocationChangedMessage(
-                        newLocation.getLongtitude(),
-                        newLocation.getLatitude(),
-                        newLocation.getHeigth()));
-            }
-            else {
-                location.setValue(newLocation);
-            }
+            tellSelf(new LocationChangedMessage(
+                    newLocation.getLongtitude(),
+                    newLocation.getLatitude(),
+                    newLocation.getHeigth()));
 
             // Check if we have arrived ore not
             if (timeTillArrival < timeStep) {
                 // We have arrived
-                if(!connectionLost) {
-                    tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-                    tellSelf(new NavigationStateChangedMessage(
-                            NavigationState.AVAILABLE,
-                            NavigationStateReason.FINISHED
-                    ));
-                } else {
-                    state.setValue(FlyingState.HOVERING);
-                    navigationState.setValue(NavigationState.AVAILABLE);
-                    navigationStateReason.setValue(NavigationStateReason.FINISHED);
-                }
+                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                tellSelf(new NavigationStateChangedMessage(
+                        NavigationState.AVAILABLE,
+                        NavigationStateReason.FINISHED
+                ));
             }
             else {
 
@@ -196,17 +174,11 @@ public class DroneActorSimulator extends DroneActor {
             }
         } else {
             // Flying aborted
-            if(!connectionLost) {
-                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-                tellSelf(new NavigationStateChangedMessage(
-                        NavigationState.AVAILABLE,
-                        NavigationStateReason.STOPPED
-                ));
-            } else {
-                state.setValue(FlyingState.HOVERING);
-                navigationState.setValue(NavigationState.AVAILABLE);
-                navigationStateReason.setValue(NavigationStateReason.STOPPED);
-            }
+            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+            tellSelf(new NavigationStateChangedMessage(
+                    NavigationState.AVAILABLE,
+                    NavigationStateReason.STOPPED
+            ));
         }
     }
 
