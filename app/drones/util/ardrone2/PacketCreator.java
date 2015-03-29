@@ -11,37 +11,6 @@ import drones.commands.ardrone2.atcommand.ATCommandREF;
  * Created by brecht on 3/9/15.
  */
 public class PacketCreator {
-
-    // REF COMMANDS
-    /**
-     *
-     * @return ByteString of Take-off command
-     */
-    public static ByteString createTakeOffPacket(int seq) {
-        // The 9th bit is the landing bit
-        int value = (1 << 9) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
-        return ByteString.fromString(new ATCommandREF(seq, value).toString());
-    }
-
-    /**
-     *
-     * @return ByteString of Landing command
-     */
-    public static ByteString createLandingPacket(int seq) {
-        int value = (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
-        return ByteString.fromString(new ATCommandREF(seq, value).toString());
-    }
-
-    /**
-     *
-     * @return ByteString of Emergency command
-     */
-    public static ByteString createEmergencyPacket(int seq) {
-        // The 8th bit is the emergency bit
-        int value = (1 << 8) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
-        return ByteString.fromString(new ATCommandREF(seq, value).toString());
-    }
-
     public static ByteString createPacket(ATCommand atcommand) {
         return ByteString.fromString(atcommand.toString());
     }

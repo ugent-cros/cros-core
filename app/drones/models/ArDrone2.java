@@ -8,6 +8,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.InitCompletedMessage;
+import drones.protocols.ardrone2.ArDrone2Protocol;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -24,7 +25,7 @@ public class ArDrone2 extends DroneActor {
     private final boolean hull;
     private final String ip;
     private final Object lock = new Object();
-    private final String DRONE_EXCEPTION = "Command not implemented";
+    private final String NOT_IMPLEMENTED = "Command not implemented";
 
     public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;
@@ -41,8 +42,8 @@ public class ArDrone2 extends DroneActor {
             if (initPromise == null) {
                 initPromise = p;
 
-                protocol = getContext().actorOf(Props.create(drones.protocols.ardrone2.ArDrone2.class,
-                        () -> new drones.protocols.ardrone2.ArDrone2(new DroneConnectionDetails(ip, 5556, 5554), ArDrone2.this.self())));
+                protocol = getContext().actorOf(Props.create(ArDrone2Protocol.class,
+                        () -> new ArDrone2Protocol(new DroneConnectionDetails(ip, 5556, 5554), ArDrone2.this.self())));
             }
         }
 
@@ -85,12 +86,12 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
-        p.failure(new DroneException(DRONE_EXCEPTION));
+        p.failure(new DroneException(NOT_IMPLEMENTED));
     }
 
     @Override
     protected void cancelMoveToLocation(Promise<Void> p) {
-        p.failure(new DroneException(DRONE_EXCEPTION));
+        p.failure(new DroneException(NOT_IMPLEMENTED));
     }
 
     @Override
@@ -100,7 +101,7 @@ public class ArDrone2 extends DroneActor {
 
     @Override
     protected void setMaxTilt(Promise<Void> p, float degrees) {
-        p.failure(new DroneException(DRONE_EXCEPTION));
+        p.failure(new DroneException(NOT_IMPLEMENTED));
     }
 
     @Override

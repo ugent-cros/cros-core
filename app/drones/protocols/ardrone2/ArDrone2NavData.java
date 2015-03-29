@@ -13,11 +13,9 @@ import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.models.FlyingState;
 import drones.util.ardrone2.PacketHelper;
-
 import java.net.InetSocketAddress;
 
 import static drones.models.ardrone2.NavData.*;
-import static drones.models.ardrone2.NavData.NAV_BATTERY_OFFSET;
 
 /**
  * Created by brecht on 3/25/15.

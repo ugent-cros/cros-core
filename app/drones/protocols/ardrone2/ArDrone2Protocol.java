@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by brecht on 3/7/15.
  */
-public class ArDrone2 extends UntypedActor {
+public class ArDrone2Protocol extends UntypedActor {
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private ActorRef senderRef;
@@ -47,7 +47,7 @@ public class ArDrone2 extends UntypedActor {
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
 
-    public ArDrone2(DroneConnectionDetails details, final ActorRef listener) {
+    public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
         this.details = details;
         // ArDrone 2 Model
@@ -118,7 +118,9 @@ public class ArDrone2 extends UntypedActor {
 
     private void handleReset() {
         log.info("[ARDRONE2] Reset");
-        sendData(PacketCreator.createEmergencyPacket(seq++));
+
+        int bitFields = (1 << 8) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
@@ -148,7 +150,9 @@ public class ArDrone2 extends UntypedActor {
 
     private void handleTakeoff() {
         log.info("[ARDRONE2] TakeOff");
-        sendData(PacketCreator.createTakeOffPacket(seq++));
+
+        int bitFields = (1 << 9) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
 
         Akka.system().scheduler().scheduleOnce(Duration.create(250, TimeUnit.MILLISECONDS),
                 getSelf(), new CalibrateCommand(), Akka.system().dispatcher(), null);
@@ -156,7 +160,9 @@ public class ArDrone2 extends UntypedActor {
 
     private void handleLand() {
         log.info("[ARDRONE2] Land");
-        sendData(PacketCreator.createLandingPacket(seq++));
+
+        int bitFields = (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
 
     /**
