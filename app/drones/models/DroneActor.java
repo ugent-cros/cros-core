@@ -384,6 +384,8 @@ public abstract class DroneActor extends AbstractActor {
 
     protected abstract void land(Promise<Void> p);
 
+    protected abstract void emergency(Promise<Void> p);
+
     protected abstract void move3d(Promise<Void> p, double vx, double vy, double vz, double vr);
 
     protected abstract void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude);
@@ -399,6 +401,8 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void setHull(Promise<Void> p, boolean hull);
 
     protected abstract void flatTrim(Promise<Void> p);
+
+    protected abstract void reset(Promise<Void> p);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

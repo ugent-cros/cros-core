@@ -222,4 +222,14 @@ public class Bepop extends DroneActor {
             p.failure(new DroneException("Failed to send command. Not initialized yet."));
         }
     }
+
+    @Override
+    protected void reset(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
+    }
+
+    @Override
+    protected void emergency(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
+    }
 }
