@@ -3,15 +3,12 @@ import akka.actor.Props;
 import drones.models.DroneCommander;
 import drones.models.DroneDriver;
 import drones.models.DroneException;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import drones.simulation.SimulatorDriver;
+import org.junit.*;
 import play.libs.Akka;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
-import drones.simulation.SimulatorDriver;
 
 import java.util.concurrent.TimeUnit;
 
@@ -89,6 +86,7 @@ public class DroneCommanderTest extends TestSuperclass {
         Await.result(future, TIME_OUT);
     }
 
+    @Ignore
     @Test
     public void move3d_Initialized_Succeeds() throws Exception {
         DroneCommander commander = createDroneCommander();
@@ -106,6 +104,7 @@ public class DroneCommanderTest extends TestSuperclass {
         Await.result(future, TIME_OUT);
     }
 
+    @Ignore
     @Test
     public void move_Initialized_Succeeds() throws Exception {
         DroneCommander commander = createDroneCommander();
