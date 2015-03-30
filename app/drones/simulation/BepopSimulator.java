@@ -27,6 +27,8 @@ public class BepopSimulator extends DroneActor {
         public FiniteDuration getTimeStep() { return timeStep; }
     }
 
+    private static final Location STERRE = new Location(51.0226, 3.71, 0);
+
     // Simulator properties
 
     // TODO: make drones.simulation properties settable
@@ -37,6 +39,7 @@ public class BepopSimulator extends DroneActor {
     protected double maxHeight;
     protected double topSpeed; // assume m/s
 
+
     // internal state
     private boolean crashed = false;
     private boolean connectionLost = false;
@@ -46,81 +49,50 @@ public class BepopSimulator extends DroneActor {
     private Location homeLocation;
     private boolean flyingToHome;
 
-    // Control stuff
+    public BepopSimulator() {
 
-    @Override
-    protected UnitPFBuilder<Object> createListeners() {
+        location.setValue(STERRE);
+        batteryPercentage.setValue((byte) 100);
+        rotation.setValue(new Rotation(0, 0, 0));
+        version.setValue(new DroneVersion("1.0", "1.0"));
+        gpsFix.setValue(false);
 
-        return ReceiveBuilder.
-                match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
-                match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
-                match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+        maxHeight = 10;
+        topSpeed = 10;
+
+        rebootDrone();
+
+        // Schedule drones.simulation loop
+        Akka.system().scheduler().schedule(
+                Duration.Zero(),
+                simulationTimeStep,
+                self(),
+                new StepSimulationMessage(simulationTimeStep),
+                Akka.system().dispatcher(),
+                self());
     }
 
-    protected void processBatteryLevel(byte percentage) {
+    // Utility methods
 
-        if(percentage < batteryLowLevel) {
+    public void rebootDrone() {
 
-            if (percentage == 0) {
-                // Drone shuts down
-                shutDownDrone();
-            }
-            else if (percentage < batteryCriticalLevel) {
+        if(batteryPercentage.getRawValue() > 0) {
+            state.setValue(FlyingState.LANDED);
+            alertState.setValue(AlertState.NONE);
+            speed.setValue(new Speed(0.0, 0.0, 0.0));
+            altitude.setValue(0.0);
+            navigationState.setValue(NavigationState.AVAILABLE);
+            navigationStateReason.setValue(NavigationStateReason.ENABLED);
 
-                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
-
-                // TODO: figure out what happens
-
-                /*
-                tellSelf(new LandRequestMessage());
-                tellSelf(new NavigationStateChangedMessage(
-                        NavigationState.UNAVAILABLE,
-                        NavigationStateReason.BATTERY_LOW));
-                */
-            }
-            else {
-                // Return to home on low battery
-                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
-                returnToHome(NavigationStateReason.BATTERY_LOW);
-            }
-        }
-    }
-
-    protected void setCrashed(boolean crashed) {
-
-        if (crashed) {
             flyingToHome = false;
-            tellSelf(new AltitudeChangedMessage(0.0));
-            tellSelf(new SpeedChangedMessage(0, 0, 0));
-            tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
-            tellSelf(new AlertStateChangedMessage(AlertState.USER_EMERGENCY));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.UNAVAILABLE,
-                    NavigationStateReason.STOPPED
-            ));
+            initialized = false;
         }
-        else {
-            rebootDrone();
-        }
-        this.crashed = crashed;
     }
 
-    protected void setConnectionLost(boolean connectionLost) {
-
-        // Disable/re-enable event bus
-        eventBus.setPublishDisabled(connectionLost);
-
-        if(connectionLost) {
-
-            // Should start navigation to home
-            returnToHome(NavigationStateReason.CONNECTION_LOST);
-            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
-        }
-        else {
-            tellSelf(new AlertStateChangedMessage(AlertState.NONE));
-        }
-        this.connectionLost = connectionLost;
+    public void shutDownDrone() {
+        flyingToHome = false;
+        setConnectionLost(true);
+        initialized = false;
     }
 
     private void returnToHome(NavigationStateReason reason) {
@@ -205,52 +177,81 @@ public class BepopSimulator extends DroneActor {
         self().tell(msg, self());
     }
 
+    // External control
 
-    public void rebootDrone() {
+    @Override
+    protected UnitPFBuilder<Object> createListeners() {
 
-        if(batteryPercentage.getRawValue() > 0) {
-            state.setValue(FlyingState.LANDED);
-            alertState.setValue(AlertState.NONE);
-            speed.setValue(new Speed(0.0, 0.0, 0.0));
-            altitude.setValue(0.0);
-            navigationState.setValue(NavigationState.AVAILABLE);
-            navigationStateReason.setValue(NavigationStateReason.ENABLED);
+        return ReceiveBuilder.
+                match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
+                match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
+                match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+    }
 
-            flyingToHome = false;
-            initialized = false;
+    protected void processBatteryLevel(byte percentage) {
+
+        if(percentage < batteryLowLevel) {
+
+            if (percentage == 0) {
+                // Drone shuts down
+                shutDownDrone();
+            }
+            else if (percentage < batteryCriticalLevel) {
+
+                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
+
+                // TODO: figure out what happens
+
+                /*
+                tellSelf(new LandRequestMessage());
+                tellSelf(new NavigationStateChangedMessage(
+                        NavigationState.UNAVAILABLE,
+                        NavigationStateReason.BATTERY_LOW));
+                */
+            }
+            else {
+                // Return to home on low battery
+                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
+                returnToHome(NavigationStateReason.BATTERY_LOW);
+            }
         }
     }
 
-    public void shutDownDrone() {
-        flyingToHome = false;
-        setConnectionLost(true);
-        initialized = false;
+    protected void setCrashed(boolean crashed) {
+
+        if (crashed) {
+            flyingToHome = false;
+            tellSelf(new AltitudeChangedMessage(0.0));
+            tellSelf(new SpeedChangedMessage(0, 0, 0));
+            tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
+            tellSelf(new AlertStateChangedMessage(AlertState.USER_EMERGENCY));
+            tellSelf(new NavigationStateChangedMessage(
+                    NavigationState.UNAVAILABLE,
+                    NavigationStateReason.STOPPED
+            ));
+        }
+        else {
+            rebootDrone();
+        }
+        this.crashed = crashed;
     }
 
-    private static final Location STERRE = new Location(51.0226, 3.71, 0);
+    protected void setConnectionLost(boolean connectionLost) {
 
+        // Disable/re-enable event bus
+        eventBus.setPublishDisabled(connectionLost);
 
-    public BepopSimulator() {
+        if(connectionLost) {
 
-        location.setValue(STERRE);
-        batteryPercentage.setValue((byte) 100);
-        rotation.setValue(new Rotation(0, 0, 0));
-        version.setValue(new DroneVersion("1.0", "1.0"));
-        gpsFix.setValue(false);
-
-        maxHeight = 10;
-        topSpeed = 10;
-
-        rebootDrone();
-
-        // Schedule drones.simulation loop
-        Akka.system().scheduler().schedule(
-                Duration.Zero(),
-                simulationTimeStep,
-                self(),
-                new StepSimulationMessage(simulationTimeStep),
-                Akka.system().dispatcher(),
-                self());
+            // Should start navigation to home
+            returnToHome(NavigationStateReason.CONNECTION_LOST);
+            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
+        }
+        else {
+            tellSelf(new AlertStateChangedMessage(AlertState.NONE));
+        }
+        this.connectionLost = connectionLost;
     }
 
     // Implementation of DroneActor
