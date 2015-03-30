@@ -10,6 +10,7 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -282,6 +283,7 @@ public class BepopSimulator extends DroneActor {
         if (connectionLost) return;
 
         //  Land
+        p.failure(new NotImplementedException());
     }
 
     @Override
@@ -372,8 +374,7 @@ public class BepopSimulator extends DroneActor {
             return;
         }
 
-        // TODO: need specification of this method
-        p.success(null);
+        p.failure(new NotImplementedException());
     }
 
     @Override
