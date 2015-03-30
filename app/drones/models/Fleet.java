@@ -6,6 +6,7 @@ import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
+import drones.simulation.SimulatorDriver;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
@@ -54,6 +55,8 @@ public class Fleet {
         ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
         registerDriver(ArDrone2Driver.ARDRONE2_TYPE, ardrone2Driver);
 
+        SimulatorDriver simulatorDriver = new SimulatorDriver();
+        registerDriver(SimulatorDriver.SIMULATOR_TYPE, simulatorDriver);
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
 
