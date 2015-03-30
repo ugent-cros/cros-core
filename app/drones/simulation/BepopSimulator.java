@@ -205,6 +205,7 @@ public class BepopSimulator extends DroneActor {
         self().tell(msg, self());
     }
 
+
     public void rebootDrone() {
 
         if(batteryPercentage.getRawValue() > 0) {
@@ -226,9 +227,12 @@ public class BepopSimulator extends DroneActor {
         initialized = false;
     }
 
+    private static final Location STERRE = new Location(51.0226, 3.71, 0);
+
+
     public BepopSimulator() {
 
-        location.setValue(new Location(0.0, 0.0, 0.0));
+        location.setValue(STERRE);
         batteryPercentage.setValue((byte) 100);
         rotation.setValue(new Rotation(0, 0, 0));
         version.setValue(new DroneVersion("1.0", "1.0"));
