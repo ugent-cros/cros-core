@@ -6,11 +6,7 @@ import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.models.BepopDriver;
-import drones.models.DroneCommander;
-import drones.models.DroneMonitor;
-import drones.models.Fleet;
-import drones.simulation.SimulatorDriver;
+import drones.models.*;
 import models.*;
 import play.libs.Akka;
 import play.libs.F;
@@ -56,6 +52,8 @@ public class Application extends Controller {
 
         List<Drone> drones = new ArrayList<>();
         DroneType bepop = new DroneType("ARDrone3", "bepop");
+        DroneType ardrone2 = new DroneType("ARDrone2", "ARDrone2");
+        drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
@@ -85,10 +83,11 @@ public class Application extends Controller {
     private static Drone testDroneEntity;
 
     public static F.Promise<Result> initDrone() {
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,  "localhost");
+        //testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "localhost");
+        testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
+
         testDroneEntity.save();
 
-        Fleet.getFleet().registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();

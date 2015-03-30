@@ -262,6 +262,24 @@ public class BepopSimulator extends DroneActor {
     }
 
     @Override
+    protected void reset(Promise<Void> p) {
+
+        if(connectionLost) return;
+
+        shutDownDrone();
+        rebootDrone();
+        init(p);
+    }
+
+    @Override
+    protected void emergency(Promise<Void> p) {
+
+        if (connectionLost) return;
+
+        //  Land
+    }
+
+    @Override
     protected void takeOff(Promise<Void> p) {
 
         if(connectionLost) {

@@ -12,13 +12,13 @@ import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
-import static akka.pattern.Patterns.ask;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+
+import static akka.pattern.Patterns.ask;
 
 /**
  * Created by Yasser.
@@ -50,6 +50,9 @@ public class Fleet {
 
         BepopDriver bepopDriver = new BepopDriver();
         registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
+
+        ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
+        registerDriver(ArDrone2Driver.ARDRONE2_TYPE, ardrone2Driver);
 
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
@@ -89,12 +92,10 @@ public class Fleet {
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
-
         DroneCommander commander = drones.get(droneEntity);
 
         // If commander does not exist yet, create it
         if (commander == null) {
-
             // Get the driver, if available
             DroneDriver driver = getDriver(droneEntity.getDroneType());
             if (driver == null)
