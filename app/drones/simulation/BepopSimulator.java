@@ -84,6 +84,7 @@ public class BepopSimulator extends DroneActor {
             altitude.setValue(0.0);
             navigationState.setValue(NavigationState.AVAILABLE);
             navigationStateReason.setValue(NavigationStateReason.ENABLED);
+            gpsFix.setValue(true);
 
             flyingToHome = false;
             initialized = false;
@@ -103,6 +104,7 @@ public class BepopSimulator extends DroneActor {
 
             flyingToHome = true;
 
+            tellSelf(new TakeOffRequestMessage());
             tellSelf(new NavigationStateChangedMessage(
                     NavigationState.PENDING,
                     reason
@@ -134,7 +136,7 @@ public class BepopSimulator extends DroneActor {
             Location currentLocation = location.getRawValue();
 
             // Calculate distance
-            double distance = Location.distance(currentLocation, homeLocation)/1000;  // km/1000 -> m
+            double distance = Location.distance(currentLocation, homeLocation);  // m
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
 
@@ -153,18 +155,13 @@ public class BepopSimulator extends DroneActor {
                         newLatitude,
                         newHeight));
             } else {
+                // We have arrived
+                flyingToHome = false;
                 tellSelf(new LocationChangedMessage(
                         homeLocation.getLongtitude(),
                         homeLocation.getLatitude(),
                         homeLocation.getHeigth()
                 ));
-            }
-
-            // Check if we have arrived ore not
-            if (timeTillArrival < timeStep) {
-                // We have arrived
-                flyingToHome = false;
-                // Update state
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
                 tellSelf(new NavigationStateChangedMessage(
                         NavigationState.AVAILABLE,
@@ -226,7 +223,7 @@ public class BepopSimulator extends DroneActor {
             tellSelf(new AltitudeChangedMessage(0.0));
             tellSelf(new SpeedChangedMessage(0, 0, 0));
             tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
-            tellSelf(new AlertStateChangedMessage(AlertState.USER_EMERGENCY));
+            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
             tellSelf(new NavigationStateChangedMessage(
                     NavigationState.UNAVAILABLE,
                     NavigationStateReason.STOPPED
