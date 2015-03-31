@@ -436,7 +436,6 @@ public class ArDrone3 extends UntypedActor {
             return;
 
         if(lastPing > 0 && time - lastPong > 3*PING_INTERVAL){
-            log.warning("Ping timeout");
             if(!isOffline){
                 isOffline = true;
                 listener.tell(new ConnectionStatusChangedMessage(false), getSelf());
