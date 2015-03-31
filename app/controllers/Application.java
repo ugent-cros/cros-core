@@ -85,6 +85,7 @@ public class Application extends Controller {
     public static F.Promise<Result> initDrone() {
         //testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "localhost");
         testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
+
         testDroneEntity.save();
 
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
