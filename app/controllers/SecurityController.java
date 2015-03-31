@@ -9,7 +9,11 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
+import utilities.ControllerHelper;
 import utilities.annotations.Authenticator;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by matthias on 20/02/2015.
@@ -51,6 +55,13 @@ public class SecurityController extends Controller {
         String authToken = user.getAuthToken();
         ObjectNode authTokenJson = Json.newObject();
         authTokenJson.put(AUTH_TOKEN, authToken);
+        List<ControllerHelper.Link> links = new ArrayList<>();
+        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
+
+        ObjectNode node = Json.newObject();
+        for(ControllerHelper.Link link : links)
+            node.put(link.getRel(), link.getPath());
+        authTokenJson.put("links", node);
 
         return ok(authTokenJson);
     }
