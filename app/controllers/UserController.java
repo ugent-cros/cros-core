@@ -84,7 +84,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -131,7 +131,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);

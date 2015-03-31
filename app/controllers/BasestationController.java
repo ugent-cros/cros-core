@@ -69,7 +69,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
@@ -93,7 +93,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);

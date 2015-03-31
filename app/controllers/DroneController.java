@@ -77,7 +77,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
@@ -104,7 +104,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);

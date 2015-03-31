@@ -71,7 +71,7 @@ public class AssignmentController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Assignment.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);
