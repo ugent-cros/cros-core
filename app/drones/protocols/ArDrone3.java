@@ -14,6 +14,7 @@ import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
+import drones.messages.ConnectionStatusChangedMessage;
 import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
@@ -61,6 +62,7 @@ public class ArDrone3 extends UntypedActor {
 
     private final ActorRef listener; //to respond messages to
 
+    private boolean isOffline = true;
     private long lastPong = 0;
     private long lastPing = 0;
 
@@ -200,6 +202,10 @@ public class ArDrone3 extends UntypedActor {
         long timeStamp = data.iterator().getLong(FrameHelper.BYTE_ORDER);
         long diff = now - timeStamp;
         log.debug("Pong received, RTT=[{}]ms.", diff);
+        if(isOffline){
+            isOffline = false;
+            listener.tell(new ConnectionStatusChangedMessage(true), getSelf());
+        }
     }
 
     private void processAck(Frame frame) {
@@ -338,6 +344,7 @@ public class ArDrone3 extends UntypedActor {
     private void droneDiscovered(DroneConnectionDetails details) {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
+        isOffline = false;
     }
 
     @Override
@@ -430,7 +437,10 @@ public class ArDrone3 extends UntypedActor {
 
         if(lastPing > 0 && time - lastPong > 3*PING_INTERVAL){
             log.warning("Ping timeout");
-            //TODO send connectionstatuschanged message
+            if(!isOffline){
+                isOffline = true;
+                listener.tell(new ConnectionStatusChangedMessage(false), getSelf());
+            }
         }
 
         if(time - lastPing > PING_INTERVAL){
