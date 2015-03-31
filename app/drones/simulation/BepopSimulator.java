@@ -253,6 +253,24 @@ public class BepopSimulator extends DroneActor {
     }
 
     // Implementation of DroneActor
+
+    private <T> boolean prematureExit(Promise<T> p) {
+        if(connectionLost) {
+            return true;
+        }
+
+        if(!initialized) {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+            return true;
+        }
+
+        if(crashed) {
+            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+            return true;
+        }
+        return false;
+    }
+
     @Override
     protected void init(Promise<Void> p) {
 
@@ -286,17 +304,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void takeOff(Promise<Void> p) {
 
-        if(connectionLost) {
-            return;
-        }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+        if (prematureExit(p)) {
             return;
         }
 
@@ -321,17 +329,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void land(Promise<Void> p) {
 
-        if(connectionLost) {
-            return;
-        }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+        if (prematureExit(p)) {
             return;
         }
 
@@ -357,17 +355,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void move3d(Promise<Void> p, double vx, double vy, double vz, double vr) {
 
-        if(connectionLost) {
-            return;
-        }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+        if (prematureExit(p)) {
             return;
         }
 
@@ -377,17 +365,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
 
-        if(connectionLost) {
-            return;
-        }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+        if (prematureExit(p)) {
             return;
         }
 
@@ -409,17 +387,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void cancelMoveToLocation(Promise<Void> p) {
 
-        if(connectionLost) {
-            return;
-        }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
+        if (prematureExit(p)) {
             return;
         }
 
@@ -440,21 +408,9 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
 
-        if(connectionLost) {
+        if (prematureExit(p)) {
             return;
         }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        /* TODO: necessary here?
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
-            return;
-        }
-        */
 
         maxHeight = meters;
         p.success(null);
@@ -463,21 +419,9 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void setMaxTilt(Promise<Void> p, float degrees) {
 
-        if(connectionLost) {
+        if (prematureExit(p)) {
             return;
         }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        /* TODO: necessary here?
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
-            return;
-        }
-        */
 
         p.success(null);
     }
@@ -485,21 +429,9 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void setOutdoor(Promise<Void> p, boolean outdoor) {
 
-        if(connectionLost) {
+        if (prematureExit(p)) {
             return;
         }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        /* TODO: necessary here?
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
-            return;
-        }
-        */
 
         // no effect on drones.simulation
         p.success(null);
@@ -508,21 +440,9 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void setHull(Promise<Void> p, boolean hull) {
 
-        if(connectionLost) {
+        if (prematureExit(p)) {
             return;
         }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        /* TODO: necessary here?
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
-            return;
-        }
-        */
 
         // No effect on drones.simulation
         p.success(null);
@@ -531,21 +451,9 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected void flatTrim(Promise<Void> p) {
 
-        if(connectionLost) {
+        if (prematureExit(p)) {
             return;
         }
-
-        if(!initialized) {
-            p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            return;
-        }
-
-        /* TODO: necessary here?
-        if(crashed) {
-            p.failure(new DroneException("Drone crashed, unable to execute commands"));
-            return;
-        }
-        */
 
         // TODO: find out what this should do
         p.success(null);
