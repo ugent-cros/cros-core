@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import models.Basestation;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
@@ -46,6 +47,8 @@ public class UserController {
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().url()));
+
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, User.class));
@@ -53,6 +56,11 @@ public class UserController {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", User.FIND.findRowCount()), User.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
