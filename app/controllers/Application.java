@@ -36,7 +36,6 @@ public class Application extends Controller {
         links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
-        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
         links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().url()));
 
         ObjectNode node = Json.newObject();

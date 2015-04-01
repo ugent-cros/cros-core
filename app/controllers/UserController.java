@@ -10,6 +10,7 @@ import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
+import scala.util.parsing.json.JSONObject$;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
@@ -48,7 +49,7 @@ public class UserController {
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
         links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().url()));
-
+        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, User.class));
@@ -163,7 +164,8 @@ public class UserController {
         if(client == null) {
             return unauthorized();
         }
-        return redirect(controllers.routes.UserController.get(client.getId()));
+
+        return get(client.getId());
     }
 
     @Authentication({User.Role.ADMIN})
