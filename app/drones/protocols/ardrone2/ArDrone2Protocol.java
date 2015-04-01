@@ -16,8 +16,12 @@ import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -54,7 +58,9 @@ public class ArDrone2Protocol extends UntypedActor {
         this.listener = listener;
         // UPD manager
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.AT_COMMAND.getPort())), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", /*DefaultPorts.AT_COMMAND.getPort()*/0)), getSelf());
+
+        // TCP manager
 
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
@@ -125,7 +131,7 @@ public class ArDrone2Protocol extends UntypedActor {
 
     private void droneDiscovered(DroneConnectionDetails details) {
         this.details = details;
-        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort()); // @TODO vervangen door conn details
+        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
         log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
 
@@ -268,6 +274,36 @@ public class ArDrone2Protocol extends UntypedActor {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
                 "control:flight_without_shell", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
+    }
+
+    private ProductVersionChangedMessage getVersion() throws IOException {
+        InetAddress droneAddr = InetAddress.getByName(details.getIp());
+        String ftpVersionFileLocation = String.format("ftp://%s:%s/version.txt", droneAddr.getHostAddress(), DefaultPorts.FTP);
+        InputStream is = null;
+        ByteArrayOutputStream bos = null;
+        try {
+            URL url = new URL(ftpVersionFileLocation);
+            URLConnection ftpConnection = url.openConnection();
+            is = ftpConnection.getInputStream();
+            bos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int readCount;
+            while ((readCount = is.read(buffer)) > 0) {
+                bos.write(buffer, 0, readCount);
+            }
+            System.out.println(bos.toString());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (null != bos) {
+                bos.close();
+            }
+            if (null != is) {
+                is.close();
+            }
+        }
     }
 
     public LoggingAdapter getLog(){

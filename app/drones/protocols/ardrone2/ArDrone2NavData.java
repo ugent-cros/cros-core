@@ -10,6 +10,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.messages.*;
+import drones.models.AlertState;
 import drones.models.DroneConnectionDetails;
 import drones.models.FlyingState;
 import drones.util.ardrone2.PacketHelper;
@@ -24,6 +25,7 @@ public class ArDrone2NavData extends UntypedActor {
 
     // Bytes to be sent to enable navdata
     private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
+    private static final int HEADER_VALUE = 0x55667788;
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private ActorRef senderRef;
@@ -31,16 +33,14 @@ public class ArDrone2NavData extends UntypedActor {
     private final ActorRef parent;
     private final ActorRef udpManager;
 
-    private DroneConnectionDetails details;
     private InetSocketAddress senderAddressNAV;
 
     public ArDrone2NavData(DroneConnectionDetails details, ActorRef listener, ActorRef parent) {
-        this.details = details;
         this.listener = listener;
         this.parent = parent;
 
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", DefaultPorts.NAV_DATA.getPort())), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", /*DefaultPorts.NAV_DATA.getPort()*/0)), getSelf());
 
         this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
     }
@@ -75,7 +75,7 @@ public class ArDrone2NavData extends UntypedActor {
 
     public boolean sendNavData(ByteString data) {
         if (senderAddressNAV != null && senderRef != null) {
-            log.info("[ARDRONE2NAVDATA] Sending NAV INIT data");
+            //log.info("[ARDRONE2NAVDATA] Sending NAV INIT data");
             senderRef.tell(UdpMessage.send(data, senderAddressNAV), getSelf());
             return true;
         } else {
@@ -105,7 +105,14 @@ public class ArDrone2NavData extends UntypedActor {
 
     private void processData(byte[] navdata) {
         if(navdata.length >= 100 ) { // Otherwise this will crash
+            int header = PacketHelper.getInt(navdata, NAV_HEADER_OFFSET.getOffset());
+            if(header != HEADER_VALUE) {
+                log.info("Wrong header received");
+                return;
+            }
+
             int state = PacketHelper.getInt(navdata, NAV_STATE_OFFSET.getOffset());
+            int ctrl_state = PacketHelper.getInt(navdata, NAV_CTRL_STATE_OFFSET.getOffset()) >> 16;
             int battery = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
             float altitude = PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET.getOffset()) / 1000f;
             float pitch = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
@@ -113,16 +120,17 @@ public class ArDrone2NavData extends UntypedActor {
             float yaw = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
             //float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
             //float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
+            float vx = PacketHelper.getFloat(navdata, NAV_VX_OFFSET.getOffset());
+            float vy = PacketHelper.getFloat(navdata, NAV_VY_OFFSET.getOffset());
+            float vz = PacketHelper.getFloat(navdata, NAV_VZ_OFFSET.getOffset());
 
-            Object stateMessage;
-            if ((state & 1) == 0) {
-                stateMessage = new FlyingStateChangedMessage(FlyingState.LANDED);
-                log.info("Landed");
+            if ((state & (1 << 31)) == 0) {
+                Object stateMessage = new FlyingStateChangedMessage(parseCtrlState(ctrl_state));
+                listener.tell(stateMessage, getSelf());
             } else {
-                stateMessage = new FlyingStateChangedMessage(FlyingState.FLYING);
-                log.info("Flying");
+                Object stateMessage = new FlyingStateChangedMessage(FlyingState.EMERGENCY);
+                listener.tell(stateMessage, getSelf());
             }
-            listener.tell(stateMessage, getSelf());
 
             Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
             listener.tell(batteryMessage, getSelf());
@@ -130,8 +138,48 @@ public class ArDrone2NavData extends UntypedActor {
             Object altitudeMessage = new AltitudeChangedMessage(altitude);
             listener.tell(altitudeMessage, getSelf());
 
+            Object speedMessage = new SpeedChangedMessage(vx, vy, vz);
+            listener.tell(speedMessage, getSelf());
+
             Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
             listener.tell(attitudeMessage, getSelf());
+
+            checkAlertState(state);
+        }
+    }
+
+    private void checkAlertState(int state) {
+        if ((state & (1 << 15)) == 1) {
+            Object alertMessage = new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL);
+            listener.tell(alertMessage, getSelf());
+        }
+
+        if ((state & (1 << 31)) == 1) {
+            Object alertMessage = new AlertStateChangedMessage(AlertState.USER_EMERGENCY);
+            listener.tell(alertMessage, getSelf());
+        }
+    }
+
+    private FlyingState parseCtrlState(int state) {
+        switch(state) {
+            case 2:
+                log.info("Landed");
+                return FlyingState.LANDED;
+            case 3:
+                log.info("Flying");
+                return FlyingState.FLYING;
+            case 4:
+                log.info("Hovering");
+                return FlyingState.HOVERING;
+            case 6:
+                log.info("Taking off");
+                return FlyingState.TAKINGOFF;
+            case 8:
+                log.info("Landing");
+                return FlyingState.LANDING;
+            default:
+                log.info("Unknown state discovered");
+                return null;
         }
     }
 }

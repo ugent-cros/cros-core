@@ -27,17 +27,13 @@ public class ArDrone2ResetWDG extends UntypedActor {
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private ActorRef senderRef;
     private final ActorRef udpManager;
-
-    private DroneConnectionDetails details;
     private InetSocketAddress senderAddressATC;
 
     private ByteString data = PacketCreator.createPacket(new ATCommandCOMWDG(1));
 
     public ArDrone2ResetWDG(DroneConnectionDetails details) {
-        this.details = details;
-
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 43256)), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 0)), getSelf());
 
         this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
     }
