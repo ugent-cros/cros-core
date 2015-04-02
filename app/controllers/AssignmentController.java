@@ -4,8 +4,10 @@ import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import models.Assignment;
+import models.Drone;
 import models.User;
 import play.data.Form;
+import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
@@ -36,6 +38,7 @@ public class AssignmentController {
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("total", controllers.routes.AssignmentController.getTotal().url()));
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Assignment.class));
@@ -43,6 +46,11 @@ public class AssignmentController {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", Assignment.FIND.findRowCount()), Assignment.class));
     }
 
     @Authentication({User.Role.READONLY_ADMIN, User.Role.ADMIN})
@@ -63,7 +71,7 @@ public class AssignmentController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Assignment.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Assignment> form = Form.form(Assignment.class).bind(strippedBody);

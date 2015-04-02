@@ -71,7 +71,7 @@ public class Fleet {
 
     /* Instance */
 
-    private ConcurrentMap<Drone, DroneCommander> drones;
+    private ConcurrentMap<Long, DroneCommander> drones;
 
     public Fleet(){
         drones = new ConcurrentHashMap<>();
@@ -109,7 +109,7 @@ public class Fleet {
                     Props.create(driver.getActorClass(),
                             () -> driver.createActor(droneEntity)));
             commander = new DroneCommander(ref);
-            drones.put(droneEntity, commander);
+            drones.put(droneEntity.getId(), commander);
         }
 
         return commander;

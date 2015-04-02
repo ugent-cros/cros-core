@@ -44,6 +44,7 @@ public class DroneController {
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("total", controllers.routes.DroneController.getTotal().url()));
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Drone.class));
@@ -51,6 +52,11 @@ public class DroneController {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", Drone.FIND.findRowCount()), Drone.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -71,7 +77,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
@@ -98,7 +104,7 @@ public class DroneController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Drone> droneForm = Form.form(Drone.class).bind(strippedBody);
