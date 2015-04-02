@@ -22,6 +22,12 @@ public class PacketHelper {
             return b.result().concat(packet.getData());
     }
 
+    public static ByteString getPingPacket(long epoch){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putLong(epoch, FrameHelper.BYTE_ORDER);
+        return b.result();
+    }
+
     public static String readString(ByteIterator it){
         // Reads null terminated string
         StringBuilder b = new StringBuilder();
