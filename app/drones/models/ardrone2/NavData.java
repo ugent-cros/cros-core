@@ -16,8 +16,9 @@ public enum NavData {
     NAV_VX_OFFSET(44),
     NAV_VY_OFFSET(48),
     NAV_VZ_OFFSET(52),
-    NAV_LATITUDE_OFFSET(44),
-    NAV_LONGITUDE_OFFSET(48);
+    // REST OF NAVDATA_DEMO IS UNUSED
+    NAV_LATITUDE_OFFSET(44), // @TODO
+    NAV_LONGITUDE_OFFSET(48); // @TODO
 
     private int offset;
 

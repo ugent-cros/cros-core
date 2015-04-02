@@ -43,8 +43,8 @@ public class ArDrone2Protocol extends UntypedActor {
     private int seq = 0;
 
     // Session IDs
-    private static final String ARDRONE_SESSION_ID     = "d2e081a3";      // SessionID
-    private static final String ARDRONE_PROFILE_ID     = "be27e2e4";      // Profile ID
+    private static final String ARDRONE_SESSION_ID     = "d2e081a3";  // SessionID
+    private static final String ARDRONE_PROFILE_ID     = "be27e2e4";  // Profile ID
     private static final String ARDRONE_APPLOCATION_ID = "d87f7e0c";  // Application ID
 
     // Watchdog reset actor
@@ -58,9 +58,7 @@ public class ArDrone2Protocol extends UntypedActor {
         this.listener = listener;
         // UPD manager
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", /*DefaultPorts.AT_COMMAND.getPort()*/0)), getSelf());
-
-        // TCP manager
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 0)), getSelf());
 
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
@@ -177,6 +175,13 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleInit() {
         log.info("[ARDRONE2] Initializing ARDrone 2.0");
 
+        try {
+            getVersion();
+        } catch (IOException ex) {
+            log.info("IOException");
+            ex.printStackTrace();
+        }
+
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
@@ -207,6 +212,7 @@ public class ArDrone2Protocol extends UntypedActor {
 
     private void sendInitNavData() {
         log.info("[ARDRONE2] Init completed");
+
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
@@ -243,7 +249,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
             boolean mode = Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0;
 
-            // Nomarization (-1.0 to +1.0)
+            // Normalization (-1.0 to +1.0)
             for (int i = 0; i < 4; i++) {
                 if (Math.abs(v[i]) > 1.0) {
                     v[i] /= Math.abs(v[i]);
@@ -252,8 +258,6 @@ public class ArDrone2Protocol extends UntypedActor {
 
             sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, mode ? 1 : 0,
                     v[1], v[0], v[2], v[3])));
-
-            log.info("[ARDRONE2 MOVE] y: {}, x: {}, z: {}, r: {}", v[0], v[1], v[2], v[3]);
 
             Akka.system().scheduler().scheduleOnce(Duration.create(1000, TimeUnit.MILLISECONDS),
                     getSelf(), new StopMoveMessage(), Akka.system().dispatcher(), null);
@@ -276,26 +280,31 @@ public class ArDrone2Protocol extends UntypedActor {
                 "control:flight_without_shell", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
     }
 
-    private ProductVersionChangedMessage getVersion() throws IOException {
+    private void getVersion() throws IOException {
         InetAddress droneAddr = InetAddress.getByName(details.getIp());
-        String ftpVersionFileLocation = String.format("ftp://%s:%s/version.txt", droneAddr.getHostAddress(), DefaultPorts.FTP);
         InputStream is = null;
         ByteArrayOutputStream bos = null;
+
         try {
+            String ftpVersionFileLocation = String.format("ftp://%s:%s/version.txt",
+                    droneAddr.getHostAddress(), DefaultPorts.FTP.getPort()); // e.g. ftp://192.168.1.1:5551/version.txt
             URL url = new URL(ftpVersionFileLocation);
             URLConnection ftpConnection = url.openConnection();
+
             is = ftpConnection.getInputStream();
             bos = new ByteArrayOutputStream();
+
             byte[] buffer = new byte[1024];
             int readCount;
             while ((readCount = is.read(buffer)) > 0) {
                 bos.write(buffer, 0, readCount);
             }
-            System.out.println(bos.toString());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+
+            Object versionMessage = new ProductVersionChangedMessage(bos.toString(), "2.0");
+            listener.tell(versionMessage, getSelf());
         } catch (IOException e) {
             e.printStackTrace();
+            log.info("[ARDRONE2] Version retrieving failed: MalformedURLException");
         } finally {
             if (null != bos) {
                 bos.close();
