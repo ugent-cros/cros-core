@@ -61,4 +61,30 @@ public class Location implements Serializable {
     public static double fromDegrees(short degrees, short minutes, short seconds){
         return degrees + minutes/60f + seconds/3600f;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Location location = (Location) o;
+
+        if (Double.compare(location.latitude, latitude) != 0) return false;
+        if (Double.compare(location.longtitude, longtitude) != 0) return false;
+        return Double.compare(location.heigth, heigth) == 0;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(latitude);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(longtitude);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(heigth);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
+    }
 }
