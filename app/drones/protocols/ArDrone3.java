@@ -274,6 +274,7 @@ public class ArDrone3 extends UntypedActor {
                                     + MAX_FRAME_SIZE + ")");
                 } else if (current.length() < length) {
                     recvBuffer = current;
+                    log.warning("Received half a packet.");
                     break;
                 } else {
                     ByteIterator it = current.iterator();

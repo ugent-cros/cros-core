@@ -39,9 +39,12 @@ public class Location implements Serializable {
         return res[0];
     }
 
-    public static float getHeading(Location l1, Location l2){
+    public static float getBearing(Location l1, Location l2){
         float[] res = computeDistanceAndBearing(l1, l2);
-        return res[1];
+        float bearing = res[1];
+        if(bearing < 0)
+            bearing = 360 + bearing;
+        return bearing;
     }
 
     public static short getDegrees(float num){

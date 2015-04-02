@@ -12,6 +12,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
+import drones.util.Compass;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -21,6 +22,8 @@ import scala.concurrent.duration.Duration;
  * Created by Cedric on 3/8/2015.
  */
 public abstract class DroneActor extends AbstractActor {
+
+    private static final Location DEFAULT_LOCATION = new Location(51.046274, 3.724952, 0); // default location for magnetic declination at Ghent
 
     protected LazyProperty<FlyingState> state;
     protected LazyProperty<AlertState> alertState;
@@ -114,7 +117,9 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(AttitudeChangedMessage.class, s -> {
-                    rotation.setValue(new Rotation(s.getRoll(), s.getPitch(), s.getYaw()));
+                    Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
+                    rotation.setValue(rot);
+                    processOrientation(rot);
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(AltitudeChangedMessage.class, s -> {
@@ -144,6 +149,38 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
+    }
+
+    private void processOrientation(Rotation rot){
+        // Calculate heading
+        // Extra reference: http://stackoverflow.com/questions/4308262/calculate-compass-bearing-heading-to-location-in-android
+
+        double compass = rot.getYaw();
+        // Some magnetosensors aren't calibrated, use following procedure:
+        //compass = Compass.calculateHeading(compass, DEFAULT_LOCATION);
+
+        compass = compass < 0 ? compass + (2*Math.PI) : compass;
+        double degrees = Math.toDegrees(compass); // Heading of the compass
+
+        // Now try to calculate the heading to the location
+        Location currentLocation = new Location(51.045051, 3.730360, 0);
+        Location toLocation = new Location(51.046279, 3.724921, 0);
+
+        float bearing = Location.getBearing(currentLocation, toLocation); // Absolute heading from start to target (relative to 0)
+        float correction = bearing - (float)degrees; // Calculate relative heading for current drone rotation
+        if(correction > 180f){    // Change direction to the left when angle > 180
+            correction = (360 - correction) * -1f;
+        } else if(correction < -180){ // change direction to right when angle < -180
+            correction += 360;
+        }
+
+        if(Math.abs(correction) < 5){
+            log.info("Pointing towards target. Heading; [{}], Target=[{}]", degrees, bearing);
+        } else if(correction < 0){
+            log.info("Requires correction to left: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
+        } else if(correction > 0){
+            log.info("Requires correction to right: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
+        }
     }
 
     @Override

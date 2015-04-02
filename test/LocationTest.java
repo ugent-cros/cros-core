@@ -31,10 +31,16 @@ public class LocationTest {
     }
 
     @Test
-    public void testHeading(){
+    public void testBearing(){
         Location plateau = new Location(51.046273, 3.724918, 0);
         Location other = new Location(51.054057, 3.732049, 0);
-        float heading = Location.getHeading(plateau, other);
-        Assert.assertEquals(heading, 30f, 1f);
+        float bearing = Location.getBearing(plateau, other);
+        Assert.assertEquals(bearing, 30f, 1f);
+
+        Location currentLocation = new Location(51.045051, 3.730360, 0);
+        Location toLocation = new Location(51.046279, 3.724921, 0);
+
+        bearing = Location.getBearing(currentLocation, toLocation);
+        System.out.println(bearing);
     }
 }
