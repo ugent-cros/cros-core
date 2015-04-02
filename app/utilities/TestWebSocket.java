@@ -9,9 +9,11 @@ import drones.messages.AltitudeChangedMessage;
 import drones.messages.BatteryPercentageChangedMessage;
 import drones.messages.LocationChangedMessage;
 import models.Drone;
+import play.Logger;
 import play.libs.Json;
 
 import java.io.Serializable;
+import java.util.function.Function;
 
 /**
  * Created by matthias on 24/03/2015.
@@ -24,76 +26,49 @@ public class TestWebSocket extends UntypedActor {
 
     private final ActorRef out;
 
+    private byte percentage = 100;
+    private double altitude = 2.0;
+    private double latitude = 3.5;
+    private int notification = 0;
+
     public TestWebSocket(ActorRef out) {
         this.out = out;
 
         Drone testDroneEntity = Drone.FIND.all().get(0);
-        /*DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
-        d.subscribeTopic(out, BatteryPercentageChangedMessage.class);*/
-        byte percentage = 100;
-        double altitude = 2.0;
-        double longitude = 1.0;
-        byte amoutOfTypes = 4;
-        int notification = 1;
-        byte currentType = 0;
-        int currentId = 1;
-        int notificationSkip = 0;
-        while(true) {
-            Serializable message = null;
-            switch (currentType) {
-                case 0:
-                    message = new BatteryPercentageChangedMessage(percentage);
-                    percentage = (byte) (percentage == 0 ? 100 : percentage - 10);
-                    break;
-                case 1:
-                    message = new AltitudeChangedMessage(altitude);
-                    altitude = (altitude <= 0.1) ? 2.0 : (altitude - 0.1);
-                    break;
-                case 2:
-                    message = new LocationChangedMessage(longitude,5.,1.);
-                    longitude = 1.0 - longitude;
-                    break;
-                case 3:
-                    message = new NotificationMessage("this is notification number " + notification);
-                    notification++;
-                    currentId = currentId == 4 ? 1 : (++currentId);
-                    break;
-            }
 
-            String type = "";
-            switch (currentType) {
-                case 0:
-                    type = "batteryPercentageChanged";
-                    break;
-                case 1:
-                    type = "altitudeChanged";
-                    break;
-                case 2:
-                    type = "locationChanged";
-                    break;
-                case 3:
-                    type = "notification";
-                    notificationSkip = (++notificationSkip) % 5;
-                    break;
-            }
-            // TODO: fix adding root element
-            ObjectNode node = Json.newObject();
-            node.put("type", type);
-            node.put("id", currentId);
-            node.put("value", Json.toJson(message));
-            try {
-                if (!type.equals("notification") || notificationSkip == 0) {
-                    out.tell(node.toString(), self());
-                }
-                Thread.sleep(100);
-            } catch (Exception e) {
-                //e.printStackTrace();
-                break;
-            }
-            currentType = (byte) ((currentType + 1) % amoutOfTypes);
+        MessageGenerator generator1 = new MessageGenerator("batteryPercentageChanged",1,this.out,self(), 1000, (Void) -> {return getNewPercentageMessage();});
+        new Thread(generator1).start();
+        MessageGenerator generator2 = new MessageGenerator("altitudeChanged",1,this.out,self(), 750, (Void) -> {return getNewAlititudeMessage();});
+        new Thread(generator2).start();
+        MessageGenerator generator3 = new MessageGenerator("locationChanged",1,this.out,self(), 1000, (Void) -> {return getNewLocationMessage();});
+        new Thread(generator3).start();
+        MessageGenerator generator4 = new MessageGenerator("notification",1,this.out,self(), 3000, (Void) -> {return getNewNotificationMessage();});
+        new Thread(generator4).start();
+
+        out.tell("dit is een test bericht", self());
+    }
+
+    public Serializable getNewPercentageMessage() {
+        percentage = (byte) (percentage == 0 ? 100 : percentage - 10);
+        return new BatteryPercentageChangedMessage(percentage);
+    }
+
+    public Serializable getNewAlititudeMessage() {
+        altitude = (altitude <= 0.1) ? 2.0 : (altitude - 0.1);
+        return new AltitudeChangedMessage(altitude);
+    }
+
+    public Serializable getNewLocationMessage() {
+        latitude+= 0.01;
+        if (latitude > 180) {
+            latitude = -180;
         }
+        return new LocationChangedMessage(51.,latitude,1.);
+    }
 
-        self().tell(PoisonPill.getInstance(), self());
+    public Serializable getNewNotificationMessage() {
+        notification++;
+        return new NotificationMessage("this is notification number " + notification);
     }
 
     @Override
@@ -110,6 +85,44 @@ public class TestWebSocket extends UntypedActor {
 
         public String getMessage() {
             return message;
+        }
+    }
+
+    public class MessageGenerator implements Runnable {
+
+        private String messageType;
+        private int id;
+        private ActorRef self;
+        private ActorRef out;
+        private Function<Void,Serializable> function;
+        private int interval;
+
+        public MessageGenerator(String messageType, int id, ActorRef out, ActorRef self, int interval, Function<Void,Serializable> function) {
+            this.messageType = messageType;
+            this.id = id;
+            this.out = out;
+            this.self = self;
+            this.function = function;
+            this.interval = interval;
+        }
+
+        @Override
+        public void run() {
+            while(true) {
+                try {
+                    Serializable message = function.apply(null);
+
+                    ObjectNode node = Json.newObject();
+                    node.put("type", messageType);
+                    node.put("id", id);
+                    node.put("value", Json.toJson(message));
+                    out.tell(node.toString(),self);
+                    Thread.sleep(interval);
+                } catch (Exception e) {
+                    Logger.error(e.getMessage(),e);
+                    self.tell(PoisonPill.getInstance(), self());
+                }
+            }
         }
     }
 }
