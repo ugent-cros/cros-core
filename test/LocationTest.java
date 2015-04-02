@@ -14,11 +14,11 @@ public class LocationTest {
         Location plateau = new Location(51.046274, 3.724952, 0);
         Location brug = new Location(51.045681, 3.726754, 0);
         double distance = Location.distance(plateau, brug);
-        Assert.assertTrue(Math.abs(distance - 145) < 5d);
+        Assert.assertEquals(distance, 145, 5d);
 
         // Distance Zuiderpoort - plateau =  1,32 km
         Location zuiderpoort = new Location(51.036316, 3.735273, 0);
         distance =  Location.distance(plateau, zuiderpoort);
-        Assert.assertTrue(Math.abs(distance - 1320) < 10);
+        Assert.assertEquals(distance, 1320, 10d);
     }
 }
