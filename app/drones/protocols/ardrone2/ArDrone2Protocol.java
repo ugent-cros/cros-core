@@ -179,7 +179,6 @@ public class ArDrone2Protocol extends UntypedActor {
             getVersion();
         } catch (IOException ex) {
             log.info("IOException");
-            ex.printStackTrace();
         }
 
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
@@ -303,7 +302,6 @@ public class ArDrone2Protocol extends UntypedActor {
             Object versionMessage = new ProductVersionChangedMessage(bos.toString(), "2.0");
             listener.tell(versionMessage, getSelf());
         } catch (IOException e) {
-            e.printStackTrace();
             log.info("[ARDRONE2] Version retrieving failed: MalformedURLException");
         } finally {
             if (null != bos) {
