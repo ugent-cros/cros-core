@@ -58,17 +58,17 @@ public class TestDroneActor extends DroneActor {
 
     @Override
     protected void setOutdoor(Promise<Void> p, boolean outdoor) {
-
+        p.success(null);
     }
 
     @Override
     protected void setHull(Promise<Void> p, boolean hull) {
-
+        p.success(null);
     }
 
     @Override
     protected void flatTrim(Promise<Void> p) {
-
+        p.success(null);
     }
 
     @Override

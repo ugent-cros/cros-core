@@ -12,6 +12,7 @@ import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -147,4 +148,25 @@ public class DroneActorTest extends TestSuperclass{
         // Cleanup
         sub.tell(new StopMessage(), null);
     }
+
+    @Test
+    public void flattrim_Arrives() throws InterruptedException, TimeoutException {
+        Await.ready(commander.flatTrim(), TIMEOUT); //will throw when failed
+    }
+
+    @Test
+    public void setHull_Arrives() throws InterruptedException, TimeoutException {
+        Await.ready(commander.setHull(false), TIMEOUT); //will throw when failed
+    }
+
+    @Test
+    public void setOutdoor_Arrives() throws InterruptedException, TimeoutException {
+        Await.ready(commander.setOutdoor(false), TIMEOUT); //will throw when failed
+    }
+
+    @Test
+    public void calibrate_Arrives() throws InterruptedException, TimeoutException {
+        Await.ready(commander.calibrate(false, false), TIMEOUT); //will throw when failed
+    }
+
 }
