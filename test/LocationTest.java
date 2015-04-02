@@ -21,12 +21,20 @@ public class LocationTest {
         // Distance plateau-brug = 145
         Location plateau = new Location(51.046274, 3.724952, 0);
         Location brug = new Location(51.045681, 3.726754, 0);
-        double distance = Location.distance(plateau, brug);
-        Assert.assertEquals(distance, 145, 5d);
+        float distance = Location.distance(plateau, brug);
+        Assert.assertEquals(distance, 145, 5f);
 
         // Distance Zuiderpoort - plateau =  1,32 km
         Location zuiderpoort = new Location(51.036316, 3.735273, 0);
         distance =  Location.distance(plateau, zuiderpoort);
-        Assert.assertEquals(distance, 1320, 10d);
+        Assert.assertEquals(distance, 1320, 10f);
+    }
+
+    @Test
+    public void testHeading(){
+        Location plateau = new Location(51.046273, 3.724918, 0);
+        Location other = new Location(51.054057, 3.732049, 0);
+        float heading = Location.getHeading(plateau, other);
+        Assert.assertEquals(heading, 30f, 1f);
     }
 }
