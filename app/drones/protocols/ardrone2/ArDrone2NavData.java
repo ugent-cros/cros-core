@@ -173,7 +173,7 @@ public class ArDrone2NavData extends UntypedActor {
 
         if ((state & (1 << State.BATTERY_TOO_LOW.getOffset())) == 1) {
             Object alertMessage = new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL);
-            listener.tell(alertMessage, getSelf());;
+            listener.tell(alertMessage, getSelf());
         }
 
         if ((state & (1 << State.EMERGENCY.getOffset())) == 1) {

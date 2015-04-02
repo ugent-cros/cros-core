@@ -25,7 +25,7 @@ public class ArDrone2 extends DroneActor {
     private final boolean hull;
     private final String ip;
     private final Object lock = new Object();
-    private final String NOT_IMPLEMENTED = "Command not implemented";
+    private static final String NOT_IMPLEMENTED = "Command not implemented";
 
     public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;

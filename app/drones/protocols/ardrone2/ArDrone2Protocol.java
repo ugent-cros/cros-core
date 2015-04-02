@@ -71,7 +71,6 @@ public class ArDrone2Protocol extends UntypedActor {
             senderRef = getSender();
             // Setup handlers
             getContext().become(ReceiveBuilder
-                    .match(Udp.Received.class, s -> processRawData(s.data()))
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
@@ -105,10 +104,6 @@ public class ArDrone2Protocol extends UntypedActor {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
-    }
-
-    private void processRawData(ByteString data) {
-        log.info("[ARDRONE2] Unexpected data received");
     }
 
     private void handleStopMove() {
@@ -178,7 +173,7 @@ public class ArDrone2Protocol extends UntypedActor {
         try {
             getVersion();
         } catch (IOException ex) {
-            log.info("IOException");
+            log.error("[ARDRONE2] IOException:" + ex.getMessage());
         }
 
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
@@ -302,7 +297,7 @@ public class ArDrone2Protocol extends UntypedActor {
             Object versionMessage = new ProductVersionChangedMessage(bos.toString(), "2.0");
             listener.tell(versionMessage, getSelf());
         } catch (IOException e) {
-            log.info("[ARDRONE2] Version retrieving failed: MalformedURLException");
+            log.error("[ARDRONE2]" + e.getMessage());
         } finally {
             if (null != bos) {
                 bos.close();
