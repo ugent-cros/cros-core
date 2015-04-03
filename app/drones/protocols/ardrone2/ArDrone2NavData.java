@@ -107,7 +107,7 @@ public class ArDrone2NavData extends UntypedActor {
         if(navdata.length >= 100 ) { // Otherwise this will crash
             int header = PacketHelper.getInt(navdata, NAV_HEADER_OFFSET.getOffset());
             if(header != HEADER_VALUE) {
-                log.info("Wrong header received");
+                log.warning("Wrong header received");
                 return;
             }
 
@@ -124,9 +124,9 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void attitudeChanged(byte[] navdata) {
-        float pitch = PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000f;
-        float roll = PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000f;
-        float yaw = PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000f;
+        float pitch = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000);
+        float roll = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000);
+        float yaw = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000);
 
         Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
         listener.tell(attitudeMessage, getSelf());
@@ -183,12 +183,16 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void positionChanged(byte[] navdata) {
-        float latitude  = PacketHelper.getFloat(navdata, NAV_LATITUDE_OFFSET.getOffset());
-        float longitude = PacketHelper.getFloat(navdata, NAV_LONGITUDE_OFFSET.getOffset());
-        float altitude = PacketHelper.getInt(navdata, NAV_ALTITUDE_OFFSET.getOffset()) / 1000f;
+        boolean gpsAvailable = PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
 
-        Object locationMessage = new LocationChangedMessage(longitude, latitude, altitude);
-        listener.tell(locationMessage, getSelf());
+        if(gpsAvailable) {
+            float latitude = PacketHelper.getFloat(navdata, NAV_GPS_LATITUDE_OFFSET.getOffset());
+            float longitude = PacketHelper.getFloat(navdata, NAV_GPS_LONGITUDE_OFFSET.getOffset());
+            float altitude = PacketHelper.getInt(navdata, NAV_GPS_ELEVATION_OFFSET.getOffset()) / 1000f;
+
+            Object locationMessage = new LocationChangedMessage(longitude, latitude, altitude);
+            listener.tell(locationMessage, getSelf());
+        }
     }
 
     private FlyingState parseCtrlState(int state) {
