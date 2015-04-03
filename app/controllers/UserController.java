@@ -5,12 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Basestation;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
-import scala.util.parsing.json.JSONObject$;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
@@ -245,9 +243,9 @@ public class UserController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", routes.UserController.get(id).url()));
-        links.add(new ControllerHelper.Link("getAuthToken", routes.UserController.getUserAuthToken(id).url()));
-        links.add(new ControllerHelper.Link("invalidateAuthToken", routes.UserController.invalidateAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.get(id).url()));
+        links.add(new ControllerHelper.Link("getAuthToken", controllers.routes.UserController.getUserAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("invalidateAuthToken", controllers.routes.UserController.invalidateAuthToken(id).url()));
         return links;
     }
 

@@ -6,7 +6,10 @@ import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.models.*;
+import drones.models.ArDrone2Driver;
+import drones.models.DroneCommander;
+import drones.models.DroneMonitor;
+import drones.models.Fleet;
 import models.*;
 import play.libs.Akka;
 import play.libs.F;
@@ -112,7 +115,17 @@ public class Application extends Controller {
     }
 
     public static WebSocket<String> testSocket() {
-        return WebSocket.withActor(TestWebSocket::props);
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(TestWebSocket::props);
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
     }
 
     public static WebSocket<String> socket() {

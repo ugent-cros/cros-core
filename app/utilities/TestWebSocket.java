@@ -36,7 +36,6 @@ public class TestWebSocket extends UntypedActor {
 
         Drone testDroneEntity = Drone.FIND.all().get(0);
 
-        System.out.println("brol");
         MessageGenerator generator1 = new MessageGenerator("batteryPercentageChanged",1,this.out,self(), 1000, (Void) -> {return getNewPercentageMessage();});
         new Thread(generator1).start();
         MessageGenerator generator2 = new MessageGenerator("altitudeChanged",1,this.out,self(), 750, (Void) -> {return getNewAlititudeMessage();});
@@ -45,8 +44,6 @@ public class TestWebSocket extends UntypedActor {
         new Thread(generator3).start();
         MessageGenerator generator4 = new MessageGenerator("notification",1,this.out,self(), 3000, (Void) -> {return getNewNotificationMessage();});
         new Thread(generator4).start();
-
-        out.tell("dit is een test bericht", self());
     }
 
     public Serializable getNewPercentageMessage() {
