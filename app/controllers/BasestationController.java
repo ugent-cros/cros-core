@@ -3,9 +3,11 @@ package controllers;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import models.Assignment;
 import models.Basestation;
 import models.User;
 import play.data.Form;
+import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
@@ -35,6 +37,7 @@ public class BasestationController {
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("total", controllers.routes.BasestationController.getTotal().url()));
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, Basestation.class));
@@ -42,6 +45,11 @@ public class BasestationController {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", Basestation.FIND.findRowCount()), Basestation.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -61,7 +69,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
@@ -85,7 +93,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);

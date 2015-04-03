@@ -33,12 +33,14 @@ public class User extends Model {
     @Id
     private Long id;
 
+    @JsonView({JsonHelper.Summary.class})
     @Column(length = 256, nullable = false)
     @Constraints.Required
     @Constraints.MinLength(1)
     @Constraints.MaxLength(256)
     private String firstName;
 
+    @JsonView({JsonHelper.Summary.class})
     @Column(length = 256, nullable = false)
     @Constraints.Required
     @Constraints.MinLength(1)
@@ -55,6 +57,7 @@ public class User extends Model {
     @Constraints.Email
     private String email;
 
+    @JsonView({JsonHelper.Summary.class})
     @Enumerated(EnumType.STRING)
     private Role role;
 

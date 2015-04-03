@@ -5,10 +5,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import models.Basestation;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
+import scala.util.parsing.json.JSONObject$;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
@@ -40,12 +42,14 @@ public class UserController {
         List<JsonHelper.Tuple> tuples = new ArrayList<>();
         for(User user : exp.findList()) {
             tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
-                    controllers.routes.DroneController.get(user.getId()).url())));
+                    controllers.routes.UserController.get(user.getId()).url())));
         }
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().url()));
+        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
 
         try {
             return ok(JsonHelper.createJsonNode(tuples, links, User.class));
@@ -53,6 +57,11 @@ public class UserController {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", User.FIND.findRowCount()), User.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
@@ -76,7 +85,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -123,7 +132,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -155,7 +164,8 @@ public class UserController {
         if(client == null) {
             return unauthorized();
         }
-        return redirect(controllers.routes.UserController.get(client.getId()));
+
+        return get(client.getId());
     }
 
     @Authentication({User.Role.ADMIN})

@@ -13,8 +13,11 @@ import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
+import utilities.MessageWebSocket;
+import utilities.TestWebSocket;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +31,12 @@ public class Application extends Controller {
 
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().url()));
-        links.add(new ControllerHelper.Link("drones", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("assignments", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url()));
-        links.add(new ControllerHelper.Link("basestations", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("drone", controllers.routes.DroneController.getAll().url()));
+        links.add(new ControllerHelper.Link("assignment", controllers.routes.AssignmentController.getAll().url()));
+        links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
+        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().url()));
 
         ObjectNode node = Json.newObject();
         for(ControllerHelper.Link link : links)
@@ -49,6 +53,7 @@ public class Application extends Controller {
         Drone.FIND.all().forEach(d -> d.delete());
         Assignment.FIND.all().forEach(d -> d.delete());
         User.FIND.all().forEach(d -> d.delete());
+        Basestation.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
         DroneType bepop = new DroneType("ARDrone3", "bepop");
@@ -82,8 +87,8 @@ public class Application extends Controller {
     private static Drone testDroneEntity;
 
     public static F.Promise<Result> initDrone() {
-        //testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "localhost");
-        testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.3.173");
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
+        //testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
 
         testDroneEntity.save();
 
@@ -103,6 +108,14 @@ public class Application extends Controller {
         ObjectNode result = Json.newObject();
         result.put("status", "subscribed");
         return ok(result);
+    }
+
+    public static WebSocket<String> testSocket() {
+        return WebSocket.withActor(TestWebSocket::props);
+    }
+
+    public static WebSocket<String> socket() {
+        return WebSocket.withActor(MessageWebSocket::props);
     }
 
     public static Result unsubscribeMonitor(){
@@ -259,7 +272,8 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> takeOff(){
-       DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        Drone drone = Drone.FIND.where().eq("name", "bepop").findUnique();
+       DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
