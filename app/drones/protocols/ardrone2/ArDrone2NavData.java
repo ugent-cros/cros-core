@@ -133,9 +133,9 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void speedChanged(byte[] navdata) {
-        float vx = PacketHelper.getFloat(navdata, NAV_VX_OFFSET.getOffset());
-        float vy = PacketHelper.getFloat(navdata, NAV_VY_OFFSET.getOffset());
-        float vz = PacketHelper.getFloat(navdata, NAV_VZ_OFFSET.getOffset());
+        float vx = PacketHelper.getFloat(navdata, NAV_VX_OFFSET.getOffset()) / 1000f;
+        float vy = PacketHelper.getFloat(navdata, NAV_VY_OFFSET.getOffset()) / 1000f;
+        float vz = PacketHelper.getFloat(navdata, NAV_VZ_OFFSET.getOffset()) / 1000f;
 
         Object speedMessage = new SpeedChangedMessage(vx, vy, vz);
         listener.tell(speedMessage, getSelf());
