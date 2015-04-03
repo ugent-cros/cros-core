@@ -58,7 +58,7 @@ public class ArDrone2Protocol extends UntypedActor {
         this.listener = listener;
         // UPD manager
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 0)), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }

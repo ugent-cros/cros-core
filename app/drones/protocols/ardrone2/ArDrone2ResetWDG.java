@@ -33,7 +33,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
 
     public ArDrone2ResetWDG(DroneConnectionDetails details) {
         udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", 0)), getSelf());
+        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
     }
