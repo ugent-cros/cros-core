@@ -5,6 +5,9 @@ import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
+import org.apache.commons.lang3.CharSet;
+
+import java.nio.charset.Charset;
 
 /**
  * Created by Cedric on 3/8/2015.
@@ -35,5 +38,66 @@ public class PacketCreator {
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(outdoor ? (byte)1 : (byte)0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)3, b.result());
+    }
+
+    public static Packet createSetMaxAltitudePacket(float meters){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putFloat(meters, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTINGSETTINGS.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createSetMaxTiltPacket(float degrees){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putFloat(degrees, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTINGSETTINGS.getVal(), (short)1, b.result());
+    }
+
+    public static Packet createMove3dPacket(boolean useRoll, byte roll, byte pitch, byte yaw, byte gaz){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(useRoll ? (byte)1 : (byte)0);
+        b.putByte(roll); //Following bytes are signed! [-100;100]
+        b.putByte(pitch);
+        b.putByte(yaw);
+        b.putByte(gaz);
+        b.putFloat(0f, FrameHelper.BYTE_ORDER); //unused PSI heading for compass
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)2, b.result());
+    }
+
+    public static Packet createSetVideoStreamingStatePacket(boolean enabled){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(enabled ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.MEDIASTREAMING.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createSetHullPacket(boolean hull){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(hull ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)2, b.result());
+    }
+
+    public static Packet createSetCountryPacket(String country){
+        if(country == null || country.length() != 2)
+            throw new IllegalArgumentException("country is in invalid format.");
+
+        ByteStringBuilder b = new ByteStringBuilder();
+        byte[] val = country.toUpperCase().getBytes(Charset.forName("UTF-8")); //enforce uppercase country code if forgotten
+        b.putBytes(val);
+        b.putByte((byte)0); //null terminated string
+
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.SETTINGS.getVal(), (short)3, b.result());
+    }
+
+    public static Packet createSetHomePacket(double latitude, double longitude, double altitude){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putDouble(latitude, FrameHelper.BYTE_ORDER);
+        b.putDouble(longitude, FrameHelper.BYTE_ORDER);
+        b.putDouble(altitude, FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.GPSSETTINGS.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createNavigateHomePacket(boolean start){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(start ? (byte)1 : (byte)0);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)5, b.result());
     }
 }

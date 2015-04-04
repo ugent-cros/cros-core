@@ -58,15 +58,19 @@ public class AssignmentControllerTest extends TestSuperclass {
                 authorizeRequest(new FakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
-        if (node.isArray()) {
-            for (int i = 0; i < testAssignments.size(); ++i) {
-                Assignment testAssignment = testAssignments.get(i);
-                Assignment receivedAssignment = Json.fromJson(node.get(i), Assignment.class);
-                assertThat(testAssignment.getId()).isEqualTo(receivedAssignment.getId());
-            }
-        } else
-            Assert.fail("Returned JSON is not an array");
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, true);
+            if (node.isArray()) {
+                for (int i = 0; i < testAssignments.size(); ++i) {
+                    Assignment testAssignment = testAssignments.get(i);
+                    Assignment receivedAssignment = Json.fromJson(node.get(i), Assignment.class);
+                    assertThat(testAssignment.getId()).isEqualTo(receivedAssignment.getId());
+                }
+            } else
+                Assert.fail("Returned JSON is not an array");
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -77,9 +81,13 @@ public class AssignmentControllerTest extends TestSuperclass {
                 authorizeRequest(fakeRequest(), getAdmin()));
 
         String jsonString = contentAsString(result);
-        JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class);
-        Assignment receivedAssignment = Json.fromJson(node, Assignment.class);
-        assertThat(testAssignment).isEqualTo(receivedAssignment);
+        try {
+            JsonNode node = JsonHelper.removeRootElement(jsonString, Assignment.class, false);
+            Assignment receivedAssignment = Json.fromJson(node, Assignment.class);
+            assertThat(testAssignment).isEqualTo(receivedAssignment);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
@@ -94,35 +102,48 @@ public class AssignmentControllerTest extends TestSuperclass {
         List<Checkpoint> route = new ArrayList<>();
         route.add(new Checkpoint(5,6,7));
         Assignment assignmentToBeAdded = new Assignment(route, null);
-        JsonNode node = JsonHelper.addRootElement(Json.toJson(assignmentToBeAdded), Assignment.class);
+        JsonNode node = JsonHelper.createJsonNode(assignmentToBeAdded, Assignment.class);
 
         Result result = callAction(routes.ref.AssignmentController.create(),
                 authorizeRequest(fakeRequest().withJsonBody(node), getAdmin()));
-        JsonNode receivedNode = JsonHelper.removeRootElement(contentAsString(result), Assignment.class);
 
-        Assignment assignment = Json.fromJson(receivedNode, Assignment.class);
-        // bypass id, creator check and checkpoint id check
-        assignmentToBeAdded.setId(assignment.getId());
-        assignmentToBeAdded.setCreator(assignment.getCreator());
-        assignmentToBeAdded.getRoute().get(0).setId(assignment.getRoute().get(0).getId());
-        assertThat(assignment).isEqualTo(assignmentToBeAdded);
+        JsonNode receivedNode;
+        try {
+            receivedNode = JsonHelper.removeRootElement(contentAsString(result), Assignment.class, false);
+            Assignment assignment = Json.fromJson(receivedNode, Assignment.class);
 
-        Assignment fetchedAssignment = Assignment.FIND.byId(assignment.getId());
-        assertThat(fetchedAssignment).isEqualTo(assignmentToBeAdded);
+            // bypass id, creator check and checkpoint id check
+            assignmentToBeAdded.setId(assignment.getId());
+            assignmentToBeAdded.setCreator(assignment.getCreator());
+            assignmentToBeAdded.getRoute().get(0).setId(assignment.getRoute().get(0).getId());
+            assertThat(assignment).isEqualTo(assignmentToBeAdded);
+
+            Assignment fetchedAssignment = Assignment.FIND.byId(assignment.getId());
+            assertThat(fetchedAssignment).isEqualTo(assignmentToBeAdded);
+        } catch(JsonHelper.InvalidJSONException ex) {
+            Assert.fail("Invalid json exception: " + ex.getMessage());
+        }
     }
 
     @Test
     public void delete_AuthorizedRequestWithValidId_AssignmentDeleted() {
         List<Checkpoint> route = new ArrayList<>();
-        route.add(new Checkpoint(5,6,7));
+        Checkpoint checkpointToBeRemoved = new Checkpoint(5,6,7);
+        route.add(checkpointToBeRemoved);
         Assignment assignmentToBeRemoved = new Assignment(route, null);
         assignmentToBeRemoved.save();
 
         callAction(routes.ref.AssignmentController.delete(assignmentToBeRemoved.getId()),
                 authorizeRequest(fakeRequest(), getAdmin()));
 
+        // Test if basestation is deleted
         long amount = Assignment.FIND.all().stream().filter(assignment ->
                 assignment.getId().equals(assignmentToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
+        // Test if associated checkpoint is deleted
+        // TODO: uncomment this if both Checkpoint and BaseStation inherit from Location
+        /*amount = Checkpoint.FIND.all().stream().filter(checkpoint ->
+                checkpoint.getId().equals(checkpointToBeRemoved.getId())).count();
+        assertThat(amount).isEqualTo(0);*/
     }
 }

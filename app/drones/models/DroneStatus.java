@@ -13,4 +13,7 @@ public interface DroneStatus {
     Future<Rotation> getRotation();
     Future<Speed> getSpeed();
     Future<DroneVersion> getVersion();
+    Future<NavigationState> getNavigationState();
+    Future<NavigationStateReason> getNavigationStateReason();
+    Future<Boolean> isGPSFixed();
 }

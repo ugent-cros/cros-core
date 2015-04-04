@@ -1,11 +1,12 @@
 package models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.*;
 
@@ -13,30 +14,35 @@ import javax.persistence.*;
  * Created by Eveline on 6/03/2015.
  */
 @Entity
+@Table(name="basestation")
 @JsonRootName("basestation")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Basestation extends Model {
 
-    public final static Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
+    public static final Finder<Long, Basestation> FIND = new Finder<>(Long.class, Basestation.class);
 
-    @JsonView(ControllerHelper.Summary.class)
     @Id
-    private Long id;
+    @JsonView(JsonHelper.Summary.class)
+    protected Long id;
 
-    @JsonView(ControllerHelper.Summary.class)
+    @Version
+    @JsonIgnore
+    private Long version;
+
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     @Column(length = 256, unique = true, nullable = false)
     private String name;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    private Checkpoint checkpoint;
+    @Constraints.Required
+    @Embedded
+    private Location location;
 
-    public Basestation(String name, Checkpoint checkpoint){
+    public Basestation(String name, double longitude, double latitude, double altitude){
+
+        this.setLocation(new Location(longitude, latitude, altitude));
         this.name = name;
-        this.checkpoint = checkpoint;
     }
-
-    public Basestation() { }
 
     public Long getId() {
         return id;
@@ -44,6 +50,14 @@ public class Basestation extends Model {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public String getName() {
@@ -54,12 +68,12 @@ public class Basestation extends Model {
         this.name = name;
     }
 
-    public Checkpoint getCheckpoint() {
-        return checkpoint;
+    public Location getLocation() {
+        return location;
     }
 
-    public void setCheckpoint(Checkpoint checkpoint) {
-        this.checkpoint = checkpoint;
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     @Override
@@ -71,17 +85,18 @@ public class Basestation extends Model {
         if (!(obj instanceof Basestation))
             return false;
         Basestation basestation = (Basestation) obj;
-        return this.id.equals(basestation.id)
-                && this.name.equals(basestation.name)
-                && this.checkpoint.equals(basestation.checkpoint);
+        boolean isEqual = (this.name == null && basestation.name == null)
+                || (this.name != null && this.name.equals(basestation.name));
+        isEqual &= (this.location == null && basestation.location == null)
+                || this.location != null && this.location.equals(basestation.location);
+
+        return this.name.equals(basestation.name);
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (id != null ? id.hashCode() : 0);
         result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (checkpoint != null ? checkpoint.hashCode() : 0);
         return result;
     }
 }

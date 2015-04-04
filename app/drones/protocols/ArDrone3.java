@@ -1,18 +1,19 @@
 package drones.protocols;
 
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
-import akka.japi.Procedure;
+import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.messages.DroneDiscoveredMessage;
 import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
@@ -21,11 +22,11 @@ import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
 import scala.concurrent.duration.Duration;
 
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Created by Cedric on 3/6/2015.
@@ -52,14 +53,12 @@ public class ArDrone3 extends UntypedActor {
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private DroneConnectionDetails details;
     private InetSocketAddress senderAddress;
     private ActorRef senderRef;
 
     private ByteString recvBuffer;
 
     private final ActorRef listener; //to respond messages to
-    private final ActorRef udpManager;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
         this.listener = listener;
@@ -71,10 +70,20 @@ public class ArDrone3 extends UntypedActor {
         initChannels(); // Initialize channels
         initHandlers(); //TODO: static lazy loading
 
-        udpManager = Udp.get(getContext().system()).getManager();
-        udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
+        final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
+        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(10, Duration.create("1 minute"),
+                t -> {
+                    log.error(t, "Bepop actor failure caught by supervisor.");
+                    return SupervisorStrategy.resume(); // Continue on all exceptions!
+                }, false);
+    }
+
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {
@@ -88,7 +97,10 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void stop() {
-        udpManager.tell(UdpMessage.unbind(), self());
+        log.debug("Unbinding ARDrone 3 UDP listener.");
+        if (senderRef != null) {
+            senderRef.tell(UdpMessage.unbind(), self());
+        }
         getContext().stop(self());
     }
 
@@ -119,11 +131,15 @@ public class ArDrone3 extends UntypedActor {
         if (p == null) {
             log.debug("No CommandTypeProcessor for [{}]", packet.getType());
         } else {
-            Object msg = p.handle(packet);
+            try {
+                Object msg = p.handle(packet);
 
-            if (msg != null) {
-                log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
-                listener.tell(msg, getSelf()); //Dispatch message back to droneactor
+                if (msg != null) {
+                    log.debug("Sending message to listener actor: [{}]", msg.getClass().getCanonicalName());
+                    listener.tell(msg, getSelf()); //Dispatch message back to droneactor
+                }
+            } catch (RuntimeException ex) {
+                log.error(ex, "Packet handler failed ([{}], [{}], [{}]", packet.getType(), packet.getCommandClass(), packet.getCommand());
             }
         }
     }
@@ -158,12 +174,17 @@ public class ArDrone3 extends UntypedActor {
                     processAck(frame);
                     break;
                 case DATA:
-                case DATA_LOW_LATENCY:
                     processDataFrame(frame);
+                    break;
+                case DATA_LOW_LATENCY:
+                    // Ignore video data for now
                     break;
                 case DATA_WITH_ACK:
                     processDataFrame(frame);
                     sendAck(frame); //ALWAYS send ack, even when seq is ignored
+                    break;
+                default:
+                    log.warning("Invalid frame type handler; [{}]", frame.getType());
                     break;
             }
         }
@@ -172,11 +193,18 @@ public class ArDrone3 extends UntypedActor {
     private void processAck(Frame frame) {
         byte realId = FrameHelper.getAckToServer(frame.getId());
         log.debug("Ack received for ID [{}]", realId);
-        Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_CONTROLLER);
+        Map<Byte, DataChannel> recvMap = channels.get(FrameDirection.TO_DRONE);
         DataChannel ch = recvMap.get(realId);
         if (ch != null) {
             byte seq = frame.getData().iterator().getByte();
-            ch.receivedAck(seq);
+            long time = System.currentTimeMillis();
+            Frame nextFrame = ch.receivedAck(seq, time);
+            if (nextFrame != null) {
+                log.debug("Advancing in ACK queue (recv = [{}]), sending seq=[{}]", seq, nextFrame.getSeq());
+                sendData(FrameHelper.getFrameData(nextFrame));
+            } else {
+                log.debug("Advancing ACK, queue empty.");
+            }
         } else {
             log.warning("Received ack for unknown channel id: [{}]", realId);
         }
@@ -246,7 +274,7 @@ public class ArDrone3 extends UntypedActor {
 
     private void addSendChannel(FrameType type, byte id) {
         Map<Byte, DataChannel> sendChannels = channels.get(FrameDirection.TO_DRONE);
-        DataChannel ch = new DataChannel(id, type, 0, 100, 3);
+        DataChannel ch = new DataChannel(id, type, 0, 500, 3);
         if (type == FrameType.DATA_WITH_ACK) {
             ackChannels.add(ch);
         }
@@ -296,7 +324,6 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
-        this.details = details;
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
     }
@@ -307,7 +334,35 @@ public class ArDrone3 extends UntypedActor {
             log.debug("Socket ARDRone 3.0 bound.");
 
             senderRef = getSender();
-            getContext().become(ready(senderRef));
+
+            // Setup handlers
+            getContext().become(ReceiveBuilder
+                    .match(String.class, "tick"::equals, s -> tick())
+                    .match(Udp.Received.class, s -> processRawData(s.data()))
+                    .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
+                    .match(StopMessage.class, s -> stop())
+
+                            // Drone commands
+                    .match(FlatTrimCommand.class, s -> flatTrim())
+                    .match(TakeOffCommand.class, s -> takeOff())
+                    .match(LandCommand.class, s -> land())
+                    .match(RequestStatusCommand.class, s -> requestStatus())
+                    .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
+                    .match(RequestSettingsCommand.class, s -> requestSettings())
+                    .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
+                    .match(SetMaxHeightCommand.class, s -> setMaxHeight(s.getMeters()))
+                    .match(SetMaxTiltCommand.class, s -> setMaxTilt(s.getDegrees()))
+                    .match(SetHullCommand.class, s -> setHull(s.hasHull()))
+                    .match(SetCountryCommand.class, s -> setCountry(s.getCountry()))
+                    .match(SetHomeCommand.class, s -> setHome(s.getLatitude(), s.getLongitude(), s.getAltitude()))
+                    .match(NavigateHomeCommand.class, s -> navigateHome(s.isStart()))
+                    .matchAny(s -> {
+                        log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        unhandled(s);
+                    })
+                    .build());
         } else if (msg instanceof DroneConnectionDetails) {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
@@ -317,55 +372,46 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private Procedure<Object> ready(final ActorRef socket) {
-        return msg -> {
-            if (msg instanceof Udp.Received) {
-                final Udp.Received r = (Udp.Received) msg;
-                processRawData(r.data());
-            } else if (msg.equals("tick")) {
-                tick();
-            } else if (msg.equals(UdpMessage.unbind())) {
-                socket.tell(msg, getSelf());
-            } else if (msg instanceof Udp.Unbound) {
-                getContext().stop(getSelf());
-            } else if (msg instanceof DroneCommandMessage) {
-                dispatchCommand((DroneCommandMessage) msg);
-            } else if (msg instanceof DroneConnectionDetails) {
-                droneDiscovered((DroneConnectionDetails) msg);
-            } else if (msg instanceof StopMessage) {
-                stop();
-            } else unhandled(msg);
-        };
-    }
+    private void handleMove(MoveCommand cmd) {
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
+        boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-    private void dispatchCommand(DroneCommandMessage msg) {
-        try {
-            // Little dirty trick with reflection to avoid instanceof, can be optimized using lazy caching
-            //TODO: abstract class, receivebuilder
-            //TODO: remove this hack
-            // Method handler = ArDrone3.class.getMethod("handle", msg.getMessage().getClass());
-            // handler.invoke(null, msg.getMessage());
+        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        for(int i = 0; i < 4; i++){
+            vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
-            //HORRIBLE HACK, WILL BE FIXED LATER
-            if (msg.getMessage() instanceof FlatTrimCommand) {
-                handleFlatTrim();
-            } else if (msg.getMessage() instanceof TakeOffCommand) {
-                handleTakeoff();
-            } else if (msg.getMessage() instanceof LandCommand) {
-                handleLand();
-            } else if (msg.getMessage() instanceof RequestStatusCommand) {
-                handleRequestStatus();
-            } else if (msg.getMessage() instanceof OutdoorCommand) {
-                handleOutdoor((OutdoorCommand) msg.getMessage());
-            } else if (msg.getMessage() instanceof RequestSettingsCommand) {
-                handleRequestSettings();
-            } else {
-                log.warning("No handler for: [{}]", msg.getMessage().getClass().getCanonicalName());
+            if(Math.abs(vars[i]) > 100d){
+                vars[i] = 100d * Math.signum(vars[i]);
             }
-        } catch (Exception e) {
-            log.warning("No command dispatch for [{}] command.", msg.getMessage().getClass().getCanonicalName());
         }
+
+        /*
+        Roll = vy = left-right, pitch = vx = front-back, vz = yaw = up-down, vr = rotation
+        Quad reference: https://developer.valvesoftware.com/w/images/7/7e/Roll_pitch_yaw.gif
+
+        The left-right tilt (aka. "drone roll" or phi angle) argument is a percentage of the maximum
+        inclination as configured here. A negative value makes the drone tilt to its left, thus flying
+        leftward. A positive value makes the drone tilt to its right, thus flying rightward.
+
+        The front-back tilt (aka. "drone pitch" or theta angle) argument is a percentage of the maximum
+        inclination as configured here. A negative value makes the drone lower its nose, thus flying
+        frontward. A positive value makes the drone raise its nose, thus flying backward.
+
+        The drone translation speed in the horizontal plane depends on the environment and cannot
+        be determined. With roll or pitch values set to 0, the drone will stay horizontal but continue
+        sliding in the air because of its inertia. Only the air resistance will then make it stop.
+
+        The vertical speed (aka. "gaz") argument is a percentage of the maximum vertical speed as
+        defined here. A positive value makes the drone rise in the air. A negative value makes it go
+        down.
+
+        The angular speed argument is a percentage of the maximum angular speed as defined here.
+        A positive value makes the drone spin right; a negative value makes it spin left.
+         */
+
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)vars[0], (byte)vars[1], (byte)vars[2], (byte)vars[3]));
     }
+
 
     private void tick() {
         long time = System.currentTimeMillis();
@@ -418,27 +464,56 @@ public class ArDrone3 extends UntypedActor {
 
     // All command handlers
     //TODO: move these to seperate class statically
-    private void handleFlatTrim() {
-        sendDataNoAck(PacketCreator.createFlatTrimPacket());//TODO: ack channel
+    private void flatTrim() {
+        sendDataAck(PacketCreator.createFlatTrimPacket());
     }
 
-    private void handleTakeoff() {
-        sendDataNoAck(PacketCreator.createTakeOffPacket()); //TODO: ACK channel
+    private void takeOff() {
+        sendDataAck(PacketCreator.createTakeOffPacket());
     }
 
-    private void handleLand() {
-        sendDataNoAck(PacketCreator.createLandingPacket()); //TODO: ack channel
+    private void land() {
+        sendDataAck(PacketCreator.createLandingPacket());
     }
 
-    private void handleRequestStatus() {
-        sendDataNoAck(PacketCreator.createRequestStatusPacket()); //TODO: ack?
+    private void requestStatus() {
+        sendDataAck(PacketCreator.createRequestStatusPacket());
     }
 
-    private void handleRequestSettings() {
-        sendDataNoAck(PacketCreator.createRequestAllSettingsCommand()); //TODO: ack
+    private void setVideoStreaming(boolean enabled) {
+        sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
-    public void handleOutdoor(OutdoorCommand cmd) {
-        sendDataNoAck(PacketCreator.createOutdoorStatusPacket(cmd.isOutdoor())); //TODO: ack channel
+    private void requestSettings() {
+        sendDataAck(PacketCreator.createRequestAllSettingsCommand());
     }
+
+    private void setOutdoor(boolean outdoor) {
+        sendDataAck(PacketCreator.createOutdoorStatusPacket(outdoor));
+    }
+
+    private void setMaxHeight(float meters) {
+        sendDataAck(PacketCreator.createSetMaxAltitudePacket(meters));
+    }
+
+    private void setMaxTilt(float degrees) {
+        sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
+    }
+
+    private void setHull(boolean hull) {
+        sendDataAck(PacketCreator.createSetHullPacket(hull));
+    }
+
+    private void setCountry(String ctry) {
+        sendDataAck(PacketCreator.createSetCountryPacket(ctry));
+    }
+
+    private void setHome(double latitude, double longitude, double altitude) {
+        sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
+    }
+
+    private void navigateHome(boolean start) {
+        sendDataAck(PacketCreator.createNavigateHomePacket(start));
+    }
+
 }

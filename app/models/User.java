@@ -4,15 +4,18 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
+import exceptions.IncompatibleSystemException;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import utilities.ControllerHelper;
+import utilities.JsonHelper;
 
 import javax.persistence.*;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.UUID;
 
 @Entity
 @Table(name="useraccount")
@@ -20,10 +23,13 @@ import java.util.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class User extends Model {
 
-    private static final long MIN_PASSWORD_LENGTH = 8;
-    public final static Finder<Long, User> FIND = new Finder<Long, User>(Long.class, User.class);
+    private static final String PASSWORD_HASH_METHOD = "SHA-512";
+    public static final String PASSWORD_ENCODING = "UTF-8";
 
-    @JsonView({ControllerHelper.Summary.class})
+    private static final long MIN_PASSWORD_LENGTH = 8;
+    public static final Finder<Long, User> FIND = new Finder<Long, User>(Long.class, User.class);
+
+    @JsonView({JsonHelper.Summary.class})
     @Id
     private Long id;
 
@@ -42,7 +48,7 @@ public class User extends Model {
     @Column(nullable = false, updatable = false)
     private Date creationDate;
 
-    @JsonView({ControllerHelper.Summary.class})
+    @JsonView({JsonHelper.Summary.class})
     @Column(length = 256, unique = true, nullable = false)
     @Constraints.MaxLength(256)
     @Constraints.Required
@@ -55,6 +61,9 @@ public class User extends Model {
     @JsonIgnore
     @Column(length = 64, nullable = false)
     private byte[] shaPassword;
+
+    @JsonIgnore
+    private boolean passwordHashed;
 
     // TODO: allow multiple browsers
     @JsonIgnore
@@ -115,7 +124,17 @@ public class User extends Model {
     }
 
     public void setPassword(String password) {
-        shaPassword = getSha512(password);
+        try {
+            // Hash password and save it
+            shaPassword = getSha512(password);
+            passwordHashed = true;
+        }
+        catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            // If hashing fails, save the password in plain text
+            play.Logger.info("Hashing of password failed, saving in plain text instead", e);
+            shaPassword = password.getBytes();
+            passwordHashed = false;
+        }
     }
 
     public String getAuthToken() {
@@ -137,21 +156,27 @@ public class User extends Model {
         this.email = email.toLowerCase();
     }
 
-    public static byte[] getSha512(String value) {
-        try {
-            return MessageDigest.getInstance("SHA-512").digest(value.getBytes("UTF-8"));
-        } catch (NoSuchAlgorithmException e) {
-            play.Logger.error(e.getMessage(), e);
-        } catch (UnsupportedEncodingException e) {
-            play.Logger.error(e.getMessage(), e);
-        }
-        // TODO: fix exception handling
-        return value.getBytes();
+    public static byte[] getSha512(String value) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        MessageDigest hashMethod = MessageDigest.getInstance(PASSWORD_HASH_METHOD);
+        byte[] input = value.getBytes(PASSWORD_ENCODING);
+        return hashMethod.digest(input);
     }
 
-    public boolean checkPassword(String password) {
-        byte[] hash = getSha512(password);
-        return Arrays.equals(shaPassword, hash);
+    public boolean checkPassword(String password) throws IncompatibleSystemException {
+
+        byte[] input = null;
+        if(passwordHashed) {
+            try {
+                input = getSha512(password);
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+                play.Logger.error("Password was originally hashed, but hashing method failed when checking password.", e);
+                throw new IncompatibleSystemException("Password was hashed with a method unavailable on this system", e);
+            }
+        } else {
+            input = password.getBytes();
+        }
+
+        return Arrays.equals(shaPassword, input);
     }
 
     public static User findByAuthToken(String authToken) {
@@ -176,7 +201,7 @@ public class User extends Model {
         return FIND.where().eq("email", emailAddress.toLowerCase()).findUnique();
     }
 
-    public static User authenticate(String email, String password) {
+    public static User authenticate(String email, String password) throws IncompatibleSystemException {
 
         User user = findByEmail(email);
         if(user != null && user.checkPassword(password)) {
