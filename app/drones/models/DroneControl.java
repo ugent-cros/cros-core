@@ -24,24 +24,30 @@ public interface DroneControl {
      */
     Future<Void> land();
 
+    /**
+     *
+     * @return Promise whether the emergency was initiated
+     */
+    //Future<Void> emergency(); // @TODO
+
     /***
      * Moves the drone in a 3D plane
-     * @param vx X velocity [m/s]
-     * @param vy Y velocity [m/s]
-     * @param vz Z velocity [m/s]
-     * @param vr Angular velocity [rad/s]
+     * @param vx Pitch left/right between [-1;1]
+     * @param vy Pitch forward/backward between [-1;1]
+     * @param vz Up/down between [-1;1]
+     * @param vr Rotate left/right between [-1;1]
      * @return Promise whether request was initiated (but not yet completed)
      */
     Future<Void> move3d(double vx, double vy, double vz, double vr);
 
     /***
      * Moves the drone in a 2D plane
-     * @param vx X velocity [m/s]
-     * @param vy Y velocity [m/s]
-     * @param vr Angular velocity [rad/s]
+     * @param vx Pitch left/right between [-1;1]
+     * @param vy Pitch forward/backward between [-1;1]
+     * @param vr Rotate left/right between [-1;1]
      * @return Promise whether request was initiated (but not yet completed)
      */
-    Future<Void> move(double vx, double vy, double vr);
+    Future<Void> move(double vx, double vy, double r);
 
     /**
      * Sets the maximum height for the drone

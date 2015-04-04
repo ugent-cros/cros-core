@@ -14,5 +14,6 @@ public enum PropertyType {
     VERSION,
     NAVIGATIONSTATE,
     NAVIGATIONREASON,
-    GPSFIX
+    GPSFIX,
+    NETWORK_STATUS
 }

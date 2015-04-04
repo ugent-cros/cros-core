@@ -1,15 +1,17 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.SecurityController;
 import controllers.routes;
 import exceptions.IncompatibleSystemException;
-import controllers.SecurityController;
 import models.User;
+import org.fest.assertions.Fail;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import play.libs.Json;
+import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
@@ -387,15 +389,22 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void currentUser_AuthorizedRequest_Redirect() {
+    public void currentUser_AuthorizedRequest_Ok() {
 
         User user = new User("authorized.currentuser@user.tests.cros.com", "password", "John", "Doe");
         user.save();
 
         Result result = callAction(routes.ref.UserController.currentUser(),
                 authorizeRequest(fakeRequest(), user));
-        assertThat(status(result)).isEqualTo(SEE_OTHER);
-        assertThat(redirectLocation(result)).isEqualTo(controllers.routes.UserController.get(user.getId()).url());
+        assertThat(status(result)).isEqualTo(Http.Status.OK);
+
+        try {
+            JsonNode responseJson = JsonHelper.removeRootElement(Json.parse(contentAsString(result)), User.class, false);
+            assertThat(Json.fromJson(responseJson, User.class)).isEqualTo(user);
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Fail.fail(e.getMessage());
+        }
     }
 
     @Test

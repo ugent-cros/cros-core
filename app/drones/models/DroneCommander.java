@@ -20,6 +20,7 @@ import static akka.pattern.Patterns.ask;
 public class DroneCommander implements DroneControl, DroneStatus {
 
     private static final Timeout TIMEOUT = new Timeout(Duration.create(2, TimeUnit.SECONDS));
+
     private static final Timeout INIT_TIMEOUT = new Timeout(Duration.create(100, TimeUnit.SECONDS));
 
     private final ActorRef droneActor;
@@ -240,6 +241,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
     @Override
     public Future<Boolean> isGPSFixed() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.GPSFIX), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Boolean> isOnline() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
             public Boolean apply(Object s) {
                 return (Boolean) ((ExecutionResultMessage) s).getValue();
             }

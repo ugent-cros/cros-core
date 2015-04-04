@@ -1,6 +1,8 @@
 package drones.protocols;
 
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -12,6 +14,7 @@ import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
+import drones.messages.ConnectionStatusChangedMessage;
 import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
@@ -24,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Created by Cedric on 3/6/2015.
@@ -32,6 +36,7 @@ public class ArDrone3 extends UntypedActor {
 
     private static final int MAX_FRAME_SIZE = 1500; //TODO check
     private final static int TICK_DURATION = 50; //ms
+    private final static int PING_INTERVAL = 1000;
 
     // Receiving ID's
     private static final byte PING_CHANNEL = 0;
@@ -57,6 +62,10 @@ public class ArDrone3 extends UntypedActor {
 
     private final ActorRef listener; //to respond messages to
 
+    private boolean isOffline = true;
+    private long lastPong = 0;
+    private long lastPing = 0;
+
     public ArDrone3(int receivingPort, final ActorRef listener) {
         this.listener = listener;
 
@@ -71,6 +80,16 @@ public class ArDrone3 extends UntypedActor {
         udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(10, Duration.create("1 minute"),
+                t -> {
+                    log.error(t, "Bepop actor failure caught by supervisor.");
+                    return SupervisorStrategy.resume(); // Continue on all exceptions!
+                }, false);
+    }
+
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {
@@ -153,8 +172,7 @@ public class ArDrone3 extends UntypedActor {
         if (frame.getId() == PING_CHANNEL) {
             sendPong(frame);
         } else if (frame.getId() == PONG_CHANNEL) {
-            log.debug("Pong received.");
-            //TODO
+            handlePong(frame.getData());
         } else {
             switch (frame.getType()) {
                 case ACK:
@@ -174,6 +192,19 @@ public class ArDrone3 extends UntypedActor {
                     log.warning("Invalid frame type handler; [{}]", frame.getType());
                     break;
             }
+        }
+    }
+
+    private void handlePong(ByteString data){
+        long now = System.currentTimeMillis();
+        lastPong = now;
+
+        long timeStamp = data.iterator().getLong(FrameHelper.BYTE_ORDER);
+        long diff = now - timeStamp;
+        log.debug("Pong received, RTT=[{}]ms.", diff);
+        if(isOffline){
+            isOffline = false;
+            listener.tell(new ConnectionStatusChangedMessage(true), getSelf());
         }
     }
 
@@ -313,13 +344,13 @@ public class ArDrone3 extends UntypedActor {
     private void droneDiscovered(DroneConnectionDetails details) {
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
+        isOffline = false;
     }
 
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
             log.debug("Socket ARDRone 3.0 bound.");
-
             senderRef = getSender();
 
             // Setup handlers
@@ -361,13 +392,15 @@ public class ArDrone3 extends UntypedActor {
 
     private void handleMove(MoveCommand cmd) {
         log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
+        boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-        float v[] = new float[]{-20f * (float) cmd.getVy(), -20f * (float) cmd.getVx(), 20f * (float) cmd.getVz(), -50f * (float) cmd.getVr()};
-        boolean useRoll = (Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0); // flag 1 if not hovering
+        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        for(int i = 0; i < 4; i++){
+            vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
-        // Normalize [-100;+100]
-        for (int i = 0; i < 4; i++) {
-            if (Math.abs(v[i]) > 100f) v[i] /= Math.abs(v[i]);
+            if(Math.abs(vars[i]) > 100d){
+                vars[i] = 100d * Math.signum(vars[i]);
+            }
         }
 
         /*
@@ -394,13 +427,39 @@ public class ArDrone3 extends UntypedActor {
         A positive value makes the drone spin right; a negative value makes it spin left.
          */
 
-        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) v[0], (byte) v[1], (byte) v[2], (byte) v[3]));
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)vars[0], (byte)vars[1], (byte)vars[2], (byte)vars[3]));
+    }
 
+    private void checkPing(long time){
+        // When not discovered yet
+        if(senderAddress == null || senderRef == null)
+            return;
+
+        if(lastPing > 0 && time - lastPong > 3*PING_INTERVAL){
+            if(!isOffline){
+                isOffline = true;
+                listener.tell(new ConnectionStatusChangedMessage(false), getSelf());
+            }
+        }
+
+        if(time - lastPing > PING_INTERVAL){
+            DataChannel pingChannel = channels.get(FrameDirection.TO_DRONE).get(PING_CHANNEL);
+            if(pingChannel != null){
+                Frame f = pingChannel.createFrame(PacketHelper.getPingPacket(time));
+                if(sendData(FrameHelper.getFrameData(f))){
+                    lastPing = time;
+                    log.debug("Sent ping at [{}]", time);
+                } else log.warning("Failed to sent ping.");
+            } else  {
+                log.error("No PING channel defined.");
+            }
+        }
     }
 
 
     private void tick() {
         long time = System.currentTimeMillis();
+        checkPing(time);
         for (DataChannel ch : ackChannels) {
             Frame f = ch.tick(time);
             if (f != null) {
@@ -466,7 +525,7 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createRequestStatusPacket());
     }
 
-    private void setVideoStreaming(boolean enabled){
+    private void setVideoStreaming(boolean enabled) {
         sendDataAck(PacketCreator.createSetVideoStreamingStatePacket(enabled));
     }
 
@@ -486,19 +545,19 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createSetMaxTiltPacket(degrees));
     }
 
-    private void setHull(boolean hull){
+    private void setHull(boolean hull) {
         sendDataAck(PacketCreator.createSetHullPacket(hull));
     }
 
-    private void setCountry(String ctry){
+    private void setCountry(String ctry) {
         sendDataAck(PacketCreator.createSetCountryPacket(ctry));
     }
 
-    private void setHome(double latitude, double longitude, double altitude){
+    private void setHome(double latitude, double longitude, double altitude) {
         sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
     }
 
-    private void navigateHome(boolean start){
+    private void navigateHome(boolean start) {
         sendDataAck(PacketCreator.createNavigateHomePacket(start));
     }
 

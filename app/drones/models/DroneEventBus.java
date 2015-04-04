@@ -8,6 +8,8 @@ import akka.event.japi.LookupEventBus;
  */
 public class DroneEventBus extends LookupEventBus<DroneEventMessage, ActorRef, Class> {
 
+    private boolean publishDisabled = false;
+
     @Override
     public int mapSize() {
         return 128; //guesstimate of expected num of identifiers (map size)
@@ -25,8 +27,18 @@ public class DroneEventBus extends LookupEventBus<DroneEventMessage, ActorRef, C
 
     @Override
     public void publish(DroneEventMessage event, ActorRef subscriber) {
-        if(event.getInnerMsg() != null){
-            subscriber.tell(event.getInnerMsg(), ActorRef.noSender());
+        if(!publishDisabled) {
+            if (event.getInnerMsg() != null) {
+                subscriber.tell(event.getInnerMsg(), ActorRef.noSender());
+            }
         }
+    }
+
+    public boolean isPublishDisabled() {
+        return publishDisabled;
+    }
+
+    public void setPublishDisabled(boolean publishDisabled) {
+        this.publishDisabled = publishDisabled;
     }
 }

@@ -38,6 +38,7 @@ public class Drone extends Model {
 
     private int weightLimitation;
 
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     private Status status;
 

@@ -23,7 +23,9 @@ parallelExecution in jacoco.Config := false
 jacoco.outputDirectory in jacoco.Config := file("target/jacoco")
 
 jacoco.excludes        in jacoco.Config := Seq(
-  "views*", "*Routes*",
+  "drones*simulation*",
+  "views*",
+  "*Routes*",
   "controllers*routes*",
   "controllers*Reverse*",
   "controllers*javascript*",
