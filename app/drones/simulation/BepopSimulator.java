@@ -28,8 +28,6 @@ public class BepopSimulator extends DroneActor {
         public FiniteDuration getTimeStep() { return timeStep; }
     }
 
-    private static final Location STERRE = new Location(51.0226, 3.71, 0);
-
     // Simulator properties
 
     // TODO: make drones.simulation properties settable
@@ -51,17 +49,18 @@ public class BepopSimulator extends DroneActor {
     private Location homeLocation;
     private boolean flyingToHome;
 
-    public BepopSimulator() {
+    // angleWrtEquator: in radians
+    public BepopSimulator(Location startLocation, double maxHeight, double angleWrtEquator, double topSpeed) {
 
-        location.setValue(STERRE);
+        location.setValue(startLocation);
         batteryPercentage.setValue((byte) 100);
         rotation.setValue(new Rotation(0, 0, 0));
         version.setValue(new DroneVersion("1.0", "1.0"));
         gpsFix.setValue(false);
 
-        maxHeight = 10;
-        topSpeed = 10;
-        initialAngleWithRespectToEquator = Math.PI/2; // facing north
+        this.maxHeight = maxHeight;
+        this.topSpeed = topSpeed;
+        initialAngleWithRespectToEquator = angleWrtEquator; // facing north
 
         rebootDrone();
 
