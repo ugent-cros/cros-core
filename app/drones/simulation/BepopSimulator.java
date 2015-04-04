@@ -4,12 +4,12 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
+import drones.simulation.messages.SetConnectionLostMessage;
+import drones.simulation.messages.SetCrashedMessage;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import drones.simulation.messages.SetConnectionLostMessage;
-import drones.simulation.messages.SetCrashedMessage;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
@@ -39,6 +39,7 @@ public class BepopSimulator extends DroneActor {
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
+    protected double initialAngleWithRespectToEquator; // in radians, facing East is 0
 
 
     // internal state
@@ -60,6 +61,7 @@ public class BepopSimulator extends DroneActor {
 
         maxHeight = 10;
         topSpeed = 10;
+        initialAngleWithRespectToEquator = Math.PI/2; // facing north
 
         rebootDrone();
 
@@ -120,6 +122,9 @@ public class BepopSimulator extends DroneActor {
 
     private void stepSimulation(FiniteDuration stepDuration) {
 
+        // Move
+        simulateMovement(stepDuration);
+
         // Fly further
         progressFlight(stepDuration);
 
@@ -169,6 +174,79 @@ public class BepopSimulator extends DroneActor {
                 ));
             }
         }
+    }
+
+    // Simulate movement based on speed
+    private void simulateMovement(FiniteDuration simulationTimeStep) {
+
+        if(!flyingToHome) {
+
+            // Figure out angle wrt North South Axis
+            double yawInDegrees = rotation.getRawValue().getYaw() * Math.PI;
+            double angleWrtNSAxis = initialAngleWithRespectToEquator + yawInDegrees;
+
+            // Decompose speed-x vector
+            double p1 = Math.sin(angleWrtNSAxis); // = cos(angle - PI/2) = cos(angleVyWrtNS)
+            double p2 = Math.cos(angleWrtNSAxis); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
+
+            // Calculate speed along earth axises
+            Speed movement = speed.getRawValue();
+            double vNS = movement.getVx() * p1;
+            double vEquator = movement.getVx() * p2;
+            vNS += -p2 * movement.getVx();
+            vEquator += p1 * movement.getVy();
+
+            // Calculate flown distance
+            double durationInSec = simulationTimeStep.toUnit(TimeUnit.SECONDS);
+            double dNS = vNS * durationInSec;
+            double dEquator = vEquator * durationInSec;
+
+            // Calculate delta in radians
+            double radius = Location.EARTH_RADIUS + location.getRawValue().getHeigth();
+            double deltaLatitude = dNS/radius;
+            double deltaLongitude = dEquator/radius;
+
+            // Calculate new coordinates
+            Location oldLocation = location.getRawValue();
+            double latitude = (oldLocation.getLatitude() + deltaLatitude) * 180/Math.PI;    // in degrees
+            if (latitude > 90) latitude = 180 -latitude;
+            if (latitude < -90) latitude = Math.abs(latitude) -180;
+
+            double longitude = (oldLocation.getLongtitude() + deltaLongitude) * 180/Math.PI;    // in degrees
+            if (longitude > 180) longitude -= 360;
+            if (longitude < -180) longitude += 360;
+
+            Location newLocation = new Location(latitude, longitude, oldLocation.getHeigth());
+            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeigth()));
+        }
+    }
+
+    // Calculates speed corresponding with a give rotation
+    private Speed calculateSpeed(Rotation rotation, double vz) {
+
+        // Getting necessary info
+        double pitch = rotation.getPitch();
+        double roll = rotation.getRoll();
+
+        // Calculate speed components
+        double xFraction, yFraction;
+
+        if (roll != 0) {
+            // Calculate flying angle
+            double angle = Math.atan(pitch / roll);
+            xFraction = Math.sin(angle)*pitch;
+            yFraction = Math.cos(angle)*roll;
+        }
+        else {
+            // We know the flying angle
+            xFraction = 1*pitch;
+            yFraction = 0*roll;
+        }
+
+        double vx = xFraction * topSpeed;
+        double vy = yFraction * topSpeed;
+
+        return new Speed(vx, vy, vz);
     }
 
     protected void tellSelf(Object msg) {
@@ -358,6 +436,24 @@ public class BepopSimulator extends DroneActor {
         if (prematureExit(p)) {
             return;
         }
+
+        // Drone is flying to home
+        if (flyingToHome) {
+            p.failure(new DroneException("Drone is flying to home, first cancel move to location"));
+        }
+
+        // Check if arguments are valid
+        if (Math.abs(vx) > 1 || Math.abs(vy) > 1 || Math.abs(vz) > 1 || Math.abs(vr) > 1) {
+            p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
+        }
+
+        // 1: update rotation
+        tellSelf(new AttitudeChangedMessage(vy, vx, vr));
+        // 2: calculate speed resulting from the rotation
+        Speed newSpeed = calculateSpeed(new Rotation(vy, vx, vr), vz);
+        // 3: update the speed
+        tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
+        // After processing these messages, simulateMove will have the correct behaviour
 
         p.failure(new NotImplementedException());
     }
