@@ -148,7 +148,7 @@ public class Location implements Serializable {
                     cosU1 * sinU2 - sinU1 * cosU2 * cosLambda);
             initialBearing *= 180.0 / Math.PI;
 
-            if(initialBearing > 0){
+            if(initialBearing < 0){
                 initialBearing += 360; // Correct angle always positive
             }
             results[1] = initialBearing;

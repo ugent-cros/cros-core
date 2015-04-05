@@ -7,8 +7,6 @@ import drones.models.Location;
  * Created by Cedric on 4/5/2015.
  */
 public class LocationNavigator {
-
-
     private Location previousLocation;
     private Location goal;
     private float maxAngularVelocity;
@@ -26,7 +24,7 @@ public class LocationNavigator {
      * @param maxForwardVelocity The maximum forward velocity in m/s
      * @param maxVerticalVelocity The maximum vertical velocity (up) in m/s
      */
-    public LocationNavigator(Location goal, Location currentLocation, float gpsAccuracy, float maxAngularVelocity, float maxForwardVelocity, float maxVerticalVelocity){
+    public LocationNavigator(Location currentLocation, Location goal, float gpsAccuracy, float maxAngularVelocity, float maxForwardVelocity, float maxVerticalVelocity){
         this.goal = goal;
         this.previousLocation = currentLocation;
         this.gpsAccuracy = gpsAccuracy;
@@ -41,9 +39,9 @@ public class LocationNavigator {
         float movedBearing = res[1];
 
         double vr = 0;
-        if(Math.abs(location.getHeigth() - goal.getHeigth()) > 0.5){ // check if we have to go up/down
-            double diff = location.getHeigth() - goal.getHeigth();
-            vr = Math.abs(diff) > maxVerticalVelocity ? Math.signum(diff) : (goal.getHeigth() - location.getHeigth()) / maxVerticalVelocity; // pos = rise, neg = down
+        double heightDiff = goal.getHeigth() - location.getHeigth();
+        if(Math.abs(heightDiff) > 0.5){ // check if we have to go up/down
+            vr = Math.abs(heightDiff) > maxVerticalVelocity ? Math.signum(heightDiff) : (heightDiff / maxVerticalVelocity); // pos = rise, neg = down
         }
 
         res = Location.computeDistanceAndBearing(location, goal);
@@ -56,11 +54,15 @@ public class LocationNavigator {
             previousLocation = location; // significant location update
 
             if(goalDistance < gpsAccuracy){ // we arrived at our destination with best effort accuracy
-                return null; // Arrived
+                if(vr != 0){
+                    return new MoveCommand(0, 0, 0, vr);
+                } else {
+                    return null; // Arrived
+                }
             } else {
                 hadHeading = true;
                 float bearingDiff = goalBearing - movedBearing; // calculate difference angle that we have to correct
-                if(Math.abs(bearingDiff) < 5f){ // we don't care about 5 degrees off, continue
+                if(Math.abs(bearingDiff) < 10f){ // we don't care about 10 degrees off, continue
                     return new MoveCommand(vx, 0, 0, vr);
                 } else {
                     if(bearingDiff > 180f){
@@ -76,10 +78,15 @@ public class LocationNavigator {
                 }
             }
         } else {
-            if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
-                vx *= 0.5;
+            if(goalDistance < gpsAccuracy && Math.abs(vr) < 0.1){ // we started in region we wanted already
+                return null;
+            } else {
+                if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
+                    vx *= 0.5;
+                }
+                return new MoveCommand(vx, 0, 0, vr); // movement not significant enough to take angle measurement into account
             }
-            return new MoveCommand(vx, 0, 0, vr); // movement not significant enough to take angle measurement into account
+
         }
     }
 }
