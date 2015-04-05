@@ -30,9 +30,18 @@ public class SimplePilot extends Pilot{
     //List of points where the drone currently is but that need to be evacuated.
     private List<Location> evacuationPoints = new ArrayList<>();
 
+    //Range around a no fly point where the drone cannot fly.
     private static final int NO_FY_RANGE = 4;
+    //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+    /**
+     *
+     * @param actorRef Actor to report the messages. In theory this should be the same actor that sends the start message.
+     * @param drone Drone to control.
+     * @param withControlTower True if connected to ControlTower
+     * @param waypoints Route to fly, the drone will land on the last item
+     */
     public SimplePilot(ActorRef actorRef, Drone drone,boolean withControlTower, List<Checkpoint> waypoints) {
         super(actorRef, drone, withControlTower);
 
@@ -93,6 +102,7 @@ public class SimplePilot extends Pilot{
             if(actualWaypoint == waypoints.size()){
                 //arrived at destination => land
                 land();
+                actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(),altitude);
