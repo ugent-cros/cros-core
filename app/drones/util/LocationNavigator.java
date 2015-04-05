@@ -13,6 +13,7 @@ public class LocationNavigator {
     private Location goal;
     private float maxAngularVelocity;
     private float maxForwardVelocity;
+    private float maxVerticalVelocity;
     private float gpsAccuracy;
     private boolean hadHeading;
 
@@ -23,13 +24,15 @@ public class LocationNavigator {
      * @param gpsAccuracy The accuracy of the GPS in meters
      * @param maxAngularVelocity The maximum angular velocity in degrees (for vz = 1)
      * @param maxForwardVelocity The maximum forward velocity in m/s
+     * @param maxVerticalVelocity The maximum vertical velocity (up) in m/s
      */
-    public LocationNavigator(Location goal, Location currentLocation, float gpsAccuracy, float maxAngularVelocity, float maxForwardVelocity){
+    public LocationNavigator(Location goal, Location currentLocation, float gpsAccuracy, float maxAngularVelocity, float maxForwardVelocity, float maxVerticalVelocity){
         this.goal = goal;
         this.previousLocation = currentLocation;
         this.gpsAccuracy = gpsAccuracy;
         this.maxAngularVelocity = maxAngularVelocity;
         this.maxForwardVelocity = maxForwardVelocity;
+        this.maxVerticalVelocity = maxVerticalVelocity;
     }
 
     public MoveCommand update(Location location){
@@ -39,7 +42,8 @@ public class LocationNavigator {
 
         double vr = 0;
         if(Math.abs(location.getHeigth() - goal.getHeigth()) > 0.5){ // check if we have to go up/down
-            vr = Math.signum(goal.getHeigth() - location.getHeigth()); // pos = rise, neg = down
+            double diff = location.getHeigth() - goal.getHeigth();
+            vr = Math.abs(diff) > maxVerticalVelocity ? Math.signum(diff) : (goal.getHeigth() - location.getHeigth()) / maxVerticalVelocity; // pos = rise, neg = down
         }
 
         res = Location.computeDistanceAndBearing(location, goal);
