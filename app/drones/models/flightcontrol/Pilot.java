@@ -2,6 +2,7 @@ package drones.models.flightcontrol;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
+import akka.japi.pf.UnitPFBuilder;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
@@ -26,7 +27,7 @@ public abstract class Pilot extends FlightControl{
         this.linkedWithControlTower = linkedWithControlTower;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 
-        setHandledMessages();
+        setSubscribeMessages();
     }
 
     /**
@@ -36,23 +37,25 @@ public abstract class Pilot extends FlightControl{
         super(actorRef);
         this.dc = dc;
         this.linkedWithControlTower = linkedWithControlTower;
+
+        setSubscribeMessages();
     }
 
-    private void setHandledMessages(){
+    private void setSubscribeMessages(){
         //subscribe to messages
         dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
         dc.subscribeTopic(self(), LocationChangedMessage.class);
+    }
 
-
-        receive(ReceiveBuilder.
-                        match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
-                        match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
-                        match(LocationChangedMessage.class, s -> locationChanged(s)).
-                        match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
-                        match(RequestForLandingAckMessage.class, s -> requestForLandingAckMessage(s)).
-                        match(LandingCompletedMessage.class, s-> landingCompletedMessage(s)).
-                        matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
-        );
+    @Override
+    protected UnitPFBuilder<Object> createListeners() {
+        return ReceiveBuilder.
+                match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
+                match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
+                match(LocationChangedMessage.class, s -> locationChanged(s)).
+                match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
+                match(RequestForLandingAckMessage.class, s -> requestForLandingAckMessage(s)).
+                match(LandingCompletedMessage.class, s-> landingCompletedMessage(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){

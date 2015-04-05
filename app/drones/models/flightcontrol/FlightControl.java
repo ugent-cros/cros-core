@@ -5,6 +5,8 @@ import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.UnitPFBuilder;
+
 /**
  * Created by Sander on 16/03/2015.
  *
@@ -22,11 +24,13 @@ public abstract class FlightControl extends AbstractActor{
         this.actorRef = actorRef;
 
         //Receive behaviour
-        receive(ReceiveBuilder.
+        receive(createListeners().
                         match(StartFlightControlMessage.class, s -> start()).
                         matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
+
+    protected abstract UnitPFBuilder<Object> createListeners();
 
     /**
      * Start flying the drones when all initialization parameters are set.
