@@ -11,8 +11,10 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import drones.commands.MoveCommand;
 import drones.messages.*;
 import drones.util.Compass;
+import drones.util.LocationNavigator;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -41,6 +43,10 @@ public abstract class DroneActor extends AbstractActor {
 
     protected DroneEventBus eventBus;
 
+    // Navigation
+    private LocationNavigator navigator;
+    private final Object navigationLock;
+
     private boolean loaded = false;
     private boolean loading = false;
 
@@ -48,6 +54,7 @@ public abstract class DroneActor extends AbstractActor {
 
     public DroneActor() {
         eventBus = new DroneEventBus();
+        navigationLock = new Object();
 
         batteryPercentage = new LazyProperty<>();
         state = new LazyProperty<>(FlyingState.LANDED); //TODO: check assumption of connecting in-flight
@@ -91,8 +98,10 @@ public abstract class DroneActor extends AbstractActor {
 
 
                 // Drone -> external
-                        match(LocationChangedMessage.class, s -> {
-                    location.setValue(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth()));
+                match(LocationChangedMessage.class, s -> {
+                    Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth());
+                    location.setValue(l);
+                    processLocation(l);
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(GPSFixChangedMessage.class, s -> {
@@ -119,7 +128,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(AttitudeChangedMessage.class, s -> {
                     Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
                     rotation.setValue(rot);
-                    processOrientation(rot);
+                    //processOrientation(rot);
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(AltitudeChangedMessage.class, s -> {
@@ -135,12 +144,12 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(NavigationStateChangedMessage.class, s -> {
-                    navigationState.setValue(s.getState());
-                    navigationStateReason.setValue(s.getReason());
-                    eventBus.publish(new DroneEventMessage(s));
+                    //navigationState.setValue(s.getState());
+                    //navigationStateReason.setValue(s.getReason());
+                    //eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(ConnectionStatusChangedMessage.class, s -> {
-                    if(!s.isConnected()) {
+                    if (!s.isConnected()) {
                         log.warning("Drone network became unreachable.");
                     } else {
                         log.info("Drone network became reachable.");
@@ -151,7 +160,46 @@ public abstract class DroneActor extends AbstractActor {
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
     }
 
-    private void processOrientation(Rotation rot){
+    private void processLocation(Location location) {
+        synchronized (navigationLock){
+            if(navigator == null)
+                return;
+
+            // When there's no gps fix, continue
+            if (!gpsFix.getRawValue() || location.getLatitude() == 0 || location.getLongtitude() == 0) {
+                navigationState.setValue(NavigationState.UNAVAILABLE);
+                navigationStateReason.setValue(NavigationStateReason.CONNECTION_LOST);
+                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
+                navigator = null;
+                return;
+            }
+
+            // Prefer altitude of non-gps sensor
+            if (altitude.getRawValue() > 0) {
+                location = new Location(location.getLatitude(), location.getLongtitude(), altitude.getRawValue());
+            }
+
+            MoveCommand cmd = navigator.update(location);
+            if(cmd == null){ // arrived
+                log.info("Navigator finished at location [{}] for goal [{}]", location, navigator.getGoal());
+                navigationState.setValue(NavigationState.AVAILABLE);
+                navigationStateReason.setValue(NavigationStateReason.FINISHED);
+                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
+                navigator = null;
+            } else { // execute the movement command
+                Promise<Void> v = Futures.promise();
+                v.future().onFailure(new OnFailure() {
+                    @Override
+                    public void onFailure(Throwable failure) throws Throwable {
+                        log.error(failure, "Failed to issue move command for auto navigation.");
+                    }
+                }, getContext().dispatcher());
+                move3d(v, cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
+            }
+        }
+    }
+
+    private void processOrientation(Rotation rot) {
         // Calculate heading
         // Extra reference: http://stackoverflow.com/questions/4308262/calculate-compass-bearing-heading-to-location-in-android
 
@@ -159,7 +207,7 @@ public abstract class DroneActor extends AbstractActor {
         // Some magnetosensors aren't calibrated, use following procedure:
         //compass = Compass.calculateHeading(compass, DEFAULT_LOCATION);
 
-        compass = compass < 0 ? compass + (2*Math.PI) : compass;
+        compass = compass < 0 ? compass + (2 * Math.PI) : compass;
         double degrees = Math.toDegrees(compass); // Heading of the compass
 
         // Now try to calculate the heading to the location
@@ -167,18 +215,18 @@ public abstract class DroneActor extends AbstractActor {
         Location toLocation = new Location(51.046279, 3.724921, 0);
 
         float bearing = Location.getBearing(currentLocation, toLocation); // Absolute heading from start to target (relative to 0)
-        float correction = bearing - (float)degrees; // Calculate relative heading for current drone rotation
-        if(correction > 180f){    // Change direction to the left when angle > 180
+        float correction = bearing - (float) degrees; // Calculate relative heading for current drone rotation
+        if (correction > 180f) {    // Change direction to the left when angle > 180
             correction = (360 - correction) * -1f;
-        } else if(correction < -180){ // change direction to right when angle < -180
+        } else if (correction < -180) { // change direction to right when angle < -180
             correction += 360;
         }
 
-        if(Math.abs(correction) < 5){
+        if (Math.abs(correction) < 5) {
             log.info("Pointing towards target. Heading; [{}], Target=[{}]", degrees, bearing);
-        } else if(correction < 0){
+        } else if (correction < 0) {
             log.info("Requires correction to left: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
-        } else if(correction > 0){
+        } else if (correction > 0) {
             log.info("Requires correction to right: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
         }
     }
@@ -188,8 +236,9 @@ public abstract class DroneActor extends AbstractActor {
         return new OneForOneStrategy(10, Duration.create("1 minute"),
                 t -> {
                     log.error(t, "DroneActor failure caught by supervisor.");
+                    System.err.println(t.getMessage());
                     return SupervisorStrategy.resume(); // Continue on all exceptions!
-                }, false);
+                });
     }
 
     private void handleSubscribeMessage(final ActorRef sub, Class cl) {
@@ -333,7 +382,16 @@ public abstract class DroneActor extends AbstractActor {
             log.info("Cancelling move to location.");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-            cancelMoveToLocation(v);
+
+            synchronized (navigationLock){
+                if(navigator != null){
+                    navigator = null;
+                }
+                v.success(null);
+            }
+
+            // Old code:
+            //cancelMoveToLocation(v);
         }
     }
 
@@ -344,7 +402,24 @@ public abstract class DroneActor extends AbstractActor {
             log.info("Navigating to lat=[{}], long=[{}], alt=[{}]", msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+
+            synchronized(navigationLock){
+                if(navigator != null){
+                    v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
+                } else if(!gpsFix.getRawValue()) {
+                    v.failure(new DroneException("No GPS fix yet."));
+                } else {
+                    navigator = createNavigator(location.getRawValue(), new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
+
+                    navigationState.setValue(NavigationState.IN_PROGRESS);
+                    navigationStateReason.setValue(NavigationStateReason.REQUESTED);
+                    eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.IN_PROGRESS, NavigationStateReason.REQUESTED)));
+                    v.success(null);
+                }
+            }
+
+            // Old movetohome code:
+            //moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         }
     }
 
@@ -455,4 +530,6 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void reset(Promise<Void> p);
 
     protected abstract UnitPFBuilder<Object> createListeners();
+
+    protected abstract LocationNavigator createNavigator(Location currentLocation, Location goal);
 }

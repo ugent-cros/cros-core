@@ -89,4 +89,8 @@ public class LocationNavigator {
 
         }
     }
+
+    public Location getGoal() {
+        return goal;
+    }
 }

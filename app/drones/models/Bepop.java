@@ -10,6 +10,7 @@ import drones.messages.HomeChangedMessage;
 import drones.messages.StopMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
+import drones.util.LocationNavigator;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -44,6 +45,12 @@ public class Bepop extends DroneActor {
         return ReceiveBuilder.
                 match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse).
                 match(HomeChangedMessage.class, this::handleHomeChangedResponse);
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f, 60f, 4f, 0.8f); // Bebop parameters
     }
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {

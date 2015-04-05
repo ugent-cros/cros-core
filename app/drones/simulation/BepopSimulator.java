@@ -4,6 +4,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
@@ -185,6 +186,12 @@ public class BepopSimulator extends DroneActor {
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
                 match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                (float)topSpeed, 60f, 4f, 0.8f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {
