@@ -7,6 +7,7 @@ import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
+import drones.models.DroneCommander;
 import drones.models.Location;
 import drones.models.scheduler.DroneArrivalMessage;
 import models.Checkpoint;
@@ -39,11 +40,20 @@ public class SimplePilot extends Pilot{
      *
      * @param actorRef Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone Drone to control.
-     * @param withControlTower True if connected to ControlTower
+     * @param linkedWithControlTower True if connected to ControlTower
      * @param waypoints Route to fly, the drone will land on the last item
      */
-    public SimplePilot(ActorRef actorRef, Drone drone,boolean withControlTower, List<Checkpoint> waypoints) {
-        super(actorRef, drone, withControlTower);
+    public SimplePilot(ActorRef actorRef, Drone drone,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+        super(actorRef, drone, linkedWithControlTower);
+
+        if(waypoints.size() < 1){
+            throw new IllegalArgumentException("Waypoints must contain at least 1 element");
+        }
+        this.waypoints = waypoints;
+    }
+
+    public SimplePilot(ActorRef actorRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+        super(actorRef, dc, linkedWithControlTower);
 
         if(waypoints.size() < 1){
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -53,8 +63,8 @@ public class SimplePilot extends Pilot{
 
     @Override
     public void start() {
-        if (altitude == 0) {
-            altitude = DEFAULT_ALTITUDE;
+        if (cruisingAltitude == 0) {
+            cruisingAltitude = DEFAULT_ALTITUDE;
         }
         actualWaypoint = 0;
     }
@@ -105,7 +115,7 @@ public class SimplePilot extends Pilot{
                 actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
-                dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(),altitude);
+                dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(), cruisingAltitude);
             }
         }
     }
@@ -176,6 +186,6 @@ public class SimplePilot extends Pilot{
 
         //allowed to continue flying
         models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
-        dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(),altitude);
+        dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(), cruisingAltitude);
     }
 }

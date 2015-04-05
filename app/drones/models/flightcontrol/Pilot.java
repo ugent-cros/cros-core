@@ -15,24 +15,37 @@ import models.Drone;
  */
 public abstract class Pilot extends FlightControl{
 
-    protected Drone drone;
+    protected Drone drone = null;
     protected DroneCommander dc;
-    protected double altitude;
+    protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef actorRef, Drone drone, boolean withControlTower) {
+    public Pilot(ActorRef actorRef, Drone drone, boolean linkedWithControlTower) {
         super(actorRef);
         this.drone = drone;
-        this.linkedWithControlTower = withControlTower;
+        this.linkedWithControlTower = linkedWithControlTower;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 
+        setHandledMessages();
+    }
+
+    /**
+     * Use only for testing!
+     */
+    public Pilot(ActorRef actorRef, DroneCommander dc, boolean linkedWithControlTower) {
+        super(actorRef);
+        this.dc = dc;
+        this.linkedWithControlTower = linkedWithControlTower;
+    }
+
+    private void setHandledMessages(){
         //subscribe to messages
         dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
         dc.subscribeTopic(self(), LocationChangedMessage.class);
 
 
         receive(ReceiveBuilder.
-                        match(SetAltitudeMessage.class, s -> setAltitude(s)).
+                        match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                         match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
                         match(LocationChangedMessage.class, s -> locationChanged(s)).
                         match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
@@ -42,8 +55,8 @@ public abstract class Pilot extends FlightControl{
         );
     }
 
-    private void setAltitude(SetAltitudeMessage s){
-        altitude = s.getAltitude();
+    private void setCruisingAltitude(SetCruisingAltitudeMessage s){
+        cruisingAltitude = s.getCruisingAltitude();
     }
 
     protected abstract void navigateHomeStateChanged(NavigationStateChangedMessage m);
