@@ -10,6 +10,13 @@ public class Rotation implements Serializable{
     private double pitch;
     private double yaw;
 
+    /***
+     * Orientation of drone in a 3D plane
+     * @param roll rotate left/right between [-1;1]
+     * @param pitch rotate forward/backward between [-1;1]
+     * @param yaw rotation wrt start position (along z axis) between [-1;1]
+     */
+
     public Rotation(double roll, double pitch, double yaw) {
         this.roll = roll;
         this.pitch = pitch;
