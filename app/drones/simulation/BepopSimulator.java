@@ -181,7 +181,7 @@ public class BepopSimulator extends DroneActor {
         if(!flyingToHome) {
 
             // Figure out angle wrt North South Axis
-            double yawInDegrees = rotation.getRawValue().getYaw() * Math.PI;
+            double yawInRadian = rotation.getRawValue().getYaw() * Math.PI;
             double angleWrtNSAxis = initialAngleWithRespectToEquator + yawInDegrees;
 
             // Decompose speed-x vector
