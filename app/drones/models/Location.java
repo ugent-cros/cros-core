@@ -41,10 +41,7 @@ public class Location implements Serializable {
 
     public static float getBearing(Location l1, Location l2){
         float[] res = computeDistanceAndBearing(l1, l2);
-        float bearing = res[1];
-        if(bearing < 0)
-            bearing = 360 + bearing;
-        return bearing;
+        return res[1];
     }
 
     public static short getDegrees(float num){
@@ -150,6 +147,10 @@ public class Location implements Serializable {
             float initialBearing = (float) Math.atan2(cosU2 * sinLambda,
                     cosU1 * sinU2 - sinU1 * cosU2 * cosLambda);
             initialBearing *= 180.0 / Math.PI;
+
+            if(initialBearing > 0){
+                initialBearing += 360; // Correct angle always positive
+            }
             results[1] = initialBearing;
             if (results.length > 2) {
                 float finalBearing = (float) Math.atan2(cosU1 * sinLambda,
@@ -157,6 +158,8 @@ public class Location implements Serializable {
                 finalBearing *= 180.0 / Math.PI;
                 results[2] = finalBearing;
             }
+
+
         }
         return results;
     }
