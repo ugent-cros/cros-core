@@ -7,6 +7,8 @@ import java.io.Serializable;
  */
 public class Location implements Serializable {
 
+    public static final double EARTH_RADIUS = 6371000d; //meters
+
     //Decimal Degrees = Degrees + minutes/60 + seconds/3600
     //https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
 
@@ -40,14 +42,13 @@ public class Location implements Serializable {
         // Harversine calculation
         //https://stackoverflow.com/questions/837872/calculate-distance-in-meters-when-you-know-longitude-and-latitude-in-java
 
-        double earthRadius = 6371000d; //meters
         double dLat = Math.toRadians(latitude2-l1.getLatitude());
         double dLng = Math.toRadians(longitude2-l1.getLongtitude());
         double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                 Math.cos(Math.toRadians(l1.getLatitude())) * Math.cos(Math.toRadians(latitude2)) *
                         Math.sin(dLng/2) * Math.sin(dLng/2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return earthRadius * c;
+        return EARTH_RADIUS * c;
     }
 
     public double distance(double longitude2, double latitude2){

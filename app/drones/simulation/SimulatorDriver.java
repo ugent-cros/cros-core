@@ -2,6 +2,7 @@ package drones.simulation;
 
 import drones.models.DroneActor;
 import drones.models.DroneDriver;
+import drones.models.Location;
 import models.Drone;
 import models.DroneType;
 
@@ -14,6 +15,15 @@ import java.util.Set;
 public class SimulatorDriver implements DroneDriver {
 
     public static final DroneType SIMULATOR_TYPE = new DroneType("drones.simulation.DroneActorSimulator", "0.1");
+
+    private static final Location STERRE = new Location(51.0226, 3.71, 0);
+
+    // These properties can be changed any time
+    // When the driver creates a simulator, these properties will be used in the simulator
+    public Location startLocation = STERRE;
+    public double maxHeight = 0;
+    public double angleWrtEquator = Math.PI/2;  // Facing north by default
+    public double topSpeed = 1;     // m/s
 
     @Override
     public Set<DroneType> supportedTypes() {
@@ -29,6 +39,6 @@ public class SimulatorDriver implements DroneDriver {
 
     @Override
     public <T extends DroneActor> T createActor(Drone droneEntity) {
-        return (T) new BepopSimulator();
+        return (T) new BepopSimulator(startLocation, maxHeight, angleWrtEquator, topSpeed);
     }
 }
