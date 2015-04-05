@@ -242,6 +242,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
         }, Akka.system().dispatcher());
     }
 
+    @Override
+    public Future<Boolean> isOnline() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
     /**
      * Subscribe to messages of given topic
      *

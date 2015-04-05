@@ -27,7 +27,7 @@ public class DroneEventBus extends LookupEventBus<DroneEventMessage, ActorRef, C
 
     @Override
     public void publish(DroneEventMessage event, ActorRef subscriber) {
-        if(!isPublishDisabled()) {
+        if(!publishDisabled) {
             if (event.getInnerMsg() != null) {
                 subscriber.tell(event.getInnerMsg(), ActorRef.noSender());
             }
