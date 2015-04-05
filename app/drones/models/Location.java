@@ -42,7 +42,6 @@ public class Location implements Serializable {
         // Harversine calculation
         //https://stackoverflow.com/questions/837872/calculate-distance-in-meters-when-you-know-longitude-and-latitude-in-java
 
-        double earthRadius = 6371000d; //meters
         double dLat = Math.toRadians(latitude2-l1.getLatitude());
         double dLng = Math.toRadians(longitude2-l1.getLongtitude());
         double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
