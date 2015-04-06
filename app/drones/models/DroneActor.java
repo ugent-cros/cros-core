@@ -165,7 +165,7 @@ public abstract class DroneActor extends AbstractActor {
                 return;
 
             // When there's no gps fix, continue
-            if (!gpsFix.getRawValue() || location.getLatitude() == 0 || location.getLongitude() == 0) {
+            if (!gpsFix.getRawValue()) {
                 navigationState.setValue(NavigationState.UNAVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.CONNECTION_LOST);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
@@ -195,38 +195,6 @@ public abstract class DroneActor extends AbstractActor {
                 }, getContext().dispatcher());
                 move3d(v, cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
             }
-        }
-    }
-
-    private void processOrientation(Rotation rot) {
-        // Calculate heading
-        // Extra reference: http://stackoverflow.com/questions/4308262/calculate-compass-bearing-heading-to-location-in-android
-
-        double compass = rot.getYaw();
-        // Some magnetosensors aren't calibrated, use following procedure:
-        //compass = Compass.calculateHeading(compass, DEFAULT_LOCATION);
-
-        compass = compass < 0 ? compass + (2 * Math.PI) : compass;
-        double degrees = Math.toDegrees(compass); // Heading of the compass
-
-        // Now try to calculate the heading to the location
-        Location currentLocation = new Location(51.045051, 3.730360, 0);
-        Location toLocation = new Location(51.046279, 3.724921, 0);
-
-        float bearing = Location.getBearing(currentLocation, toLocation); // Absolute heading from start to target (relative to 0)
-        float correction = bearing - (float) degrees; // Calculate relative heading for current drone rotation
-        if (correction > 180f) {    // Change direction to the left when angle > 180
-            correction = (360 - correction) * -1f;
-        } else if (correction < -180) { // change direction to right when angle < -180
-            correction += 360;
-        }
-
-        if (Math.abs(correction) < 5) {
-            log.info("Pointing towards target. Heading; [{}], Target=[{}]", degrees, bearing);
-        } else if (correction < 0) {
-            log.info("Requires correction to left: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
-        } else if (correction > 0) {
-            log.info("Requires correction to right: [{}], Heading: [{}], Target=[{}]", correction, degrees, bearing);
         }
     }
 
