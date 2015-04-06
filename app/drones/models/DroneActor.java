@@ -69,6 +69,7 @@ public abstract class DroneActor extends AbstractActor {
         gpsFix = new LazyProperty<>(false);
         isOnline = new LazyProperty<>(false);
 
+        navigator = createNavigator(null, null);
 
         // TODO: build pipeline that directly forwards to the eventbus
         //TODO: revert quickfix and support null
@@ -161,15 +162,21 @@ public abstract class DroneActor extends AbstractActor {
 
     private void processLocation(Location location) {
         synchronized (navigationLock){
-            if(navigator == null)
+            //if(navigator == null)
+            //    return;
+            if(navigator.getNavigationState() != NavigationState.IN_PROGRESS)
                 return;
 
             // When there's no gps fix, continue
             if (!gpsFix.getRawValue()) {
+                navigator.setNavigationState(NavigationState.UNAVAILABLE);
+                navigator.setCurrentLocation(null);
+                navigator.setGoal(null);
+
                 navigationState.setValue(NavigationState.UNAVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.CONNECTION_LOST);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
-                navigator = null;
+                // navigator = null;
                 return;
             }
 
@@ -184,7 +191,11 @@ public abstract class DroneActor extends AbstractActor {
                 navigationState.setValue(NavigationState.AVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
-                navigator = null;
+
+                navigator.setNavigationState(NavigationState.AVAILABLE);
+                navigator.setCurrentLocation(null);
+                navigator.setGoal(null);
+                // navigator = null;
             } else { // execute the movement command
                 Promise<Void> v = Futures.promise();
                 v.future().onFailure(new OnFailure() {
@@ -351,9 +362,13 @@ public abstract class DroneActor extends AbstractActor {
             handleMessage(v.future(), sender, self);
 
             synchronized (navigationLock){
-                if(navigator != null){
-                    navigator = null;
-                }
+                //if(navigator != null){
+                //    navigator = null;
+                //}
+                navigator.setNavigationState(NavigationState.AVAILABLE);
+                navigator.setGoal(null);
+                navigator.setCurrentLocation(null);
+
                 v.success(null);
             }
 
@@ -371,12 +386,18 @@ public abstract class DroneActor extends AbstractActor {
             handleMessage(v.future(), sender, self);
 
             synchronized(navigationLock){
-                if(navigator != null){
+                //if(navigator != null){
+                if(navigator.getNavigationState() == NavigationState.IN_PROGRESS) {
                     v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
-                } else if(!gpsFix.getRawValue()) {
+                } else if(navigator.getNavigationState() == NavigationState.UNAVAILABLE) {
+                    v.failure(new DroneException("Unable to navigate to goal"));
+                }else if(!gpsFix.getRawValue()) {
                     v.failure(new DroneException("No GPS fix yet."));
                 } else {
-                    navigator = createNavigator(location.getRawValue(), new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
+                    //navigator = createNavigator(location.getRawValue(), new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
+                    navigator.setCurrentLocation(location.getRawValue());
+                    navigator.setGoal(new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
+                    navigator.setNavigationState(NavigationState.IN_PROGRESS);
 
                     navigationState.setValue(NavigationState.IN_PROGRESS);
                     navigationStateReason.setValue(NavigationStateReason.REQUESTED);

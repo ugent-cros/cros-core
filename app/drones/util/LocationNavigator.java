@@ -2,6 +2,7 @@ package drones.util;
 
 import drones.commands.MoveCommand;
 import drones.models.Location;
+import drones.models.NavigationState;
 
 /**
  * Created by Cedric on 4/5/2015.
@@ -14,6 +15,7 @@ public class LocationNavigator {
     private float maxVerticalVelocity;
     private float gpsAccuracy;
     private boolean hadHeading;
+    private NavigationState navigationState;
 
     private static final float MAX_DIFF_BEARING = 30f;
     private static final double MIN_HEIGHT_DIFF = 0.5;
@@ -36,9 +38,16 @@ public class LocationNavigator {
         this.maxAngularVelocity = maxAngularVelocity;
         this.maxForwardVelocity = maxForwardVelocity;
         this.maxVerticalVelocity = maxVerticalVelocity;
+
+        this.navigationState = NavigationState.AVAILABLE;
     }
 
     public MoveCommand update(Location location){
+        if(goal == null || location == null ||
+                navigationState != NavigationState.IN_PROGRESS) {
+            return null;
+        }
+
         float[] res = Location.computeDistanceAndBearing(previousLocation, location); // calculate the currently moved direction
         float movedDistance = res[0];
         float movedBearing = res[1];
@@ -97,5 +106,25 @@ public class LocationNavigator {
 
     public Location getGoal() {
         return goal;
+    }
+
+    public void setGoal(Location goal) {
+        this.goal = goal;
+    }
+
+    public Location getCurrentLocation() {
+        return previousLocation;
+    }
+
+    public void setCurrentLocation(Location currentLocation) {
+        this.previousLocation = currentLocation;
+    }
+
+    public NavigationState getNavigationState() {
+        return navigationState;
+    }
+
+    public void setNavigationState(NavigationState navigationState) {
+        this.navigationState = navigationState;
     }
 }
