@@ -21,6 +21,7 @@ import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
 import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
+import org.joda.time.DateTime;
 import scala.concurrent.duration.Duration;
 
 import java.net.InetSocketAddress;
@@ -388,6 +389,8 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetDateCommand.class, s -> setDate(s.getDate()))
+                    .match(SetTimeCommand.class, s -> setTime(s.getTime()))
                     .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
                     .match(SetMaxHeightCommand.class, s -> setMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> setMaxTilt(s.getDegrees()))
@@ -578,6 +581,14 @@ public class ArDrone3 extends UntypedActor {
 
     private void setHome(double latitude, double longitude, double altitude) {
         sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
+    }
+
+    private void setDate(DateTime time){
+        sendDataAck(PacketCreator.createCurrentDatePacket(time));
+    }
+
+    private void setTime(DateTime time){
+        sendDataAck(PacketCreator.createCurrentTimePacket(time));
     }
 
     private void navigateHome(boolean start) {

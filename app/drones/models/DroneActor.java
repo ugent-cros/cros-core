@@ -25,8 +25,6 @@ import scala.concurrent.duration.Duration;
  */
 public abstract class DroneActor extends AbstractActor {
 
-    private static final Location DEFAULT_LOCATION = new Location(51.046274, 3.724952, 0); // default location for magnetic declination at Ghent
-
     protected LazyProperty<FlyingState> state;
     protected LazyProperty<AlertState> alertState;
     protected LazyProperty<Location> location;
@@ -71,10 +69,9 @@ public abstract class DroneActor extends AbstractActor {
         isOnline = new LazyProperty<>(false);
 
 
-        // TODO: build pipeline that directly forwards to the eventbus
-        //TODO: revert quickfix and support null
+
         UnitPFBuilder<Object> extraListeners = createListeners();
-        if (extraListeners == null) {
+        if (extraListeners == null) { // When null, create a new listener chain
             extraListeners = ReceiveBuilder.match(PropertyRequestMessage.class, this::handlePropertyRequest);
         } else {
             extraListeners = extraListeners.match(PropertyRequestMessage.class, this::handlePropertyRequest);
@@ -96,12 +93,10 @@ public abstract class DroneActor extends AbstractActor {
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClass())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
-
                 // Drone -> external
                 match(LocationChangedMessage.class, s -> {
                     Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth());
                     location.setValue(l);
-                    log.info("Location [{}]", l);
                     processLocation(l);
                     eventBus.publish(new DroneEventMessage(s));
                 }).
