@@ -15,6 +15,7 @@ import drones.commands.MoveCommand;
 import drones.messages.*;
 import drones.util.Compass;
 import drones.util.LocationNavigator;
+import org.springframework.context.annotation.Lazy;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -38,6 +39,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<NavigationStateReason> navigationStateReason;
     protected LazyProperty<Boolean> gpsFix;
     protected LazyProperty<Boolean> isOnline;
+    protected LazyProperty<Boolean> calibrationRequired;
 
     protected DroneEventBus eventBus;
 
@@ -67,8 +69,7 @@ public abstract class DroneActor extends AbstractActor {
         navigationStateReason = new LazyProperty<>(NavigationStateReason.CONNECTION_LOST);
         gpsFix = new LazyProperty<>(false);
         isOnline = new LazyProperty<>(false);
-
-
+        calibrationRequired = new LazyProperty<>(false);
 
         UnitPFBuilder<Object> extraListeners = createListeners();
         if (extraListeners == null) { // When null, create a new listener chain
@@ -78,7 +79,7 @@ public abstract class DroneActor extends AbstractActor {
         }
         receive(extraListeners.
                 // General commands (can be converted to switch as well, depends on embedded data)
-                match(InitRequestMessage.class, s -> initInternal(sender(), self())).
+                        match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
@@ -94,7 +95,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
                 // Drone -> external
-                match(LocationChangedMessage.class, s -> {
+                        match(LocationChangedMessage.class, s -> {
                     Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth());
                     location.setValue(l);
                     processLocation(l);
@@ -144,6 +145,14 @@ public abstract class DroneActor extends AbstractActor {
                     //navigationState.setValue(s.getState());
                     //navigationStateReason.setValue(s.getReason());
                     //eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(MagnetoCalibrationStateChangedMessage.class, s -> {
+                    calibrationRequired.setValue(s.isCalibrationRequired());
+                    eventBus.publish(new DroneEventMessage(s));
+                    if(s.isCalibrationRequired())
+                        log.warning("Drone requires calibration!!!");
+                    else
+                        log.info("No drone calibration required.");
                 }).
                 match(ConnectionStatusChangedMessage.class, s -> {
                     if (!s.isConnected()) {
@@ -287,6 +296,9 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case NETWORK_STATUS:
                 handleMessage(isOnline.getValue(), sender(), self());
+                break;
+            case CALIBRATION_REQUIRED:
+                handleMessage(calibrationRequired.getValue(), sender(), self());
                 break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());

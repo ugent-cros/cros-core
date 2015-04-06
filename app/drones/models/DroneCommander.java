@@ -251,6 +251,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
         }, Akka.system().dispatcher());
     }
 
+    @Override
+    public Future<Boolean> isCalibrationRequired() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
     /**
      * Subscribe to messages of given topic
      *
