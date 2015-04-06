@@ -12,12 +12,12 @@ public class Location implements Serializable {
 
     private double latitude;
     private double longitude;
-    private double heigth;
+    private double height;
 
-    public Location(double latitude, double longitude, double heigth){
+    public Location(double latitude, double longitude, double height){
         this.latitude = latitude;
         this.longitude = longitude;
-        this.heigth = heigth;
+        this.height = height;
     }
 
     public double getLatitude(){
@@ -29,7 +29,7 @@ public class Location implements Serializable {
     }
 
     public double getHeight(){
-        return heigth;
+        return height;
     }
 
     public static float distance(Location l1, Location l2){
@@ -174,7 +174,7 @@ public class Location implements Serializable {
 
         if (Double.compare(location.latitude, latitude) != 0) return false;
         if (Double.compare(location.longitude, longitude) != 0) return false;
-        return Double.compare(location.heigth, heigth) == 0;
+        return Double.compare(location.height, height) == 0;
 
     }
 
@@ -186,7 +186,7 @@ public class Location implements Serializable {
         result = (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(longitude);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(heigth);
+        temp = Double.doubleToLongBits(height);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }

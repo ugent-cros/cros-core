@@ -88,7 +88,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(SetOutdoorRequestMessage.class, s -> setOutdoorInternal(sender(), self(), s.isOutdoor())).
                 match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
-                match(SetMaxHeigthRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
+                match(SetMaxHeightRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
@@ -98,7 +98,7 @@ public abstract class DroneActor extends AbstractActor {
 
                 // Drone -> external
                 match(LocationChangedMessage.class, s -> {
-                    Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth());
+                    Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeight());
                     location.setValue(l);
                     processLocation(l);
                     eventBus.publish(new DroneEventMessage(s));
