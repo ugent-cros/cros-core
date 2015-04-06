@@ -2,6 +2,7 @@ import drones.commands.MoveCommand;
 import drones.models.Location;
 import drones.util.LocationNavigator;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,6 +58,16 @@ public class LocationNavigatorTest {
     }
 
     @Test
+    public void should_not_correct_angle() {
+        Location start = new Location(51.046266, 3.725902, 1);
+        Location goal = new Location(51.046266, 3.726952, 3); // goal east of start
+        Location firstStep = new Location(51.046266, 3.726327, 2); // first step north of start
+        LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 4f, 1f);
+        MoveCommand cmda = nav.update(firstStep);
+        Assert.assertEquals(cmda.getVz(), 0, 0); // The bearing difference should be less than 10 degrees
+    }
+
+    @Test
     public void should_prefer_left_turn(){
         Location start = new Location(51.046266, 3.724902, 1);
         Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
@@ -64,5 +75,15 @@ public class LocationNavigatorTest {
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 4f, 1f);
         MoveCommand cmd1 = nav.update(firstStep);
         Assert.assertTrue(cmd1.getVz() < 0); // prefer left turn instead of long right turn to go to southwest
+    }
+
+    @Test
+    public void should_prefer_right_turn(){
+        Location start = new Location(51.046266, 3.724902, 1);
+        Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
+        Location firstStep = new Location(51.046366, 3.754877, 2); // first step north of start
+        LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 4f, 1f);
+        MoveCommand cmd1 = nav.update(firstStep);
+        Assert.assertTrue(cmd1.getVz() > 0); // prefer left turn instead of long right turn to go to southwest
     }
 }
