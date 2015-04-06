@@ -81,7 +81,7 @@ public abstract class DroneActor extends AbstractActor {
         }
         receive(extraListeners.
                 // General commands (can be converted to switch as well, depends on embedded data)
-                        match(InitRequestMessage.class, s -> initInternal(sender(), self())).
+                match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
@@ -101,6 +101,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(LocationChangedMessage.class, s -> {
                     Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeigth());
                     location.setValue(l);
+                    log.info("Location [{}]", l);
                     processLocation(l);
                     eventBus.publish(new DroneEventMessage(s));
                 }).
@@ -111,6 +112,7 @@ public abstract class DroneActor extends AbstractActor {
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
                     batteryPercentage.setValue(s.getPercent());
+                    log.info("Battery: {}%", s.getPercent());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(FlyingStateChangedMessage.class, s -> {
