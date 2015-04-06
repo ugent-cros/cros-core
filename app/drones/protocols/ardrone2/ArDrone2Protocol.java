@@ -50,6 +50,7 @@ public class ArDrone2Protocol extends UntypedActor {
     // Watchdog reset actor
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
+    private ActorRef ardrone2Config;
 
     public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
@@ -75,7 +76,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitCompletedMessage.class, s -> sendInitNavData())
-                    // Drone commands
+                            // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
                     .match(ResetCommand.class, s -> handleReset())
@@ -87,6 +88,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(MoveCommand.class, s -> handleMove(s))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(StopMoveMessage.class, s -> handleStopMove())
+                    .match(RequestConfigMessage.class, s -> handleConfigRequest())
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -120,6 +122,13 @@ public class ArDrone2Protocol extends UntypedActor {
 
         int bitFields = (1 << 8) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
         sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
+    }
+
+    private void handleConfigRequest() {
+        log.info("[ARDRONE] Config file requested");
+
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 5, 0)));
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 4, 0)));
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
@@ -202,6 +211,10 @@ public class ArDrone2Protocol extends UntypedActor {
         // Create nav data actor
         ardrone2NavData = getContext().actorOf(Props.create(ArDrone2NavData.class,
                 () -> new ArDrone2NavData(details, listener, getSelf())));
+
+        // Create config data actor
+        ardrone2Config = getContext().actorOf(Props.create(ArDrone2Config.class,
+                () -> new ArDrone2Config(details, listener, getSelf())));
     }
 
     private void sendInitNavData() {
@@ -274,6 +287,7 @@ public class ArDrone2Protocol extends UntypedActor {
                 "control:flight_without_shell", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
     }
 
+    @Deprecated // Now ArDrone2Config is used
     private void getVersion() throws IOException {
         InetAddress droneAddr = InetAddress.getByName(details.getIp());
         InputStream is = null;

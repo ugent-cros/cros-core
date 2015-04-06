@@ -8,6 +8,8 @@ import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
+import drones.messages.ProductVersionChangedMessage;
+import drones.messages.RequestConfigMessage;
 import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
 
@@ -22,6 +24,8 @@ public class ArDrone2Config extends UntypedActor {
     private ActorRef senderRef;
     private final ActorRef listener;
     private final ActorRef parent;
+
+    // TCP Manager
     private final ActorRef tcpManager;
 
     private final InetSocketAddress remote;
@@ -38,7 +42,8 @@ public class ArDrone2Config extends UntypedActor {
         tcpManager = Tcp.get(getContext().system()).manager();
         tcpManager.tell(TcpMessage.connect(remote), getSelf());
 
-        log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
+        log.info("[ARDRONE2CONFIG] Starting ARDrone 2.0 Config");
+
     }
 
     @Override
@@ -55,6 +60,9 @@ public class ArDrone2Config extends UntypedActor {
                     .match(Tcp.CommandFailed.class, m -> commandFailed())
                     .match(StopMessage.class, m -> getContext().stop(getSelf()))
                     .match(Tcp.ConnectionClosed.class, m -> connectionClosed()).build());
+
+            // Send request for CONTROL commands
+            parent.tell(new RequestConfigMessage(), getSelf());
         } else if(msg instanceof StopMessage){
             getContext().stop(getSelf());
         }
@@ -72,6 +80,26 @@ public class ArDrone2Config extends UntypedActor {
 
     private void processData(ByteString byteData) {
         String data = byteData.decodeString("UTF-8");
+        String[] configValues = data.split("\n");
+
+        String hardwareVersion = "";
+        String softwareVersion = "";
+
+        for(String configValue: configValues) {
+            String[] configPair = configValue.replaceAll("\\s+","").split("=");
+
+            String key = configPair[0];
+            String value = configPair[1];
+
+            if(key.equals(ConfigKeys.gen_num_version_soft.getKey())) {
+                softwareVersion = value;
+            } else if(key.equals(ConfigKeys.gen_num_version_mb.getKey())) {
+                hardwareVersion = value;
+            }
+        }
+
+        Object versionMessage = new ProductVersionChangedMessage(softwareVersion, hardwareVersion);
+        listener.tell(versionMessage, getSelf());
 
         log.info(data);
     }

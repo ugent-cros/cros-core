@@ -104,11 +104,44 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processData(byte[] navdata) {
-        if(navdata.length >= 100 ) { // Otherwise this will crash
-            int header = PacketHelper.getInt(navdata, NAV_HEADER_OFFSET.getOffset());
+        if(navdata.length >= 100) { // Otherwise this will crash
+            int offset = 0;
+
+            int header = PacketHelper.getInt(navdata, offset);
             if(header != HEADER_VALUE) {
                 log.warning("Wrong header received");
                 return;
+            }
+            offset += 4;
+
+            int state = PacketHelper.getInt(navdata, offset);
+            offset += 4;
+
+            // Parse state
+
+            int dataSequence = PacketHelper.getInt(navdata, offset);
+            offset += 4;
+
+            int visionFlag = PacketHelper.getInt(navdata, offset);
+            offset += 4;
+
+            while(offset < navdata.length) {
+                int optionTag = PacketHelper.getShort(navdata, offset);
+                offset += 2;
+                int optionLen = PacketHelper.getShort(navdata, offset);
+                offset += 2;
+
+                if(optionLen == 0) {
+                    log.error("Zero length option with tag: {}", optionTag);
+                }
+
+                switch(optionTag) {
+                    case NavDataTag.DEMO_TAG.getTag():
+                    //    break;
+                    default:
+                        break;
+                }
+
             }
 
             attitudeChanged(navdata);
@@ -126,7 +159,7 @@ public class ArDrone2NavData extends UntypedActor {
     private void attitudeChanged(byte[] navdata) {
         float pitch = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_PITCH_OFFSET.getOffset()) / 1000);
         float roll = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000);
-        float yaw = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000);
+        float yaw=(float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000);
 
         Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
         listener.tell(attitudeMessage, getSelf());
@@ -183,17 +216,17 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     /*private void gpsDataChanged(byte[] navdata) {
-        boolean gpsAvailable = PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
+        boolean gpsAvailable(PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
 
-        Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+        Object gpsFixMessage(new GPSFixChangedMessage(gpsAvailable);
         listener.tell(gpsFixMessage, getSelf());
 
         if(gpsAvailable) {
-            float latitude = PacketHelper.getFloat(navdata, NAV_GPS_LATITUDE_OFFSET.getOffset());
-            float longitude = PacketHelper.getFloat(navdata, NAV_GPS_LONGITUDE_OFFSET.getOffset());
-            float altitude = PacketHelper.getInt(navdata, NAV_GPS_ELEVATION_OFFSET.getOffset()) / 1000f;
+            float latitude(PacketHelper.getFloat(navdata, NAV_GPS_LATITUDE_OFFSET.getOffset());
+            float longitude(PacketHelper.getFloat(navdata, NAV_GPS_LONGITUDE_OFFSET.getOffset());
+            float altitude(PacketHelper.getInt(navdata, NAV_GPS_ELEVATION_OFFSET.getOffset()) / 1000f;
 
-            Object locationMessage = new LocationChangedMessage(longitude, latitude, altitude);
+            Object locationMessage(new LocationChangedMessage(longitude, latitude, altitude);
             listener.tell(locationMessage, getSelf());
         }
     }*/
@@ -233,6 +266,50 @@ public class ArDrone2NavData extends UntypedActor {
 
         private int getOffset() {
             return offset;
+        }
+    }
+
+    public enum NavDataTag {
+        DEMO_TAG(0),
+        TIME_TAG(1),
+        RAW_MEASURES_TAG(2),
+        PHYS_MEASURES_TAG(3),
+        GYROS_OFFSETS_TAG(4),
+        EULER_ANGLES_TAG(5),
+        REFERENCES_TAG(6),
+        TRIMS_TAG(7),
+        RC_REFERENCES_TAG(8),
+        PWM_TAG(9),
+        ALTITUDE_TAG(10),
+        VISION_RAW_TAG(11),
+        VISION_OF_TAG(12),
+        VISION_TAG(13),
+        VISION_PERF_TAG(14),
+        TRACKERS_SEND_TAG(15),
+        VISION_DETECT_TAG(16),
+        WATCHDOG_TAG(17),
+        IPHONE_ANGLES_TAG(18),
+        ADC_DATA_FRAME_TAG(18),
+        VIDEO_STREAM_TAG(19),
+        GAME_TAG(20),             // AR.Drone 1.7.4
+        PRESSURE_RAW_TAG(21),     // AR.Drone 2.0
+        MAGNETO_TAG(22),          // AR.Drone 2.0
+        WIND_TAG(23),             // AR.Drone 2.0
+        KALMAN_PRESSURE_TAG(24),  // AR.Drone 2.0
+        HDVIDEO_STREAM_TAG(25),   // AR.Drone 2.0
+        WIFI_TAG(26),             // AR.Drone 2.0
+        ZIMMU3000_TAG(27),        // AR.Drone 2.0
+        GPS_TAG(27),              // AR.Drone 2.4.1
+        CKS_TAG(0xFFFF);
+        
+        private final int tag;
+
+        private NavDataTag(int tag) {
+            this.tag = tag;
+        }
+
+        public int getTag() {
+            return tag;
         }
     }
 }
