@@ -15,6 +15,11 @@ public class LocationNavigator {
     private float gpsAccuracy;
     private boolean hadHeading;
 
+    private static final float MAX_DIFF_BEARING = 30f;
+    private static final double MIN_HEIGHT_DIFF = 0.5;
+    private static final double MIN_BEARING_DIFF = 10f;
+    private static final double MIN_VR_VALUE = 0.1;
+
     /**
      * Creates a new location navigation session
      * @param goal The goal location
@@ -40,7 +45,7 @@ public class LocationNavigator {
 
         double vr = 0;
         double heightDiff = goal.getHeight() - location.getHeight();
-        if(Math.abs(heightDiff) > 0.5){ // check if we have to go up/down
+        if(Math.abs(heightDiff) > MIN_HEIGHT_DIFF){ // check if we have to go up/down
             vr = Math.abs(heightDiff) > maxVerticalVelocity ? Math.signum(heightDiff) : (heightDiff / maxVerticalVelocity); // pos = rise, neg = down
         }
 
@@ -62,7 +67,7 @@ public class LocationNavigator {
             } else {
                 hadHeading = true;
                 float bearingDiff = goalBearing - movedBearing; // calculate difference angle that we have to correct
-                if(Math.abs(bearingDiff) < 10f){ // we don't care about 10 degrees off, continue
+                if(Math.abs(bearingDiff) < MIN_BEARING_DIFF){ // we don't care about 10 degrees off, continue
                     return new MoveCommand(vx, 0, 0, vr);
                 } else {
                     if(bearingDiff > 180f){
@@ -71,14 +76,14 @@ public class LocationNavigator {
                         bearingDiff += 360f; // faster to go right
                     }
                     double vz = Math.abs(bearingDiff) > maxAngularVelocity ? Math.signum(bearingDiff) : (bearingDiff / maxAngularVelocity); // take max angle or relative to angular velocity
-                    if(bearingDiff > 30){
+                    if(bearingDiff > MAX_DIFF_BEARING){
                         vx *= 0.5; // When we require a high angle we lower the forward speed
                     }
                     return new MoveCommand(vx, 0, vz, vr);
                 }
             }
         } else {
-            if(goalDistance < gpsAccuracy && Math.abs(vr) < 0.1){ // we started in region we wanted already
+            if(goalDistance < gpsAccuracy && Math.abs(vr) < MIN_VR_VALUE){ // we started in region we wanted already
                 return null;
             } else {
                 if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
