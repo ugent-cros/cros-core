@@ -142,4 +142,16 @@ public class DroneControllerTest extends TestSuperclass {
         assertThat(amount).isEqualTo(0);
     }
 
+    @Test public void total_DronesInDatabase_TotalIsCorrect() {
+        int correctTotal = Drone.FIND.all().size();
+        Result r = callAction(routes.ref.DroneController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), Drone.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
+    }
+
 }
