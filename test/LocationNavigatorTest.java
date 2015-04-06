@@ -2,7 +2,6 @@ import drones.commands.MoveCommand;
 import drones.models.Location;
 import drones.util.LocationNavigator;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -15,7 +14,7 @@ public class LocationNavigatorTest {
         Location start = new Location(51.046266, 3.724902, 1);
         Location goal = new Location(51.046267, 3.724903, 1);
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 4f, 1f);
-        Assert.assertNull(nav.update(new Location(start.getLatitude(), start.getLongtitude(), start.getHeigth() + 0.4)));
+        Assert.assertNull(nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeigth() + 0.4)));
     }
 
     @Test
@@ -23,9 +22,9 @@ public class LocationNavigatorTest {
         Location start = new Location(51.046266, 3.724902, 1);
         Location goal = new Location(51.046266112, 3.724902112, 3);
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 4f, 1f);
-        MoveCommand cmd1 = nav.update(new Location(start.getLatitude(), start.getLongtitude(), start.getHeigth() + 0.4));
-        MoveCommand cmd2 = nav.update(new Location(start.getLatitude(), start.getLongtitude(), start.getHeigth() + 1.4));
-        MoveCommand cmd3 = nav.update(new Location(start.getLatitude(), start.getLongtitude(), start.getHeigth() + 2.4));
+        MoveCommand cmd1 = nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeigth() + 0.4));
+        MoveCommand cmd2 = nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeigth() + 1.4));
+        MoveCommand cmd3 = nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeigth() + 2.4));
         Assert.assertNotNull(cmd1);
         Assert.assertTrue(cmd1.getVr() == 1);
         Assert.assertNotNull(cmd2);

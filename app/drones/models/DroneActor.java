@@ -13,7 +13,6 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.MoveCommand;
 import drones.messages.*;
-import drones.util.Compass;
 import drones.util.LocationNavigator;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -166,7 +165,7 @@ public abstract class DroneActor extends AbstractActor {
                 return;
 
             // When there's no gps fix, continue
-            if (!gpsFix.getRawValue() || location.getLatitude() == 0 || location.getLongtitude() == 0) {
+            if (!gpsFix.getRawValue() || location.getLatitude() == 0 || location.getLongitude() == 0) {
                 navigationState.setValue(NavigationState.UNAVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.CONNECTION_LOST);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
@@ -176,7 +175,7 @@ public abstract class DroneActor extends AbstractActor {
 
             // Prefer altitude of non-gps sensor
             if (altitude.getRawValue() > 0) {
-                location = new Location(location.getLatitude(), location.getLongtitude(), altitude.getRawValue());
+                location = new Location(location.getLatitude(), location.getLongitude(), altitude.getRawValue());
             }
 
             MoveCommand cmd = navigator.update(location);

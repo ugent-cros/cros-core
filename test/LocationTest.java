@@ -11,7 +11,7 @@ public class LocationTest {
     public void testLocationGetters(){
         Location plateau = new Location(51.046274, 3.724952, 2);
         Assert.assertEquals(plateau.getLatitude(), 51.046274, 0);
-        Assert.assertEquals(plateau.getLongtitude(),  3.724952, 0);
+        Assert.assertEquals(plateau.getLongitude(),  3.724952, 0);
         Assert.assertEquals(plateau.getHeigth(), 2, 0);
     }
 

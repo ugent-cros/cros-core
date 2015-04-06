@@ -143,23 +143,23 @@ public class BepopSimulator extends DroneActor {
 
             if (timeTillArrival > timeStep) {
                 // Not there yet
-                double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
+                double deltaLongitude = homeLocation.getLongitude() - currentLocation.getLongitude();
                 double deltaLatitude = homeLocation.getLatitude() - currentLocation.getLatitude();
                 double deltaAltitude = homeLocation.getHeigth() - currentLocation.getHeigth();
 
                 double fraction = timeStep/timeTillArrival;
-                double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
+                double newLongitude = currentLocation.getLongitude() + deltaLongitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
                 double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
                 tellSelf(new LocationChangedMessage(
-                        newLongtitude,
+                        newLongitude,
                         newLatitude,
                         newHeight));
             } else {
                 // We have arrived
                 flyingToHome = false;
                 tellSelf(new LocationChangedMessage(
-                        homeLocation.getLongtitude(),
+                        homeLocation.getLongitude(),
                         homeLocation.getLatitude(),
                         homeLocation.getHeigth()
                 ));

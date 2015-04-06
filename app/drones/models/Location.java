@@ -11,12 +11,12 @@ public class Location implements Serializable {
     //https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
 
     private double latitude;
-    private double longtitude;
+    private double longitude;
     private double heigth;
 
-    public Location(double latitude, double longtitude, double heigth){
+    public Location(double latitude, double longitude, double heigth){
         this.latitude = latitude;
-        this.longtitude = longtitude;
+        this.longitude = longitude;
         this.heigth = heigth;
     }
 
@@ -24,8 +24,8 @@ public class Location implements Serializable {
         return latitude;
     }
 
-    public double getLongtitude(){
-        return longtitude;
+    public double getLongitude(){
+        return longitude;
     }
 
     public double getHeigth(){
@@ -66,8 +66,8 @@ public class Location implements Serializable {
         float[] results = new float[2]; //[0] = distance, [1] = bearing
         double lat1 = l1.getLatitude();
         double lat2 = l2.getLatitude();
-        double lon1 = l1.getLongtitude();
-        double lon2 = l2.getLongtitude();
+        double lon1 = l1.getLongitude();
+        double lon2 = l2.getLongitude();
         // Based on http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf
         // using the "Inverse Formula" (section 4)
         int MAXITERS = 20;
@@ -173,7 +173,7 @@ public class Location implements Serializable {
         Location location = (Location) o;
 
         if (Double.compare(location.latitude, latitude) != 0) return false;
-        if (Double.compare(location.longtitude, longtitude) != 0) return false;
+        if (Double.compare(location.longitude, longitude) != 0) return false;
         return Double.compare(location.heigth, heigth) == 0;
 
     }
@@ -184,7 +184,7 @@ public class Location implements Serializable {
         long temp;
         temp = Double.doubleToLongBits(latitude);
         result = (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(longtitude);
+        temp = Double.doubleToLongBits(longitude);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(heigth);
         result = 31 * result + (int) (temp ^ (temp >>> 32));

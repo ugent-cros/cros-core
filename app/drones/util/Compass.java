@@ -14,7 +14,7 @@ public class Compass {
      * @return Corrected compass reading
      */
     public static double calculateHeading(double compassRadians, Location readFrom){
-        GeomagneticField field = new GeomagneticField((float)readFrom.getLatitude(), (float)readFrom.getLongtitude(), (float)readFrom.getHeigth(), System.currentTimeMillis());
+        GeomagneticField field = new GeomagneticField((float)readFrom.getLatitude(), (float)readFrom.getLongitude(), (float)readFrom.getHeigth(), System.currentTimeMillis());
         float declination = field.getDeclination();
         return compassRadians + Math.toRadians(declination);
     }
