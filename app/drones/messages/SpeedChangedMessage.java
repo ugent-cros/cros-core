@@ -6,25 +6,25 @@ import java.io.Serializable;
  * Created by Cedric on 3/8/2015.
  */
 public class SpeedChangedMessage implements Serializable {
-    private float speedX;
-    private float speedY;
-    private float speedZ;
+    private double speedX;
+    private double speedY;
+    private double speedZ;
 
-    public SpeedChangedMessage(float speedX, float speedY, float speedZ) {
+    public SpeedChangedMessage(double speedX, double speedY, double speedZ) {
         this.speedX = speedX;
         this.speedY = speedY;
         this.speedZ = speedZ;
     }
 
-    public float getSpeedX() {
+    public double getSpeedX() {
         return speedX;
     }
 
-    public float getSpeedY() {
+    public double getSpeedY() {
         return speedY;
     }
 
-    public float getSpeedZ() {
+    public double getSpeedZ() {
         return speedZ;
     }
 }
