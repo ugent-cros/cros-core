@@ -117,7 +117,7 @@ public class ArDrone2NavData extends UntypedActor {
             batteryChanged(navdata);
             flyingStateChanged(navdata);
             alertStateChanged(navdata);
-            //positionChanged(navdata);
+            // gpsDataChanged(navdata)
         } else {
             log.info("Packet doesn't contain data");
         }
@@ -182,8 +182,11 @@ public class ArDrone2NavData extends UntypedActor {
         }
     }
 
-    /*private void positionChanged(byte[] navdata) {
+    /*private void gpsDataChanged(byte[] navdata) {
         boolean gpsAvailable = PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
+
+        Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+        listener.tell(gpsFixMessage, getSelf());
 
         if(gpsAvailable) {
             float latitude = PacketHelper.getFloat(navdata, NAV_GPS_LATITUDE_OFFSET.getOffset());
