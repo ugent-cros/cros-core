@@ -226,7 +226,7 @@ public class Application extends Controller {
             ObjectNode result = Json.newObject();
             result.put("long", v.getLongitude());
             result.put("lat", v.getLatitude());
-            result.put("altitude", v.getHeigth());
+            result.put("altitude", v.getHeight());
             return ok(result);
         });
     }

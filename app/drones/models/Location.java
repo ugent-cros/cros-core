@@ -28,7 +28,7 @@ public class Location implements Serializable {
         return longitude;
     }
 
-    public double getHeigth(){
+    public double getHeight(){
         return heigth;
     }
 

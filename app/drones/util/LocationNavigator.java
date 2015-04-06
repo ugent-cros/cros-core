@@ -39,7 +39,7 @@ public class LocationNavigator {
         float movedBearing = res[1];
 
         double vr = 0;
-        double heightDiff = goal.getHeigth() - location.getHeigth();
+        double heightDiff = goal.getHeight() - location.getHeight();
         if(Math.abs(heightDiff) > 0.5){ // check if we have to go up/down
             vr = Math.abs(heightDiff) > maxVerticalVelocity ? Math.signum(heightDiff) : (heightDiff / maxVerticalVelocity); // pos = rise, neg = down
         }
