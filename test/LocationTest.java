@@ -39,8 +39,26 @@ public class LocationTest {
 
         Location currentLocation = new Location(51.045051, 3.730360, 0);
         Location toLocation = new Location(51.046279, 3.724921, 0);
-
         bearing = Location.getBearing(currentLocation, toLocation);
-        System.out.println(bearing);
+        Assert.assertEquals(bearing, 290f, 1f);
+
+        // Same location
+        bearing = Location.getBearing(currentLocation, currentLocation);
+        Assert.assertEquals(bearing, 0f, 1f);
+
+        // Same longitude
+        currentLocation = new Location(51.045051, 3.730360, 0);
+        toLocation = new Location(51.046051, 3.730360, 0);
+        bearing = Location.getBearing(currentLocation, toLocation);
+        Assert.assertEquals(bearing, 0f, 1f);
+
+        // Same latitude
+        currentLocation = new Location(51.045051, 3.730360, 0);
+        toLocation = new Location(51.045051, 3.740360, 0);
+        bearing = Location.getBearing(currentLocation, toLocation);
+        Assert.assertEquals(bearing, 90f, 1f);
+        // Same latitude, but locations swapped (180deg diff)
+        bearing = Location.getBearing(toLocation, currentLocation);
+        Assert.assertEquals(bearing, 270f, 1f);
     }
 }
