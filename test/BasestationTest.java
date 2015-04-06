@@ -144,7 +144,8 @@ public class BasestationTest extends TestSuperclass {
         assertThat(amount).isEqualTo(0);
     }
 
-    @Test public void total_BasestationsInDatabase_TotalIsCorrect() {
+    @Test
+    public void total_BasestationsInDatabase_TotalIsCorrect() {
         int correctTotal = Basestation.FIND.all().size();
         Result r = callAction(routes.ref.BasestationController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
         try {

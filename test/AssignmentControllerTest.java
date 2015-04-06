@@ -147,7 +147,8 @@ public class AssignmentControllerTest extends TestSuperclass {
         assertThat(amount).isEqualTo(0);*/
     }
 
-    @Test public void total_AssignmentsInDatabase_TotalIsCorrect() {
+    @Test
+    public void total_AssignmentsInDatabase_TotalIsCorrect() {
         int correctTotal = Assignment.FIND.all().size();
         Result r = callAction(routes.ref.AssignmentController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
         try {

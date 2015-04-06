@@ -142,7 +142,8 @@ public class DroneControllerTest extends TestSuperclass {
         assertThat(amount).isEqualTo(0);
     }
 
-    @Test public void total_DronesInDatabase_TotalIsCorrect() {
+    @Test
+    public void total_DronesInDatabase_TotalIsCorrect() {
         int correctTotal = Drone.FIND.all().size();
         Result r = callAction(routes.ref.DroneController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
         try {

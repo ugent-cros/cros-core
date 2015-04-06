@@ -434,7 +434,8 @@ public class UserTest extends TestSuperclass {
         assertThat(allUsers).contains(getAdmin()); // Equality check
     }
 
-    @Test public void total_UsersInDatabase_TotalIsCorrect() {
+    @Test
+    public void total_UsersInDatabase_TotalIsCorrect() {
         int correctTotal = User.FIND.all().size();
         Result r = callAction(routes.ref.UserController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
         try {

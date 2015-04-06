@@ -1,8 +1,12 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import controllers.routes;
 import drones.models.BepopDriver;
-import models.*;
+import models.Assignment;
+import models.Basestation;
+import models.Drone;
+import models.User;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -55,6 +59,114 @@ public class SearchTest extends TestSuperclass {
     @AfterClass
     public static void teardown() {
         stopFakeApplication();
+    }
+
+    @Test
+    public void getAll_noFilter_TotalOnlyAvailableWhenSetOnDrones() {
+        Result resultWithTotal = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url() + "?total=true"), getAdmin()));
+        Result resultWithoutTotal = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url() + "?total=false"), getAdmin()));
+        Result resultWithoutTotal2 = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url()), getAdmin()));
+
+        try {
+            ObjectNode nodeWithoutTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal), Drone.class, false);
+            assertThat(nodeWithoutTotal.get("total")).isEqualTo(null);
+            ObjectNode nodeWithoutTotal2 = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal2), Drone.class, false);
+            assertThat(nodeWithoutTotal2.get("total")).isEqualTo(null);
+            ObjectNode nodeWithTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithTotal), Drone.class, false);
+            assertThat(nodeWithTotal.get("total").asInt()).isEqualTo(Drone.FIND.all().size());
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_noFilter_TotalOnlyAvailableWhenSetOnAssignemnts() {
+        Result resultWithTotal = callAction(routes.ref.AssignmentController.getAll(), authorizeRequest(fakeRequest(GET, routes.AssignmentController.getAll().url() + "?total=true"), getAdmin()));
+        Result resultWithoutTotal = callAction(routes.ref.AssignmentController.getAll(), authorizeRequest(fakeRequest(GET, routes.AssignmentController.getAll().url() + "?total=false"), getAdmin()));
+        Result resultWithoutTotal2 = callAction(routes.ref.AssignmentController.getAll(), authorizeRequest(fakeRequest(GET, routes.AssignmentController.getAll().url()), getAdmin()));
+
+        try {
+            ObjectNode nodeWithoutTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal), Assignment.class, false);
+            assertThat(nodeWithoutTotal.get("total")).isEqualTo(null);
+            ObjectNode nodeWithoutTotal2 = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal2), Assignment.class, false);
+            assertThat(nodeWithoutTotal2.get("total")).isEqualTo(null);
+            ObjectNode nodeWithTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithTotal), Assignment.class, false);
+            assertThat(nodeWithTotal.get("total").asInt()).isEqualTo(Assignment.FIND.all().size());
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_noFilter_TotalOnlyAvailableWhenSetOnBasestations() {
+        Result resultWithTotal = callAction(routes.ref.BasestationController.getAll(), authorizeRequest(fakeRequest(GET, routes.BasestationController.getAll().url() + "?total=true"), getAdmin()));
+        Result resultWithoutTotal = callAction(routes.ref.BasestationController.getAll(), authorizeRequest(fakeRequest(GET, routes.BasestationController.getAll().url() + "?total=false"), getAdmin()));
+        Result resultWithoutTotal2 = callAction(routes.ref.BasestationController.getAll(), authorizeRequest(fakeRequest(GET, routes.BasestationController.getAll().url()), getAdmin()));
+
+        try {
+            ObjectNode nodeWithoutTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal), Basestation.class, false);
+            assertThat(nodeWithoutTotal.get("total")).isEqualTo(null);
+            ObjectNode nodeWithoutTotal2 = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal2), Basestation.class, false);
+            assertThat(nodeWithoutTotal2.get("total")).isEqualTo(null);
+            ObjectNode nodeWithTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithTotal), Basestation.class, false);
+            assertThat(nodeWithTotal.get("total").asInt()).isEqualTo(Basestation.FIND.all().size());
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_noFilter_TotalOnlyAvailableWhenSetOnUsers() {
+        Result resultWithTotal = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(GET, routes.UserController.getAll().url() + "?total=true"), getAdmin()));
+        Result resultWithoutTotal = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(GET, routes.UserController.getAll().url() + "?total=false"), getAdmin()));
+        Result resultWithoutTotal2 = callAction(routes.ref.UserController.getAll(), authorizeRequest(fakeRequest(GET, routes.UserController.getAll().url()), getAdmin()));
+
+        try {
+            ObjectNode nodeWithoutTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal), User.class, false);
+            assertThat(nodeWithoutTotal.get("total")).isEqualTo(null);
+            ObjectNode nodeWithoutTotal2 = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithoutTotal2), User.class, false);
+            assertThat(nodeWithoutTotal2.get("total")).isEqualTo(null);
+            ObjectNode nodeWithTotal = (ObjectNode) JsonHelper.removeRootElement(contentAsString(resultWithTotal), User.class, false);
+            assertThat(nodeWithTotal.get("total").asInt()).isEqualTo(User.FIND.all().size());
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_filterOnNonExistingName_TotalIsZero() {
+        Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url() + "?total=true&name=unknown"), getAdmin()));
+
+        try {
+            ObjectNode resultNode = (ObjectNode) JsonHelper.removeRootElement(contentAsString(result), Drone.class, false);
+            assertThat(resultNode.get("total").asInt()).isEqualTo(0);
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_filterOnName_TotalIsCorrect() {
+        Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url() + "?total=true&name=1"), getAdmin()));
+
+        try {
+            ObjectNode resultNode = (ObjectNode) JsonHelper.removeRootElement(contentAsString(result), Drone.class, false);
+            assertThat(resultNode.get("total").asInt()).isEqualTo(1);
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void getAll_filterOnPage_TotalIsNotFiltered() {
+        Result result = callAction(routes.ref.DroneController.getAll(), authorizeRequest(fakeRequest(GET, routes.DroneController.getAll().url() + "?total=true&page=0&pageSize=1"), getAdmin()));
+
+        try {
+            ObjectNode resultNode = (ObjectNode) JsonHelper.removeRootElement(contentAsString(result), Drone.class, false);
+            assertThat(resultNode.get("total").asInt()).isEqualTo(Drone.FIND.all().size());
+        } catch (JsonHelper.InvalidJSONException e) {
+            Assert.fail("Invalid json exception: " + e.getMessage());
+        }
     }
 
     @Test
