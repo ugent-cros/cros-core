@@ -1,8 +1,12 @@
 import drones.models.DroneActor;
+import drones.models.DroneCommander;
 import drones.models.DroneDriver;
 import drones.models.Fleet;
+import drones.simulation.SimulatorDriver;
 import models.Drone;
 import models.DroneType;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -67,6 +71,24 @@ public class FleetTest extends TestSuperclass {
             }
             return false;
         }
+    }
+
+
+    @BeforeClass
+    public static void setup() {
+
+        startFakeApplication();
+
+        // Check if simulator driver is registered, if not register
+        Fleet f = Fleet.getFleet();
+        if(!f.registeredDrivers().containsKey(SimulatorDriver.SIMULATOR_TYPE)) {
+            f.registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
+        }
+    }
+
+    @AfterClass
+    public static void teardown() {
+        stopFakeApplication();;
     }
 
     @Test
@@ -136,13 +158,53 @@ public class FleetTest extends TestSuperclass {
     @Test
     public void unregisterDriver_ForRegisteredTypeCorrectDriver_ReturnsTrue() {
 
-        DroneType type = new DroneType("RegTest4", "1");
-        DummyDriver driver = new DummyDriver("DriverTest4", type);
+        DroneType type = new DroneType("RegTest5", "1");
+        DummyDriver driver = new DummyDriver("DriverTest5", type);
 
         Fleet f = Fleet.getFleet();
         f.registerDriver(type, driver);
 
         // Register 1st driver for multiple types
         assertThat(f.unregisterDriver(type, driver)).isTrue();
+    }
+
+    @Test
+    public void getCommander_ForNonRegisteredType_ReturnsNull() {
+
+        //TODO: later an exception instead maybe?
+        DroneType type = new DroneType("RegTest6", "1");
+        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, type, "x");
+        drone.save();
+
+        Fleet f = Fleet.getFleet();
+        assertThat(f.getCommanderForDrone(drone)).isNull();
+    }
+
+    @Test
+    public void getCommander_ForRegisteredType_ReturnsCommander() {
+
+        Fleet f = Fleet.getFleet();
+
+        // Use simulator driver for this test: should be registered in beforeclass method
+        Drone drone = new Drone("FleetTestDrone7", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        drone.save();
+
+        assertThat(f.getCommanderForDrone(drone)).isNotNull();
+    }
+
+    @Test
+    public void getCommander_MultipleTimesForRegisteredType_ReturnsSameCommander() {
+
+        Fleet f = Fleet.getFleet();
+
+        // Use simulator driver for this test: should be registered in beforeclass method
+        Drone drone = new Drone("FleetTestDrone8", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        drone.save();
+
+        // TODO: rethink desired behavior: do we want 2 commanders for the same drone?
+        DroneCommander commander1 = f.getCommanderForDrone(drone);
+        DroneCommander commander2 = f.getCommanderForDrone(drone);
+
+        assertThat(commander1 == commander2);   // referene equality should hold
     }
 }
