@@ -161,6 +161,10 @@ public class UserController {
         User updatedUser = filledForm.get();
         updatedUser.setId(id);
         Set<String> updatedFields = filledForm.data().keySet();
+        if (updatedFields.contains("password")) {
+            updatedFields.remove("password");
+            updatedFields.add("shaPassword");
+        }
         Ebean.update(updatedUser, updatedFields);
 
         return ok(JsonHelper.createJsonNode(updatedUser, getAllLinks(id), User.class));
