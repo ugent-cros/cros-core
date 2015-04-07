@@ -107,6 +107,9 @@ public abstract class DroneActor extends AbstractActor {
                 match(GPSFixChangedMessage.class, s -> {
                     log.info("GPS fix changed: [{}]", s.isFixed());
                     gpsFix.setValue(s.isFixed());
+                    if(!s.isFixed()){
+                        cancelNavigation(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST);
+                    }
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
@@ -361,14 +364,17 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
-    private void cancellNavigation(NavigationStateReason reason){
+    private void cancelNavigation(NavigationState state, NavigationStateReason reason){
         synchronized (navigationLock){
-            navigationState.setValue(NavigationState.AVAILABLE);
-            navigationStateReason.setValue(reason);
-            eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, reason)));
+            if(navigator.getGoal() != null) {
+                log.info("Cancelling navigation: {}, {}", state, reason);
+                navigationState.setValue(state);
+                navigationStateReason.setValue(reason);
+                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(state, reason)));
 
-            navigator.setGoal(null);
-            navigator.setCurrentLocation(null);
+                navigator.setGoal(null);
+                navigator.setCurrentLocation(null);
+            }
         }
     }
 
@@ -379,7 +385,7 @@ public abstract class DroneActor extends AbstractActor {
             log.info("Cancelling move to location.");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-            cancellNavigation(NavigationStateReason.STOPPED);
+            cancelNavigation(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
             v.success(null);
 
             // Old code:
@@ -472,7 +478,7 @@ public abstract class DroneActor extends AbstractActor {
         if (loaded) {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
 
-            cancellNavigation(NavigationStateReason.STOPPED);
+            cancelNavigation(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
 
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
