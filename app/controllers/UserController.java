@@ -189,6 +189,10 @@ public class UserController {
             return notFound();
         }
 
+        User client = SecurityController.getUser();
+        if (client.getId().equals(userToDelete.getId()))
+            return forbidden();
+
         // Delete the user
         userToDelete.delete();
 
