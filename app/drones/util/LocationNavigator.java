@@ -38,13 +38,10 @@ public class LocationNavigator {
         this.maxAngularVelocity = maxAngularVelocity;
         this.maxForwardVelocity = maxForwardVelocity;
         this.maxVerticalVelocity = maxVerticalVelocity;
-
-        this.navigationState = NavigationState.AVAILABLE;
     }
 
     public MoveCommand update(Location location){
-        if(goal == null || location == null ||
-                navigationState != NavigationState.IN_PROGRESS) {
+        if(goal == null || location == null) {
             return null;
         }
 

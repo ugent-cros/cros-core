@@ -171,13 +171,13 @@ public abstract class DroneActor extends AbstractActor {
 
     private void processLocation(Location location) {
         synchronized (navigationLock){
-            if(navigator.getNavigationState() != NavigationState.IN_PROGRESS)
+            if(navigationState.getRawValue() != NavigationState.IN_PROGRESS)
                 return;
 
             // When there's no gps fix, continue
             if (!gpsFix.getRawValue()) {
                 // Stop navigator
-                navigator.setNavigationState(NavigationState.UNAVAILABLE);
+                //navigator.setNavigationState(NavigationState.UNAVAILABLE);
                 navigator.setCurrentLocation(null);
                 navigator.setGoal(null);
 
@@ -199,7 +199,6 @@ public abstract class DroneActor extends AbstractActor {
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
 
-                navigator.setNavigationState(NavigationState.AVAILABLE);
                 navigator.setCurrentLocation(null);
                 navigator.setGoal(null);
             } else { // execute the movement command
@@ -371,7 +370,10 @@ public abstract class DroneActor extends AbstractActor {
             handleMessage(v.future(), sender, self);
 
             synchronized (navigationLock){
-                navigator.setNavigationState(NavigationState.AVAILABLE);
+                navigationState.setValue(NavigationState.AVAILABLE);
+                navigationStateReason.setValue(NavigationStateReason.FINISHED);
+                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
+
                 navigator.setGoal(null);
                 navigator.setCurrentLocation(null);
 
@@ -392,16 +394,16 @@ public abstract class DroneActor extends AbstractActor {
             handleMessage(v.future(), sender, self);
 
             synchronized(navigationLock){
-                if(navigator.getNavigationState() == NavigationState.IN_PROGRESS) {
+                if(navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
                     v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
-                } else if(navigator.getNavigationState() == NavigationState.UNAVAILABLE) {
+                } else if(navigationState.getRawValue() == NavigationState.UNAVAILABLE) {
                     v.failure(new DroneException("Unable to navigate to goal"));
                 }else if(!gpsFix.getRawValue()) {
                     v.failure(new DroneException("No GPS fix yet."));
                 } else {
                     navigator.setCurrentLocation(location.getRawValue());
                     navigator.setGoal(new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
-                    navigator.setNavigationState(NavigationState.IN_PROGRESS);
+                    // navigator.setNavigationState(NavigationState.IN_PROGRESS);
 
                     navigationState.setValue(NavigationState.IN_PROGRESS);
                     navigationStateReason.setValue(NavigationStateReason.REQUESTED);
@@ -467,6 +469,16 @@ public abstract class DroneActor extends AbstractActor {
     private void landInternal(final ActorRef sender, final ActorRef self) {
         if (loaded) {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
+
+            // Stop navigating
+            navigator.setGoal(null);
+            navigator.setCurrentLocation(null);
+
+            // @TODO
+            navigationState.setValue(NavigationState.AVAILABLE);
+            navigationStateReason.setValue(NavigationStateReason.FINISHED);
+            eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
+
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             land(v);
