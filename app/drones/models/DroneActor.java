@@ -84,11 +84,11 @@ public abstract class DroneActor extends AbstractActor {
                 // General commands (can be converted to switch as well, depends on embedded data)
                         match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
+                match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
                 match(SetHullRequestMessage.class, s -> setHullInternal(sender(), self(), s.hasHull())).
                 match(SetOutdoorRequestMessage.class, s -> setOutdoorInternal(sender(), self(), s.isOutdoor())).
-                match(LandRequestMessage.class, s -> landInternal(sender(), self())).
                 match(MoveRequestMessage.class, s -> moveInternal(sender(), self(), s)).
                 match(SetMaxHeightRequestMessage.class, s -> setMaxHeightInternal(sender(), self(), s.getMeters())).
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
@@ -361,6 +361,17 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    private void cancellNavigation(NavigationStateReason reason){
+        synchronized (navigationLock){
+            navigationState.setValue(NavigationState.AVAILABLE);
+            navigationStateReason.setValue(reason);
+            eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, reason)));
+
+            navigator.setGoal(null);
+            navigator.setCurrentLocation(null);
+        }
+    }
+
     private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self) {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
@@ -368,17 +379,8 @@ public abstract class DroneActor extends AbstractActor {
             log.info("Cancelling move to location.");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-
-            synchronized (navigationLock){
-                navigationState.setValue(NavigationState.AVAILABLE);
-                navigationStateReason.setValue(NavigationStateReason.FINISHED);
-                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
-
-                navigator.setGoal(null);
-                navigator.setCurrentLocation(null);
-
-                v.success(null);
-            }
+            cancellNavigation(NavigationStateReason.STOPPED);
+            v.success(null);
 
             // Old code:
             //cancelMoveToLocation(v);
@@ -470,14 +472,7 @@ public abstract class DroneActor extends AbstractActor {
         if (loaded) {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
 
-            // Stop navigating
-            navigator.setGoal(null);
-            navigator.setCurrentLocation(null);
-
-            // @TODO
-            navigationState.setValue(NavigationState.AVAILABLE);
-            navigationStateReason.setValue(NavigationStateReason.FINISHED);
-            eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
+            cancellNavigation(NavigationStateReason.STOPPED);
 
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
