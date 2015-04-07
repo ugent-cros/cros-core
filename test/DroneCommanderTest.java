@@ -157,6 +157,7 @@ public class DroneCommanderTest extends TestSuperclass {
         DroneCommander commander = createDroneCommander();
         Await.ready(commander.init(), TIME_OUT);
         Await.ready(commander.takeOff(), TIME_OUT);
+        Thread.sleep(10);
         Future future = commander.moveToLocation(10, 20, 30);
         Await.result(future, TIME_OUT);
     }
