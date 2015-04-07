@@ -17,6 +17,7 @@ import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -160,7 +161,7 @@ public class UserController {
         // Update the user
         User updatedUser = filledForm.get();
         updatedUser.setId(id);
-        Set<String> updatedFields = filledForm.data().keySet();
+        Set<String> updatedFields = new HashSet<>(filledForm.data().keySet());
         if (updatedFields.contains("password")) {
             updatedFields.remove("password");
             updatedFields.add("shaPassword");
