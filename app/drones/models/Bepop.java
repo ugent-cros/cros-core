@@ -11,6 +11,7 @@ import drones.messages.StopMessage;
 import drones.protocols.ArDrone3;
 import drones.protocols.ArDrone3Discovery;
 import drones.util.LocationNavigator;
+import org.joda.time.DateTime;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -89,6 +90,8 @@ public class Bepop extends DroneActor {
         sendMessage(new SetHullCommand(hull));
         sendMessage(new SetMaxTiltCommand(60f)); //default max tilt to 60 degrees
         sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
+        sendMessage(new SetDateCommand(DateTime.now()));
+        sendMessage(new SetTimeCommand(DateTime.now()));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
         sendMessage(new FlatTrimCommand());

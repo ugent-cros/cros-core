@@ -6,25 +6,25 @@ import java.io.Serializable;
  * Created by Cedric on 3/8/2015.
  */
 public class AttitudeChangedMessage implements Serializable{
-    private float roll;
-    private float pitch;
-    private float yaw;
+    private double roll;
+    private double pitch;
+    private double yaw;
 
-    public AttitudeChangedMessage(float roll, float pitch, float yaw) {
+    public AttitudeChangedMessage(double roll, double pitch, double yaw) {
         this.roll = roll;
         this.pitch = pitch;
         this.yaw = yaw;
     }
 
-    public float getRoll() {
+    public double getRoll() {
         return roll;
     }
 
-    public float getPitch() {
+    public double getPitch() {
         return pitch;
     }
 
-    public float getYaw() {
+    public double getYaw() {
         return yaw;
     }
 }

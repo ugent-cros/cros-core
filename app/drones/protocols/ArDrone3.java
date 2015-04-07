@@ -21,6 +21,7 @@ import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
 import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
+import org.joda.time.DateTime;
 import scala.concurrent.duration.Duration;
 
 import java.net.InetSocketAddress;
@@ -58,8 +59,6 @@ public class ArDrone3 extends UntypedActor {
     private InetSocketAddress senderAddress;
     private ActorRef senderRef;
 
-    private ByteString recvBuffer;
-
     private final ActorRef listener; //to respond messages to
 
     private boolean isOffline = true;
@@ -94,9 +93,14 @@ public class ArDrone3 extends UntypedActor {
 
     public boolean sendData(ByteString data) {
         if (senderAddress != null && senderRef != null) {
-            log.debug("Sending RAW data.");
-            senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
-            return true;
+            if (data != null && data.length() != 0) {
+                log.debug("Sending RAW data.");
+                senderRef.tell(UdpMessage.send(data, senderAddress), getSelf());
+                return true;
+            } else {
+                log.warning("Sending empty message.");
+                return false;
+            }
         } else {
             log.debug("Sending data without discovery data available.");
             return false;
@@ -196,14 +200,14 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void handlePong(ByteString data){
+    private void handlePong(ByteString data) {
         long now = System.currentTimeMillis();
         lastPong = now;
 
         long timeStamp = data.iterator().getLong(FrameHelper.BYTE_ORDER);
         long diff = now - timeStamp;
         log.debug("Pong received, RTT=[{}]ms.", diff);
-        if(isOffline){
+        if (isOffline) {
             isOffline = false;
             listener.tell(new ConnectionStatusChangedMessage(true), getSelf());
         }
@@ -256,40 +260,42 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        ByteString current = recvBuffer == null ? data : recvBuffer.concat(data); //immutable rolling buffer
+        if (data == null || data.length() == 0) {
+            log.warning("Empty message received");
+            return;
+        }
 
+        int numMsg = 0;
         while (true) {
-            int len = current.length();
-            if (len == 0) {
-                recvBuffer = null;
-                break;
-            } else if (len < 7) {
-                recvBuffer = current;
+            int len = data.length();
+            if (len < 7) { // no header available
                 break;
             } else {
-                final int length = current.iterator().drop(3).getInt(FrameHelper.BYTE_ORDER); //skip first 3 bytes (type, id, seq)
+                final int length = data.iterator().drop(3).getInt(FrameHelper.BYTE_ORDER); //skip first 3 bytes (type, id, seq)
                 if (length > MAX_FRAME_SIZE) {
                     log.error("Received too large frame: [{}]", length);
                     throw new IllegalArgumentException(
                             "received too large frame of size " + length + " (max = "
                                     + MAX_FRAME_SIZE + ")");
-                } else if (current.length() < length) {
-                    recvBuffer = current;
+                } else if (data.length() < length) {
                     log.warning("Received half a packet.");
                     break;
                 } else {
-                    ByteIterator it = current.iterator();
+                    ByteIterator it = data.iterator();
                     final byte type = it.getByte();
                     final byte id = it.getByte();
                     final byte seq = it.getByte();
 
-                    ByteString payload = current.slice(7, length);
+                    ByteString payload = data.slice(7, length);
                     processFrame(new Frame(FrameHelper.parseFrameType(type), id, seq, payload));
 
-                    current = current.drop(length);
+                    numMsg++;
+                    data = data.drop(length);
                 }
             }
         }
+        if (numMsg == 0)
+            log.warning("Failed to extract any frame from packet.");
     }
 
     private void addSendChannel(FrameType type, byte id) {
@@ -358,10 +364,22 @@ public class ArDrone3 extends UntypedActor {
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(String.class, "tick"::equals, s -> tick())
-                    .match(Udp.Received.class, s -> processRawData(s.data()))
-                    .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.Received.class, s -> {
+                        try {
+                            processRawData(s.data());
+                        } catch (Exception ex) {
+                            log.error(ex, "Failed processing UDP frame.");
+                        }
+                    })
+                    .match(Udp.Unbound.class, s -> {
+                        log.info("UDP unbound received.");
+                        getContext().stop(getSelf());
+                    })
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
-                    .match(StopMessage.class, s -> stop())
+                    .match(StopMessage.class, s -> {
+                        log.info("ArDrone3 protocol stop received.");
+                        stop();
+                    })
 
                             // Drone commands
                     .match(FlatTrimCommand.class, s -> flatTrim())
@@ -371,6 +389,8 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s))
+                    .match(SetDateCommand.class, s -> setDate(s.getDate()))
+                    .match(SetTimeCommand.class, s -> setTime(s.getTime()))
                     .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
                     .match(SetMaxHeightCommand.class, s -> setMaxHeight(s.getMeters()))
                     .match(SetMaxTiltCommand.class, s -> setMaxTilt(s.getDegrees()))
@@ -397,10 +417,10 @@ public class ArDrone3 extends UntypedActor {
         boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
         double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
-        for(int i = 0; i < 4; i++){
+        for (int i = 0; i < 4; i++) {
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
-            if(Math.abs(vars[i]) > 100d){
+            if (Math.abs(vars[i]) > 100d) {
                 vars[i] = 100d * Math.signum(vars[i]);
             }
         }
@@ -429,30 +449,30 @@ public class ArDrone3 extends UntypedActor {
         A positive value makes the drone spin right; a negative value makes it spin left.
          */
 
-        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte)vars[0], (byte)vars[1], (byte)vars[2], (byte)vars[3]));
+        sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) vars[0], (byte) vars[1], (byte) vars[2], (byte) vars[3]));
     }
 
-    private void checkPing(long time){
+    private void checkPing(long time) {
         // When not discovered yet
-        if(senderAddress == null || senderRef == null)
+        if (senderAddress == null || senderRef == null)
             return;
 
-        if(lastPing > 0 && time - lastPong > 3*PING_INTERVAL){
-            if(!isOffline){
+        if (lastPing > 0 && time - lastPong > 3 * PING_INTERVAL) {
+            if (!isOffline) {
                 isOffline = true;
                 listener.tell(new ConnectionStatusChangedMessage(false), getSelf());
             }
         }
 
-        if(time - lastPing > PING_INTERVAL){
+        if (time - lastPing > PING_INTERVAL) {
             DataChannel pingChannel = channels.get(FrameDirection.TO_DRONE).get(PING_CHANNEL);
-            if(pingChannel != null){
+            if (pingChannel != null) {
                 Frame f = pingChannel.createFrame(PacketHelper.getPingPacket(time));
-                if(sendData(FrameHelper.getFrameData(f))){
+                if (sendData(FrameHelper.getFrameData(f))) {
                     lastPing = time;
                     log.debug("Sent ping at [{}]", time);
                 } else log.warning("Failed to sent ping.");
-            } else  {
+            } else {
                 log.error("No PING channel defined.");
             }
         }
@@ -460,19 +480,23 @@ public class ArDrone3 extends UntypedActor {
 
 
     private void tick() {
-        long time = System.currentTimeMillis();
-        checkPing(time);
-        for (DataChannel ch : ackChannels) {
-            Frame f = ch.tick(time);
-            if (f != null) {
-                sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
+        try {
+            long time = System.currentTimeMillis();
+            checkPing(time);
+            for (DataChannel ch : ackChannels) {
+                Frame f = ch.tick(time);
+                if (f != null) {
+                    sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
+                }
             }
-        }
 
-        // Reschedule
-        getContext().system().scheduler().scheduleOnce(
-                Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
-                getSelf(), "tick", getContext().dispatcher(), null);
+            // Reschedule
+            getContext().system().scheduler().scheduleOnce(
+                    Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
+                    getSelf(), "tick", getContext().dispatcher(), null);
+        } catch(Exception ex){
+            log.warning("Failed to process ArDrone3 timer tick.");
+        }
     }
 
 
@@ -557,6 +581,14 @@ public class ArDrone3 extends UntypedActor {
 
     private void setHome(double latitude, double longitude, double altitude) {
         sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
+    }
+
+    private void setDate(DateTime time){
+        sendDataAck(PacketCreator.createCurrentDatePacket(time));
+    }
+
+    private void setTime(DateTime time){
+        sendDataAck(PacketCreator.createCurrentTimePacket(time));
     }
 
     private void navigateHome(boolean start) {

@@ -95,7 +95,7 @@ public class Fleet {
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
-        DroneCommander commander = drones.get(droneEntity);
+        DroneCommander commander = drones.get(droneEntity.getId());
 
         // If commander does not exist yet, create it
         if (commander == null) {
@@ -107,7 +107,7 @@ public class Fleet {
             // Create commander
             ActorRef ref = Akka.system().actorOf(
                     Props.create(driver.getActorClass(),
-                            () -> driver.createActor(droneEntity)));
+                            () -> driver.createActor(droneEntity)), String.format("%s-%d", droneEntity.getDroneType().getType(), droneEntity.getId()));
             commander = new DroneCommander(ref);
             drones.put(droneEntity.getId(), commander);
         }

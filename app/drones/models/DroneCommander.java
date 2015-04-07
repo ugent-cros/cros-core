@@ -5,6 +5,7 @@ import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
+import models.Drone;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -28,6 +29,10 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
 
     @Override
@@ -245,6 +250,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
     @Override
     public Future<Boolean> isOnline() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Boolean> isCalibrationRequired() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
             public Boolean apply(Object s) {
                 return (Boolean) ((ExecutionResultMessage) s).getValue();
             }

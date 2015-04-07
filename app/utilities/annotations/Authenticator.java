@@ -3,9 +3,16 @@ package utilities.annotations;
 import controllers.SecurityController;
 import models.User;
 import play.libs.F;
+import play.libs.Scala;
 import play.mvc.Action;
 import play.mvc.Http;
 import play.mvc.Result;
+import play.mvc.Results;
+import scala.Tuple2;
+import scala.collection.Seq;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by yasser on 6/03/15.
@@ -28,7 +35,12 @@ public class Authenticator extends Action<Authentication> {
             }
         }
 
-        return F.Promise.pure(unauthorized());
+        List<Tuple2<String, String>> list = new ArrayList<>();
+        Tuple2<String, String> h = new Tuple2<>("Access-Control-Allow-Origin","*");
+        list.add(h);
+        Seq<Tuple2<String, String>> seq = Scala.toSeq(list);
+        Result error = () -> Results.unauthorized().toScala().withHeaders(seq);
+        return F.Promise.pure(error);
     }
 
     public static User checkAuthentication(Http.Context context) {

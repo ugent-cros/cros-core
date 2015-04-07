@@ -7,6 +7,8 @@ import java.io.Serializable;
  */
 public class Location implements Serializable {
 
+    public static final double EARTH_RADIUS = 6371000d; //meters
+
     //Decimal Degrees = Degrees + minutes/60 + seconds/3600
     //https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
 
@@ -32,16 +34,26 @@ public class Location implements Serializable {
         return height;
     }
 
-    public static float distance(Location l1, Location l2){
-        // Harversine calculation
-        //https://stackoverflow.com/questions/837872/calculate-distance-in-meters-when-you-know-longitude-and-latitude-in-java
-        float[] res = computeDistanceAndBearing(l1, l2);
+    public static double distance(Location l1, Location l2){
+        return distance(l1, l2.getLongitude(), l2.getLatitude());
+    }
+
+    public static double distance(Location l1, double longitude2, double latitude2){
+        float[] res = computeDistanceAndBearing(l1.getLatitude(), latitude2, l1.getLongitude(), longitude2);
         return res[0];
     }
 
     public static float getBearing(Location l1, Location l2){
         float[] res = computeDistanceAndBearing(l1, l2);
         return res[1];
+    }
+
+    public double distance(double longitude2, double latitude2){
+        return distance(this, longitude2, latitude2);
+    }
+
+    public double distance(Location l2){
+        return distance(this, l2);
     }
 
     public static short getDegrees(float num){
@@ -60,14 +72,14 @@ public class Location implements Serializable {
         return degrees + minutes/60f + seconds/3600f;
     }
 
-    // Source: https://android.googlesource.com/platform/frameworks/base/+/refs/heads/master/location/java/android/location/Location.java
     public static float[] computeDistanceAndBearing(Location l1, Location l2) {
+        return computeDistanceAndBearing(l1.getLatitude(), l2.getLatitude(), l1.getLongitude(), l2.getLongitude());
+    }
+
+    // Source: https://android.googlesource.com/platform/frameworks/base/+/refs/heads/master/location/java/android/location/Location.java
+    public static float[] computeDistanceAndBearing(double lat1, double lat2, double lon1, double lon2) {
 
         float[] results = new float[2]; //[0] = distance, [1] = bearing
-        double lat1 = l1.getLatitude();
-        double lat2 = l2.getLatitude();
-        double lon1 = l1.getLongitude();
-        double lon2 = l2.getLongitude();
         // Based on http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf
         // using the "Inverse Formula" (section 4)
         int MAXITERS = 20;

@@ -14,6 +14,7 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.commands.MoveCommand;
 import drones.messages.*;
 import drones.util.LocationNavigator;
+import org.springframework.context.annotation.Lazy;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -23,8 +24,6 @@ import scala.concurrent.duration.Duration;
  * Created by Cedric on 3/8/2015.
  */
 public abstract class DroneActor extends AbstractActor {
-
-    private static final Location DEFAULT_LOCATION = new Location(51.046274, 3.724952, 0); // default location for magnetic declination at Ghent
 
     protected LazyProperty<FlyingState> state;
     protected LazyProperty<AlertState> alertState;
@@ -39,6 +38,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<NavigationStateReason> navigationStateReason;
     protected LazyProperty<Boolean> gpsFix;
     protected LazyProperty<Boolean> isOnline;
+    protected LazyProperty<Boolean> calibrationRequired;
 
     protected DroneEventBus eventBus;
 
@@ -68,13 +68,14 @@ public abstract class DroneActor extends AbstractActor {
         navigationStateReason = new LazyProperty<>(NavigationStateReason.CONNECTION_LOST);
         gpsFix = new LazyProperty<>(false);
         isOnline = new LazyProperty<>(false);
+        calibrationRequired = new LazyProperty<>(false);
 
         navigator = createNavigator(null, null);
 
         // TODO: build pipeline that directly forwards to the eventbus
         //TODO: revert quickfix and support null
         UnitPFBuilder<Object> extraListeners = createListeners();
-        if (extraListeners == null) {
+        if (extraListeners == null) { // When null, create a new listener chain
             extraListeners = ReceiveBuilder.match(PropertyRequestMessage.class, this::handlePropertyRequest);
         } else {
             extraListeners = extraListeners.match(PropertyRequestMessage.class, this::handlePropertyRequest);
@@ -96,7 +97,6 @@ public abstract class DroneActor extends AbstractActor {
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClass())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
-
                 // Drone -> external
                 match(LocationChangedMessage.class, s -> {
                     Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeight());
@@ -111,6 +111,7 @@ public abstract class DroneActor extends AbstractActor {
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
                     batteryPercentage.setValue(s.getPercent());
+                    log.info("Battery: {}%", s.getPercent());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(FlyingStateChangedMessage.class, s -> {
@@ -147,6 +148,14 @@ public abstract class DroneActor extends AbstractActor {
                     //navigationState.setValue(s.getState());
                     //navigationStateReason.setValue(s.getReason());
                     //eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(MagnetoCalibrationStateChangedMessage.class, s -> {
+                    calibrationRequired.setValue(s.isCalibrationRequired());
+                    eventBus.publish(new DroneEventMessage(s));
+                    if(s.isCalibrationRequired())
+                        log.warning("Drone requires calibration!!!");
+                    else
+                        log.info("No drone calibration required.");
                 }).
                 match(ConnectionStatusChangedMessage.class, s -> {
                     if (!s.isConnected()) {
@@ -265,6 +274,9 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case NETWORK_STATUS:
                 handleMessage(isOnline.getValue(), sender(), self());
+                break;
+            case CALIBRATION_REQUIRED:
+                handleMessage(calibrationRequired.getValue(), sender(), self());
                 break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());
