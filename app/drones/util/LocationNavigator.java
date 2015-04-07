@@ -116,12 +116,4 @@ public class LocationNavigator {
     public void setCurrentLocation(Location currentLocation) {
         this.previousLocation = currentLocation;
     }
-
-    public NavigationState getNavigationState() {
-        return navigationState;
-    }
-
-    public void setNavigationState(NavigationState navigationState) {
-        this.navigationState = navigationState;
-    }
 }
