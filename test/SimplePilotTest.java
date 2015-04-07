@@ -1,7 +1,7 @@
 import akka.actor.ActorSystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-//import akka.testkit.JavaTestKit;
+import akka.testkit.JavaTestKit;
 
 /**
  * Created by Sander on 5/04/2015.
@@ -17,7 +17,7 @@ public class SimplePilotTest {
 
     @AfterClass
     public static void teardown() {
-        //JavaTestKit.shutdownActorSystem(system);
+        JavaTestKit.shutdownActorSystem(system);
         system = null;
     }
 }
