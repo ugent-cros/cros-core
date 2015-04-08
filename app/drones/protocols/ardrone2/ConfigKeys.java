@@ -4,7 +4,7 @@ package drones.protocols.ardrone2;
  * Created by brecht on 4/6/15.
  */
 public enum ConfigKeys {
-    // general configs
+    // "general" configs
     GEN_NUM_VERSION_CONFIG("general", "num_version_config"),
     GEN_NUM_VERSION_MB("general", "num_version_mb"),
     GEN_NUM_VERSION_SOFT("general", "num_version_soft"),

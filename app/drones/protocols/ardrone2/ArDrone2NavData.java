@@ -119,10 +119,10 @@ public class ArDrone2NavData extends UntypedActor {
 
             // Parse state
 
-            int dataSequence = PacketHelper.getInt(navdata, offset);
+            //int dataSequence = PacketHelper.getInt(navdata, offset);
             offset += 4;
 
-            int visionFlag = PacketHelper.getInt(navdata, offset);
+            //int visionFlag = PacketHelper.getInt(navdata, offset);
             offset += 4;
 
             while(offset < navdata.length) {
@@ -162,6 +162,7 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void parseGPSData(byte[] navdata, int offset) {
+        int offsetTemp = offset;
         boolean gpsAvailable =PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
 
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
@@ -169,11 +170,11 @@ public class ArDrone2NavData extends UntypedActor {
 
         if(gpsAvailable) {
             double latitude = PacketHelper.getDouble(navdata, offset);
-            offset += 8;
+            offsetTemp += 8;
             double longitude = PacketHelper.getDouble(navdata, offset);
-            offset+= 8;
+            offsetTemp += 8;
             double elevation = PacketHelper.getDouble(navdata, offset);
-            offset += 8;
+            //offsetTemp += 8;
 
             Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
             listener.tell(locationMessage, getSelf());

@@ -21,7 +21,6 @@ import java.net.InetSocketAddress;
 public class ArDrone2Config extends UntypedActor {
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    private ActorRef senderRef;
     private final ActorRef listener;
     private final ActorRef parent;
 
@@ -29,8 +28,6 @@ public class ArDrone2Config extends UntypedActor {
     private final ActorRef tcpManager;
 
     private final InetSocketAddress remote;
-
-    private InetSocketAddress senderAddressConfig;
 
     public ArDrone2Config(DroneConnectionDetails details, final ActorRef listener, final ActorRef parent) {
         // ArDrone 2 Model
@@ -91,9 +88,11 @@ public class ArDrone2Config extends UntypedActor {
             String key = configPair[0];
             String value = configPair[1];
 
-            if(key.equals(ConfigKeys.gen_num_version_soft.getKey())) {
+            if(key.equals(ConfigKeys.GEN_NUM_VERSION_SOFT.getKey())) {
+                log.info("Software version: {}", value);
                 softwareVersion = value;
-            } else if(key.equals(ConfigKeys.gen_num_version_mb.getKey())) {
+            } else if(key.equals(ConfigKeys.GEN_NUM_VERSION_MB.getKey())) {
+                log.info("Hardware version: {}", value);
                 hardwareVersion = value;
             }
         }

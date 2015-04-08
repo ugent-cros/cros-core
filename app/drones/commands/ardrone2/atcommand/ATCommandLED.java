@@ -69,14 +69,14 @@ public class ATCommandLED extends ATCommand {
         BLINK_STANDARD(20),
         ARDRONE_NB_LED_ANIM_MAYDAY(21);
 
-        private final int ID;
+        private final int id;
 
-        private LEDID(int ID) {
-            this.ID = ID;
+        private LEDID(int id) {
+            this.id = id;
         }
 
         private int getID() {
-            return ID;
+            return id;
         }
     }
 }
