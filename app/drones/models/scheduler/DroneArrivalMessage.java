@@ -11,16 +11,16 @@ import java.io.Serializable;
  */
 public class DroneArrivalMessage implements Serializable{
 
-    private Drone drone;
+    private long droneId;
     private Location location;
 
-    public DroneArrivalMessage(Drone drone, Location location) {
-        this.drone = drone;
+    public DroneArrivalMessage(long droneId, Location location) {
+        this.droneId = droneId;
         this.location = location;
     }
 
-    public Drone getDrone() {
-        return drone;
+    public long getDroneId() {
+        return droneId;
     }
 
     public Location getLocation() {

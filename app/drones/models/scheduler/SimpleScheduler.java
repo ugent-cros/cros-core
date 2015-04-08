@@ -44,7 +44,7 @@ public class SimpleScheduler extends Scheduler{
 
     // Limited queue size to prevent to many assignments in memory
     private static final int MAX_QUEUE_SIZE = 25;
-    private AbstractQueue<Assignment> queue;
+    private Queue<Assignment> queue;
 
     public SimpleScheduler(){
         this.queue = new PriorityQueue<>((a1,a2) -> Long.compare(a1.getId(),a2.getId()));
@@ -62,7 +62,7 @@ public class SimpleScheduler extends Scheduler{
         ActorRef pilot = sender();
         getContext().stop(pilot);
     	// Drone that arrived
-        Drone drone = message.getDrone();
+        Drone drone = Drone.FIND.byId(message.getDroneId());
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
@@ -73,11 +73,11 @@ public class SimpleScheduler extends Scheduler{
     }
 
     @Override
-    protected void receiveDroneBatteryMessage(DroneArrivalMessage message) {
+    protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
         // Well, this is just a simple scheduler.
         // There is not much this scheduler can do about this right now
         // Except updating the database.
-        Drone drone = message.getDrone();
+        Drone drone = Drone.FIND.byId(message.getDroneId());
         drone.setStatus(Drone.Status.EMERGENCY_LANDED);
         drone.update();
     }
@@ -106,11 +106,11 @@ public class SimpleScheduler extends Scheduler{
     	while(true){
     		// Provide assignments
     		if(queue.isEmpty()){
-    			if(!fetchAssignments()) break; // No more assignments
+    			if(!fetchAssignments()) return; // No more assignments
     		}
     		// Pick drone
             Drone drone = fetchAvailableDrone();
-            if(drone == null) break; // No more drones available
+            if(drone == null) return; // No more drones available
             
             // Assign assignment to drone
             Assignment assignment = queue.remove();
@@ -184,10 +184,11 @@ public class SimpleScheduler extends Scheduler{
             Future<Byte> future = commander.getBatteryPercentage();
             int battery = Await.result(future,TIMEOUT);
             // TODO: Change battery condition to be dynamic
-            return (battery > MIN_BATTERY_PERCENTAGE);
+            return battery > MIN_BATTERY_PERCENTAGE;
 
         } catch (Exception ex) {
             // Something failed with this drone
+            log.warning("Drone with unknown status is present in the system.");
             drone.setStatus(Drone.Status.UNKNOWN);
             return false;
         }
@@ -203,8 +204,7 @@ public class SimpleScheduler extends Scheduler{
     	Query<Assignment> query = Ebean.createQuery(Assignment.class);
     	query.where().eq("assignedDrone", drone);
     	// Find and return unique assignment
-    	Assignment assignment = query.findUnique();
-    	return assignment;
+    	return query.findUnique();
     }
     
 }

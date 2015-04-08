@@ -112,7 +112,6 @@ public class SimplePilot extends Pilot{
             if(actualWaypoint == waypoints.size()){
                 //arrived at destination => land
                 land();
-                actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(), cruisingAltitude);
@@ -128,7 +127,7 @@ public class SimplePilot extends Pilot{
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                    actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -168,7 +167,7 @@ public class SimplePilot extends Pilot{
 
             @Override
             public void onSuccess(Void result) throws Throwable {
-                actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
             }
         }, getContext().system().dispatcher());
     }
