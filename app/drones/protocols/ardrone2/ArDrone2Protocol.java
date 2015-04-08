@@ -47,6 +47,8 @@ public class ArDrone2Protocol extends UntypedActor {
     private static final String ARDRONE_PROFILE_ID     = "be27e2e4";  // Profile ID
     private static final String ARDRONE_APPLOCATION_ID = "d87f7e0c";  // Application ID
 
+    private static final int REF_BIT_FIELD = (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+
     // Watchdog reset actor
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
@@ -84,11 +86,12 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
                     .match(SetOutdoorCommand.class, s -> handleOutdoor(s))
-                    .match(SetHullCommand.class, s -> setHull(s.hasHull()))
+                    .match(SetHullCommand.class, s -> handleSetHull(s.hasHull()))
                     .match(MoveCommand.class, s -> handleMove(s))
                     .match(SetMaxHeightCommand.class, s -> handleSetMaxHeight(s.getMeters()))
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .match(RequestConfigMessage.class, s -> handleConfigRequest())
+                    .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
@@ -108,6 +111,12 @@ public class ArDrone2Protocol extends UntypedActor {
         }
     }
 
+    private void handleMaxTilt(SetMaxTiltCommand s) {
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.control_euler_angle_max,
+                Float.toString(s.getDegrees()))));
+    }
+
     private void handleStopMove() {
         sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, 0, -0f, -0f, 0f, -0f)));
     }
@@ -120,47 +129,16 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleReset() {
         log.info("[ARDRONE2] Reset");
 
-        int bitFields = (1 << 8) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+        // 8th bit is reset bit
+        int bitFields = (1 << 8) | REF_BIT_FIELD;
         sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
-    }
-
-    private void handleConfigRequest() {
-        log.info("[ARDRONE] Config file requested");
-
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 5, 0)));
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 4, 0)));
-    }
-
-    private void droneDiscovered(DroneConnectionDetails details) {
-        this.details = details;
-        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
-        log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
-    }
-
-    private void stop() {
-        ardrone2ResetWDG.tell(new StopMessage(), self());
-        ardrone2NavData.tell(new StopMessage(), self());
-        ardrone2Config.tell(new StopMessage(), self());
-
-        udpManager.tell(UdpMessage.unbind(), self());
-        getContext().stop(self());
-    }
-
-    public boolean sendData(ByteString data) {
-        if (senderAddressATC != null && senderRef != null) {
-            log.info("[ARDRONE2] Sending AT_COMMAND data");
-            senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
-            return true;
-        } else {
-            log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
-            return false;
-        }
     }
 
     private void handleTakeoff() {
         log.info("[ARDRONE2] TakeOff");
 
-        int bitFields = (1 << 9) | (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
+        // 9th bit is takeoff bit
+        int bitFields = (1 << 9) | REF_BIT_FIELD;
         sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
 
         Akka.system().scheduler().scheduleOnce(Duration.create(250, TimeUnit.MILLISECONDS),
@@ -170,8 +148,14 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleLand() {
         log.info("[ARDRONE2] Land");
 
-        int bitFields = (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
-        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, REF_BIT_FIELD)));
+    }
+
+    private void handleConfigRequest() {
+        log.info("[ARDRONE] Config file requested");
+
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 5, 0)));
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++, 4, 0)));
     }
 
     /**
@@ -187,17 +171,17 @@ public class ArDrone2Protocol extends UntypedActor {
         // Set the sessions
         // Set the configuration IDs
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, "custom:session_id", ARDRONE_SESSION_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.custom_session_id, ARDRONE_SESSION_ID)));
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, "custom:profile_id", ARDRONE_PROFILE_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.custom_profile_id, ARDRONE_PROFILE_ID)));
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, "custom:application_id", ARDRONE_APPLOCATION_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.custom_application_id, ARDRONE_APPLOCATION_ID)));
 
         sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
 
         // 3m max height
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "control:altitude_max", "3000")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.control_altitude_max, "3000")));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -212,35 +196,20 @@ public class ArDrone2Protocol extends UntypedActor {
                 () -> new ArDrone2Config(details, listener, getSelf())));
     }
 
-    private void sendInitNavData() {
-        log.info("[ARDRONE2] Init completed");
-
-        // Enable nav data
-        // Disable bootstrap
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
-        // Send ACK
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
-    }
-
-    private ATCommandCONFIGIDS createConfigIDS(int seq) {
-        return new ATCommandCONFIGIDS(seq, ARDRONE_SESSION_ID, ARDRONE_PROFILE_ID, ARDRONE_APPLOCATION_ID);
-    }
-
     private void handleFlatTrim() {
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
     }
 
-    private void setHull(boolean hull) {
+    private void handleSetHull(boolean hull) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                "control:flight_without_shell", Boolean.toString(!hull).toUpperCase())));
+                ConfigKeys.control_flight_without_shell, Boolean.toString(!hull).toUpperCase())));
     }
 
     private void handleSetMaxHeight(float meters) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                "control:altitude_max", Integer.toString(Math.round(meters * 1000)))));
+                ConfigKeys.control_altitude_max, Integer.toString(Math.round(meters * 1000)))));
     }
 
     private void handleMove(MoveCommand s) {
@@ -266,55 +235,61 @@ public class ArDrone2Protocol extends UntypedActor {
         }
     }
 
+    private void handleOutdoor(SetOutdoorCommand cmd) {
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                ConfigKeys.control_outdoor, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                ConfigKeys.control_flight_without_shell, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
+    }
+
+    private ATCommandCONFIGIDS createConfigIDS(int seq) {
+        return new ATCommandCONFIGIDS(seq, ARDRONE_SESSION_ID, ARDRONE_PROFILE_ID, ARDRONE_APPLOCATION_ID);
+    }
+
+    private void stop() {
+        ardrone2ResetWDG.tell(new StopMessage(), self());
+        ardrone2NavData.tell(new StopMessage(), self());
+        ardrone2Config.tell(new StopMessage(), self());
+
+        udpManager.tell(UdpMessage.unbind(), self());
+        getContext().stop(self());
+    }
+
+    public boolean sendData(ByteString data) {
+        if (senderAddressATC != null && senderRef != null) {
+            log.info("[ARDRONE2] Sending AT_COMMAND data");
+            senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
+            return true;
+        } else {
+            log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
+            return false;
+        }
+    }
+
+    private void sendInitNavData() {
+        log.info("[ARDRONE2] Init completed");
+
+        // Enable nav data
+        // Disable bootstrap
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.gen_navdata_demo, "TRUE")));
+        // Send ACK
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
+    }
+
+    private void droneDiscovered(DroneConnectionDetails details) {
+        this.details = details;
+        this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
+        log.info("[ARDRONE2] Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
+    }
+
     private class StopMoveMessage implements Serializable {}
 
     private boolean isMoveParamInRange(float moveParam) {
         return moveParam <= 1 && moveParam >= -1;
-    }
-
-    private void handleOutdoor(SetOutdoorCommand cmd) {
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                "control:outdoor", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                "control:flight_without_shell", Boolean.toString(cmd.isOutdoor()).toUpperCase())));
-    }
-
-    @Deprecated // Now ArDrone2Config is used
-    private void getVersion() throws IOException {
-        InetAddress droneAddr = InetAddress.getByName(details.getIp());
-        InputStream is = null;
-        ByteArrayOutputStream bos = null;
-
-        try {
-            String ftpVersionFileLocation = String.format("ftp://%s:%s/version.txt",
-                    droneAddr.getHostAddress(), DefaultPorts.FTP.getPort()); // e.g. ftp://192.168.1.1:5551/version.txt
-            URL url = new URL(ftpVersionFileLocation);
-            URLConnection ftpConnection = url.openConnection();
-
-            is = ftpConnection.getInputStream();
-            bos = new ByteArrayOutputStream();
-
-            byte[] buffer = new byte[1024];
-            int readCount;
-            while ((readCount = is.read(buffer)) > 0) {
-                bos.write(buffer, 0, readCount);
-            }
-
-            Object versionMessage = new ProductVersionChangedMessage(bos.toString(), "2.0");
-            listener.tell(versionMessage, getSelf());
-        } catch (IOException e) {
-            log.error("[ARDRONE2]" + e.getMessage());
-        } finally {
-            if (null != bos) {
-                bos.close();
-            }
-            if (null != is) {
-                is.close();
-            }
-        }
     }
 
     public LoggingAdapter getLog(){

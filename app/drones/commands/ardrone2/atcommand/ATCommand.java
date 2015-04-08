@@ -14,6 +14,10 @@ public abstract class ATCommand {
     private FloatBuffer fb;
     private IntBuffer ib;
 
+    /**
+     *
+     * @param seq The sequence number of the command
+     */
     public ATCommand(int seq) {
         ByteBuffer bb = ByteBuffer.allocate(4);
         fb = bb.asFloatBuffer();
@@ -22,14 +26,49 @@ public abstract class ATCommand {
         this.seq = seq;
     }
 
+    /**
+     *
+     * @param seq The sequence number of the command
+     */
     public void setSeq(int seq) {
         this.seq = seq;
     }
 
+    /**
+     *
+     * @return The sequence number of the command
+     */
     public int getSeq() {
         return seq;
     }
 
+    /**
+     *
+     * @return The parameters returned as a string. They are separated by a ",".
+     */
+    protected abstract String parametersToString();
+
+    /**
+     *
+     * @return The name of the command
+     */
+    protected abstract String getCommandName();
+
+    /**
+     *
+     * @return The command as a string (For further explanation see the A.R.Drone Developer Guide, p. 30)
+     */
+    @Override
+    public String toString() {
+        return String.format("AT*%s=%s\r", getCommandName(), parametersToString());
+    }
+
+    /**
+     * This method converts a float to an int (For further explanation see the A.R.Drone Developer Guide, p. 31)
+     *
+     * @param f The float that needs to be converted
+     * @return The converted float
+     */
     protected int intOfFloat(float f) {
         fb.put(0, f);
         return ib.get(0);

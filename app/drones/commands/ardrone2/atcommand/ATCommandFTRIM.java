@@ -1,15 +1,37 @@
 package drones.commands.ardrone2.atcommand;
 
 /**
+ * The command looks like: AT*FTRIM=<SEQ>\r
+ *
  * Created by brecht on 3/12/15.
  */
 public class ATCommandFTRIM extends ATCommand {
+    // The command name
+    private static final String COMMAND_NAME = "FTRIM";
+
+    /**
+     *
+     * @param seq The sequence number of the command
+     */
     public ATCommandFTRIM(int seq) {
         super(seq);
     }
 
+    /**
+     *
+     * @return The parameters returned as a string. They are separated by a ",".
+     */
     @Override
-    public String toString() {
-        return String.format("AT*FTRIM=%d\r", seq);
+    protected String parametersToString() {
+        return String.format("%d", seq);
+    }
+
+    /**
+     *
+     * @return The name of the command
+     */
+    @Override
+    protected String getCommandName() {
+        return COMMAND_NAME;
     }
 }

@@ -1,29 +1,44 @@
 package drones.commands.ardrone2.atcommand;
 
 /**
+ * The command looks like: AT*REF=<SEQ>,<BIT VECTOR>\r
+ *
  * Created by brecht on 3/7/15.
  */
 public class ATCommandREF extends ATCommand {
-    // Params command REF
+    // Bit vector
     private int input;
 
-    public ATCommandREF(int seq, float input) {
-        super(seq);
-        this.input = intOfFloat(input);
-    }
+    // The command name
+    private static final String COMMAND_NAME = "REF";
 
+
+    /**
+     *
+     * @param seq The sequence number of the command
+     * @param input A bit vector
+     */
     public ATCommandREF(int seq, int input) {
         super(seq);
+
         this.input = input;
     }
 
     /**
      *
-     * @return REF command, e.g.: "AT*REF=<SEQ>,<BIT_SEQUENCE>\r"
-     *
+     * @return The parameters returned as a string. They are separated by a ",".
      */
     @Override
-    public String toString() {
-        return String.format("AT*REF=%d,%d\r", seq, input);
+    protected String parametersToString() {
+        return String.format("%d,%d", seq, input);
+    }
+
+    /**
+     *
+     * @return The name of the command
+     */
+    @Override
+    protected String getCommandName() {
+        return COMMAND_NAME;
     }
 }

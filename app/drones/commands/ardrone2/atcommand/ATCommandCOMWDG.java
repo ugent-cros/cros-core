@@ -1,16 +1,38 @@
 package drones.commands.ardrone2.atcommand;
 
 /**
+ * This command resets communication watchdog
+ * The command looks like: AT*COMWDG=<SEQ>\r
  *
  * Created by brecht on 3/8/15.
  */
 public class ATCommandCOMWDG extends ATCommand {
+    // The command name
+    private static final String COMMAND_NAME = "COMWDG";
+
+    /**
+     *
+     * @param seq The sequence number of the command
+     */
     public ATCommandCOMWDG(int seq) {
         super(seq);
     }
 
+    /**
+     *
+     * @return The parameters returned as a string. They are separated by a ",".
+     */
     @Override
-    public String toString() {
-        return String.format("AT*COMWDG=%d\r", seq);
+    protected String parametersToString() {
+        return String.format("%d", seq);
+    }
+
+    /**
+     *
+     * @return The name of the command
+     */
+    @Override
+    protected String getCommandName() {
+        return COMMAND_NAME;
     }
 }
