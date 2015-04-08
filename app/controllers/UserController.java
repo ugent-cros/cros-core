@@ -165,6 +165,7 @@ public class UserController {
         if (updatedFields.contains("password")) {
             updatedFields.remove("password");
             updatedFields.add("shaPassword");
+            updatedFields.add("passwordHashed");
         }
         Ebean.update(updatedUser, updatedFields);
 

@@ -170,7 +170,6 @@ public class UserTest extends TestSuperclass {
         ObjectNode user = (ObjectNode) data.get("user");
         String newPassword = "newPassword";
         user.put("password", newPassword);
-        System.err.println(data);
 
         Result result = updateUser(u.getId(), data, getAdmin());
         assertThat(status(result)).isEqualTo(OK);
