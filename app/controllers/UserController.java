@@ -1,5 +1,6 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,7 +17,9 @@ import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
@@ -157,7 +160,13 @@ public class UserController {
 
         // Update the user
         User updatedUser = filledForm.get();
-        updatedUser.update(id);
+        updatedUser.setId(id);
+        Set<String> updatedFields = new HashSet<>(filledForm.data().keySet());
+        if (updatedFields.contains("password")) {
+            updatedFields.remove("password");
+            updatedFields.add("shaPassword");
+        }
+        Ebean.update(updatedUser, updatedFields);
 
         return ok(JsonHelper.createJsonNode(updatedUser, getAllLinks(id), User.class));
     }

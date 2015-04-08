@@ -1,5 +1,6 @@
 package models;
 
+import com.avaje.ebean.annotation.CreatedTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
@@ -47,7 +48,7 @@ public class User extends Model {
     @Constraints.MaxLength(256)
     private String lastName;
 
-    @Column(nullable = false, updatable = false)
+    @CreatedTimestamp
     private Date creationDate;
 
     @JsonView({JsonHelper.Summary.class})
@@ -73,9 +74,7 @@ public class User extends Model {
     private String authToken;
 
     public User() {
-        this.authToken = UUID.randomUUID().toString();
-        role = Role.USER;
-        this.creationDate = new Date();
+        role = Role.USER; // default
     }
 
     public User(String email, String password, String firstName, String lastName) {
