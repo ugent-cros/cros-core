@@ -135,24 +135,48 @@ public class ArDrone2NavData extends UntypedActor {
                     log.error("Zero length option with tag: {}", optionTag);
                 }
 
-                switch(optionTag) {
-                    case NavDataTag.DEMO_TAG.getTag():
-                    //    break;
-                    default:
-                        break;
+                if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
+                    parseDemoData(navdata);
+                } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
+                    parseGPSData(navdata, offset);
                 }
+
+                offset += optionLen - 4;
 
             }
 
-            attitudeChanged(navdata);
-            speedChanged(navdata);
-            altitudeChanged(navdata);
-            batteryChanged(navdata);
-            flyingStateChanged(navdata);
-            alertStateChanged(navdata);
+
             // gpsDataChanged(navdata)
         } else {
             log.info("Packet doesn't contain data");
+        }
+    }
+
+    private void parseDemoData(byte[] navdata) {
+        attitudeChanged(navdata);
+        speedChanged(navdata);
+        altitudeChanged(navdata);
+        batteryChanged(navdata);
+        flyingStateChanged(navdata);
+        alertStateChanged(navdata);
+    }
+
+    private void parseGPSData(byte[] navdata, int offset) {
+        boolean gpsAvailable =PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
+
+        Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+        listener.tell(gpsFixMessage, getSelf());
+
+        if(gpsAvailable) {
+            double latitude  = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+            double longitude = PacketHelper.getDouble(navdata, offset);
+            offset+= 8;
+            double elevation = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+
+            Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
+            listener.tell(locationMessage, getSelf());
         }
     }
 

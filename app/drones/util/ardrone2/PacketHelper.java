@@ -14,18 +14,24 @@ public class PacketHelper {
      * @return
      */
     public static int getInt(byte[] data, int offset) {
-        /*int tmp = 0, n = 0;
-
-        for (int i=3; i>=0; i--) {
-            n <<= 8;
-            tmp = data[offset + i] & 0xFF;
-            n |= tmp;
-        }
-
-        return n;*/
-
         int value = 0;
         for (int i = 3; i >= 0; i--) {
+            int shift = i * 8;
+            value += (data[i + offset] & 0x000000FF) << shift;
+        }
+        return value;
+    }
+
+
+    /**
+     *
+     * @param data
+     * @param offset
+     * @return
+     */
+    public static long getLong(byte[] data, int offset) {
+        long value = 0;
+        for (int i = 7; i >= 0; i--) {
             int shift = i * 8;
             value += (data[i + offset] & 0x000000FF) << shift;
         }
@@ -50,6 +56,16 @@ public class PacketHelper {
      */
     public static float getFloat(byte[] data, int offset) {
         return Float.intBitsToFloat(getInt(data, offset));
+    }
+
+    /**
+     *
+     * @param data
+     * @param offset
+     * @return
+     */
+    public static double getDouble(byte[] data, int offset) {
+        return Double.longBitsToDouble(getLong(data, offset));
     }
 
     public static ByteString buildPacket(ATCommand packet) {

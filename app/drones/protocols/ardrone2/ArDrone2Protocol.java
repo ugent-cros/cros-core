@@ -140,6 +140,7 @@ public class ArDrone2Protocol extends UntypedActor {
     private void stop() {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
+        ardrone2Config.tell(new StopMessage(), self());
 
         udpManager.tell(UdpMessage.unbind(), self());
         getContext().stop(self());
@@ -178,12 +179,6 @@ public class ArDrone2Protocol extends UntypedActor {
      */
     private void handleInit() {
         log.info("[ARDRONE2] Initializing ARDrone 2.0");
-
-        try {
-            getVersion();
-        } catch (IOException ex) {
-            log.error("[ARDRONE2] IOException:" + ex.getMessage());
-        }
 
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
