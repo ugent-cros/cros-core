@@ -145,7 +145,7 @@ public class ArDrone2NavData extends UntypedActor {
 
             }
 
-
+            //parseDemoData(navdata);
             // gpsDataChanged(navdata)
         } else {
             log.info("Packet doesn't contain data");
@@ -168,7 +168,7 @@ public class ArDrone2NavData extends UntypedActor {
         listener.tell(gpsFixMessage, getSelf());
 
         if(gpsAvailable) {
-            double latitude  = PacketHelper.getDouble(navdata, offset);
+            double latitude = PacketHelper.getDouble(navdata, offset);
             offset += 8;
             double longitude = PacketHelper.getDouble(navdata, offset);
             offset+= 8;
@@ -238,22 +238,6 @@ public class ArDrone2NavData extends UntypedActor {
             listener.tell(alertMessage, getSelf());
         }
     }
-
-    /*private void gpsDataChanged(byte[] navdata) {
-        boolean gpsAvailable(PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
-
-        Object gpsFixMessage(new GPSFixChangedMessage(gpsAvailable);
-        listener.tell(gpsFixMessage, getSelf());
-
-        if(gpsAvailable) {
-            float latitude(PacketHelper.getFloat(navdata, NAV_GPS_LATITUDE_OFFSET.getOffset());
-            float longitude(PacketHelper.getFloat(navdata, NAV_GPS_LONGITUDE_OFFSET.getOffset());
-            float altitude(PacketHelper.getInt(navdata, NAV_GPS_ELEVATION_OFFSET.getOffset()) / 1000f;
-
-            Object locationMessage(new LocationChangedMessage(longitude, latitude, altitude);
-            listener.tell(locationMessage, getSelf());
-        }
-    }*/
 
     private FlyingState parseCtrlState(int state) {
         switch(state) {
