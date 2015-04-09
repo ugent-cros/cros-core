@@ -1,8 +1,6 @@
-package drones.models.flightcontrol;
+package drones.models.flightcontrol.messages;
 
 import drones.models.Location;
-
-import java.io.Serializable;
 
 /**
  * Created by Sander on 23/03/2015.

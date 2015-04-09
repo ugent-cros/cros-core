@@ -1,4 +1,4 @@
-package drones.models.flightcontrol;
+package drones.models.flightcontrol.messages;
 
 import java.io.Serializable;
 

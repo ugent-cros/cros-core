@@ -4,16 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import akka.actor.ActorRef;
-import akka.dispatch.Futures;
 import akka.dispatch.OnSuccess;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
+import drones.models.flightcontrol.messages.LandingCompletedMessage;
+import drones.models.flightcontrol.messages.RequestForLandingGrantedMessage;
+import drones.models.flightcontrol.messages.RequestForLandingMessage;
 import drones.models.scheduler.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
-import scala.concurrent.Promise;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -131,7 +132,7 @@ public class SimplePilot extends Pilot{
 
     private void land(){
         if(linkedWithControlTower){
-            actorRef.tell(new RequestForLandingAckMessage(actualLocation),self());
+            actorRef.tell(new RequestForLandingGrantedMessage(actualLocation),self());
         } else {
             dc.land().onSuccess(new OnSuccess<Void>(){
 
@@ -150,7 +151,7 @@ public class SimplePilot extends Pilot{
             if(actualLocation.distance(l) > EVACUATION_RANGE){
                 evacuationPoints.remove(l);
                 noFlyPoints.add(l);
-                actorRef.tell(new RequestForLandingAckMessage(l), self());
+                actorRef.tell(new RequestForLandingGrantedMessage(l), self());
             }
         }
         for(Location l : noFlyPoints){
@@ -167,12 +168,12 @@ public class SimplePilot extends Pilot{
             evacuationPoints.add(m.getLocation());
         } else {
             noFlyPoints.add(m.getLocation());
-            actorRef.tell(new RequestForLandingAckMessage(m.getLocation()), self());
+            actorRef.tell(new RequestForLandingGrantedMessage(m.getLocation()), self());
         }
     }
 
     @Override
-    protected void requestForLandingAckMessage(RequestForLandingAckMessage m) {
+    protected void requestForLandingAckMessage(RequestForLandingGrantedMessage m) {
         dc.land().onSuccess(new OnSuccess<Void>(){
 
             @Override

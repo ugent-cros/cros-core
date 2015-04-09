@@ -2,10 +2,10 @@ package drones.models.flightcontrol;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.japi.pf.ReceiveBuilder;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.UnitPFBuilder;
+import drones.models.flightcontrol.messages.StartFlightControlMessage;
 
 /**
  * Created by Sander on 16/03/2015.
