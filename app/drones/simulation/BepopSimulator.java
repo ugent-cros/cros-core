@@ -207,16 +207,16 @@ public class BepopSimulator extends DroneActor {
 
             // Calculate delta in radians
             double radius = Location.EARTH_RADIUS + location.getRawValue().getHeigth();
-            double deltaLatitude = dNS/radius;
-            double deltaLongitude = dEquator/radius;
+            double deltaLatitude = dNS/radius  * 180/Math.PI;          // in degrees
+            double deltaLongitude = dEquator/radius  * 180/Math.PI;    // in degrees
 
             // Calculate new coordinates
             Location oldLocation = location.getRawValue();
-            double latitude = (oldLocation.getLatitude() + deltaLatitude) * 180/Math.PI;    // in degrees
+            double latitude = (oldLocation.getLatitude() + deltaLatitude);    // in degrees
             if (latitude > 90) latitude = 180 -latitude;
             if (latitude < -90) latitude = Math.abs(latitude) -180;
 
-            double longitude = (oldLocation.getLongtitude() + deltaLongitude) * 180/Math.PI;    // in degrees
+            double longitude = (oldLocation.getLongtitude() + deltaLongitude);    // in degrees
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
