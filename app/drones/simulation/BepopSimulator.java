@@ -105,7 +105,8 @@ public class BepopSimulator extends DroneActor {
 
             flyingToHome = true;
 
-            tellSelf(new TakeOffRequestMessage());
+            //WHY?
+            //tellSelf(new TakeOffRequestMessage());
             tellSelf(new NavigationStateChangedMessage(
                     NavigationState.PENDING,
                     reason
@@ -122,7 +123,7 @@ public class BepopSimulator extends DroneActor {
     private void stepSimulation(FiniteDuration stepDuration) {
 
         // Move
-        simulateMovement(stepDuration);
+        //simulateMovement(stepDuration);
 
         // Fly further
         progressFlight(stepDuration);
@@ -136,14 +137,17 @@ public class BepopSimulator extends DroneActor {
         // If flying is aborted, the states, reasons & other properties
         // should be set in the caller that set this flag to false
         if(flyingToHome) {
-
             Location currentLocation = location.getRawValue();
 
             // Calculate distance
             double distance = Location.distance(currentLocation, homeLocation);  // m
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
-
+            //DEBUG
+            System.out.println("---------------------------------");
+            System.out.println("distance: " + distance);
+            System.out.println("timeTillArrival: " + timeTillArrival);
+            System.out.println(currentLocation.getLongtitude() + "," + currentLocation.getLatitude() + "," + currentLocation.getHeigth());
             if (timeTillArrival > timeStep) {
                 // Not there yet
                 double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
