@@ -128,7 +128,7 @@ public class BepopSimulator extends DroneActor {
     private void stepSimulation(FiniteDuration stepDuration) {
 
         // Move
-        //simulateMovement(stepDuration);
+        simulateMovement(stepDuration);
 
         // Fly further
         progressFlight(stepDuration);
