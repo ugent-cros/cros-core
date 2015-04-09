@@ -53,13 +53,7 @@ public abstract class Pilot extends FlightControl{
         return ReceiveBuilder.
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
-                match(LocationChangedMessage.class, s -> locationChanged(s)).
-                match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
-                match(RequestForLandingGrantedMessage.class, s -> requestForLandingGrantedMessage(s)).
-                match(LandingCompletedMessage.class, s-> landingCompletedMessage(s)).
-                match(RequestForTakeOffMessage.class, s -> requestForTakeOffMessage(s)).
-                match(RequestForTakeOffGrantedMessage.class, s -> requestForTakeOffGrantedMessage(s)).
-                match(TakeOffCompletedMessage.class, s-> takeOffCompletedMessage(s));
+                match(LocationChangedMessage.class, s -> locationChanged(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
@@ -70,15 +64,4 @@ public abstract class Pilot extends FlightControl{
 
     protected abstract void locationChanged(LocationChangedMessage m);
 
-    protected abstract void requestForLandingMessage(RequestForLandingMessage m);
-
-    protected abstract void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m);
-
-    protected abstract void landingCompletedMessage(LandingCompletedMessage m);
-
-    protected abstract void requestForTakeOffMessage(RequestForTakeOffMessage m);
-
-    protected abstract void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m);
-
-    protected abstract void takeOffCompletedMessage(TakeOffCompletedMessage m);
 }

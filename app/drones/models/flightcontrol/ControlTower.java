@@ -3,6 +3,7 @@ package drones.models.flightcontrol;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import drones.models.flightcontrol.messages.*;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -10,18 +11,19 @@ import akka.japi.pf.UnitPFBuilder;
  * Flight control to control multiple drones
  */
 public abstract class ControlTower extends FlightControl{
+
     public ControlTower(ActorRef actorRef) {
         super(actorRef);
     }
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {
-        //TO DO
-        return null;
+        return ReceiveBuilder.matchAny(o -> log.info("ControlTower message recv: [{}]", o.getClass().getCanonicalName()));
     }
 
     @Override
     public void start() {
 
     }
+
 }
