@@ -1,5 +1,6 @@
 package drones.simulation;
 
+import akka.actor.Cancellable;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
@@ -33,6 +34,7 @@ public class BepopSimulator extends DroneActor {
     // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
+    protected Cancellable simulationTick;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
@@ -52,48 +54,51 @@ public class BepopSimulator extends DroneActor {
     // angleWrtEquator: in radians
     public BepopSimulator(Location startLocation, double maxHeight, double angleWrtEquator, double topSpeed) {
 
+        // Set initial values
         location.setValue(startLocation);
         batteryPercentage.setValue((byte) 100);
         rotation.setValue(new Rotation(0, 0, 0));
         version.setValue(new DroneVersion("1.0", "1.0"));
         gpsFix.setValue(false);
 
+        // Set simulation values
         this.maxHeight = maxHeight;
         this.topSpeed = topSpeed;
         initialAngleWithRespectToEquator = angleWrtEquator; // facing north
 
-        rebootDrone();
+        // Disable messages before initialization
+        eventBus.setPublishDisabled(true);
 
-        // Schedule drones.simulation loop
-        Akka.system().scheduler().schedule(
-                Duration.Zero(),
-                simulationTimeStep,
-                self(),
-                new StepSimulationMessage(simulationTimeStep),
-                Akka.system().dispatcher(),
-                self());
+        // Setup drone
+        bootDrone();
     }
 
     // Utility methods
 
     public void rebootDrone() {
 
-        if(batteryPercentage.getRawValue() > 0) {
-            state.setValue(FlyingState.LANDED);
-            alertState.setValue(AlertState.NONE);
-            speed.setValue(new Speed(0.0, 0.0, 0.0));
-            altitude.setValue(0.0);
-            navigationState.setValue(NavigationState.AVAILABLE);
-            navigationStateReason.setValue(NavigationStateReason.ENABLED);
-            gpsFix.setValue(true);
+        shutDownDrone();
+        bootDrone();
+    }
 
-            flyingToHome = false;
-            initialized = false;
-        }
+    public void bootDrone() {
+
+        // Set default values
+        state.setValue(FlyingState.LANDED);
+        alertState.setValue(AlertState.NONE);
+        speed.setValue(new Speed(0.0, 0.0, 0.0));
+        altitude.setValue(0.0);
+        navigationState.setValue(NavigationState.AVAILABLE);
+        navigationStateReason.setValue(NavigationStateReason.ENABLED);
+        gpsFix.setValue(true);
     }
 
     public void shutDownDrone() {
+
+        // Cancel everything: drone is powered off
+        simulationTick.cancel();
         flyingToHome = false;
+        eventBus.setPublishDisabled(true);
         setConnectionLost(true);
         initialized = false;
     }
@@ -206,16 +211,16 @@ public class BepopSimulator extends DroneActor {
 
             // Calculate delta in radians
             double radius = Location.EARTH_RADIUS + location.getRawValue().getHeigth();
-            double deltaLatitude = dNS/radius;
-            double deltaLongitude = dEquator/radius;
+            double deltaLatitude = dNS/radius  * 180/Math.PI;          // in degrees
+            double deltaLongitude = dEquator/radius  * 180/Math.PI;    // in degrees
 
             // Calculate new coordinates
             Location oldLocation = location.getRawValue();
-            double latitude = (oldLocation.getLatitude() + deltaLatitude) * 180/Math.PI;    // in degrees
+            double latitude = (oldLocation.getLatitude() + deltaLatitude);    // in degrees
             if (latitude > 90) latitude = 180 -latitude;
             if (latitude < -90) latitude = Math.abs(latitude) -180;
 
-            double longitude = (oldLocation.getLongtitude() + deltaLongitude) * 180/Math.PI;    // in degrees
+            double longitude = (oldLocation.getLongtitude() + deltaLongitude);    // in degrees
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
@@ -359,6 +364,18 @@ public class BepopSimulator extends DroneActor {
             return;
         }
 
+        // Enable status updates
+        eventBus.setPublishDisabled(false);
+
+        // Schedule drones.simulation loop
+        simulationTick = Akka.system().scheduler().schedule(
+                simulationTimeStep,
+                simulationTimeStep,
+                self(),
+                new StepSimulationMessage(simulationTimeStep),
+                Akka.system().dispatcher(),
+                self());
+
         initialized = true;
         p.success(null);
     }
@@ -368,7 +385,6 @@ public class BepopSimulator extends DroneActor {
 
         if(connectionLost) return;
 
-        shutDownDrone();
         rebootDrone();
         init(p);
     }
