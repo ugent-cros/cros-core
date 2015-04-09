@@ -1,5 +1,6 @@
 package drones.models.flightcontrol.messages;
 
+import akka.actor.ActorRef;
 import drones.models.Location;
 
 /**
@@ -7,8 +8,8 @@ import drones.models.Location;
  */
 public class RequestForLandingMessage extends LocationMessage{
 
-    public RequestForLandingMessage(Location location) {
-        super(location);
+    public RequestForLandingMessage(ActorRef requestor, Location location) {
+        super(requestor,location, RequestType.LANDING);
     }
 
 }

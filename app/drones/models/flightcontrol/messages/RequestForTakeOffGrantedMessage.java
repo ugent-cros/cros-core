@@ -1,5 +1,6 @@
 package drones.models.flightcontrol.messages;
 
+import akka.actor.ActorRef;
 import drones.models.Location;
 
 /**
@@ -7,7 +8,7 @@ import drones.models.Location;
  */
 public class RequestForTakeOffGrantedMessage extends LocationMessage{
 
-    public RequestForTakeOffGrantedMessage(Location location) {
-        super(location);
+    public RequestForTakeOffGrantedMessage(ActorRef requestor, Location location) {
+        super(requestor,location, RequestType.TAKEOFF);
     }
 }

@@ -9,9 +9,7 @@ import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
-import drones.models.flightcontrol.messages.LandingCompletedMessage;
-import drones.models.flightcontrol.messages.RequestForLandingGrantedMessage;
-import drones.models.flightcontrol.messages.RequestForLandingMessage;
+import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
@@ -31,8 +29,8 @@ public class SimplePilot extends Pilot{
 
     //List of points where the drone cannot fly
     private List<Location> noFlyPoints = new ArrayList<>();
-    //List of points where the drone currently is but that need to be evacuated.
-    private List<Location> evacuationPoints = new ArrayList<>();
+    //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a land.
+    private List<LocationMessage> evacuationPoints = new ArrayList<>();
 
     //Range around a no fly point where the drone cannot fly.
     private static final int NO_FY_RANGE = 4;
@@ -69,14 +67,7 @@ public class SimplePilot extends Pilot{
         if (cruisingAltitude == 0) {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
-        //TO DO on failure
-        dc.takeOff().onSuccess(new OnSuccess<Void>() {
-            @Override
-            public void onSuccess(Void result) throws Throwable {
-                actualWaypoint = 0;
-                goToNextWaypoint();
-            }
-        }, getContext().system().dispatcher());
+        takeOff();
     }
 
     @Override
@@ -132,7 +123,7 @@ public class SimplePilot extends Pilot{
 
     private void land(){
         if(linkedWithControlTower){
-            actorRef.tell(new RequestForLandingGrantedMessage(actualLocation),self());
+            actorRef.tell(new RequestForLandingMessage(self(),actualLocation),self());
         } else {
             dc.land().onSuccess(new OnSuccess<Void>(){
 
@@ -147,11 +138,21 @@ public class SimplePilot extends Pilot{
     @Override
     protected void locationChanged(LocationChangedMessage m) {
         actualLocation = new Location(m.getLatitude(),m.getLongitude(),m.getGpsHeigth());
-        for(Location l : evacuationPoints){
-            if(actualLocation.distance(l) > EVACUATION_RANGE){
+        for(LocationMessage l : evacuationPoints){
+            if(actualLocation.distance(l.getLocation()) > EVACUATION_RANGE){
                 evacuationPoints.remove(l);
-                noFlyPoints.add(l);
-                actorRef.tell(new RequestForLandingGrantedMessage(l), self());
+                noFlyPoints.add(l.getLocation());
+                switch (l.getType()){
+                    case LANDING:
+                        actorRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(),l.getLocation()), self());
+                        break;
+                    case TAKEOFF:
+                        actorRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(),l.getLocation()), self());
+                        break;
+                    default:
+                        log.debug("Unsupported type");
+                }
+
             }
         }
         for(Location l : noFlyPoints){
@@ -165,15 +166,15 @@ public class SimplePilot extends Pilot{
     @Override
     protected void requestForLandingMessage(RequestForLandingMessage m) {
         if(actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE){
-            evacuationPoints.add(m.getLocation());
+            evacuationPoints.add(m);
         } else {
             noFlyPoints.add(m.getLocation());
-            actorRef.tell(new RequestForLandingGrantedMessage(m.getLocation()), self());
+            actorRef.tell(new RequestForLandingGrantedMessage(m.getRequestor(),m.getLocation()), self());
         }
     }
 
     @Override
-    protected void requestForLandingAckMessage(RequestForLandingGrantedMessage m) {
+    protected void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m) {
         dc.land().onSuccess(new OnSuccess<Void>(){
 
             @Override
@@ -185,6 +186,10 @@ public class SimplePilot extends Pilot{
 
     @Override
     protected void landingCompletedMessage(LandingCompletedMessage m) {
+        completedMessage(m);
+    }
+
+    private void completedMessage(LocationMessage m){
         noFlyPoints.remove(m.getLocation());
 
         //try to fly further
@@ -197,5 +202,46 @@ public class SimplePilot extends Pilot{
         //allowed to continue flying
         models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
         dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(), cruisingAltitude);
+    }
+
+    @Override
+    protected void requestForTakeOffMessage(RequestForTakeOffMessage m) {
+        if(actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE){
+            evacuationPoints.add(m);
+        } else {
+            noFlyPoints.add(m.getLocation());
+            actorRef.tell(new RequestForTakeOffGrantedMessage(m.getRequestor(),m.getLocation()), self());
+        }
+    }
+
+    @Override
+    protected void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m) {
+        //TO DO on failure
+        dc.takeOff().onSuccess(new OnSuccess<Void>() {
+            @Override
+            public void onSuccess(Void result) throws Throwable {
+                actualWaypoint = 0;
+                goToNextWaypoint();
+            }
+        }, getContext().system().dispatcher());
+    }
+
+    @Override
+    protected void takeOffCompletedMessage(TakeOffCompletedMessage m) {
+        completedMessage(m);
+    }
+
+    private void takeOff(){
+        if(linkedWithControlTower){
+            actorRef.tell(new RequestForTakeOffMessage(self(),actualLocation),self());
+        } else {
+            dc.takeOff().onSuccess(new OnSuccess<Void>() {
+                @Override
+                public void onSuccess(Void result) throws Throwable {
+                    actualWaypoint = 0;
+                    goToNextWaypoint();
+                }
+            }, getContext().system().dispatcher());
+        }
     }
 }

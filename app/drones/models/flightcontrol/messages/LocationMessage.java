@@ -1,5 +1,6 @@
 package drones.models.flightcontrol.messages;
 
+import akka.actor.ActorRef;
 import drones.models.Location;
 
 import java.io.Serializable;
@@ -11,11 +12,25 @@ public abstract class LocationMessage implements Serializable{
 
     private Location location;
 
-    public LocationMessage(Location location) {
+    private ActorRef requestor;
+
+    private RequestType type;
+
+    public LocationMessage(ActorRef requestor, Location location, RequestType type) {
+        this.requestor = requestor;
         this.location = location;
+        this.type = type;
     }
 
     public Location getLocation() {
         return location;
+    }
+
+    public ActorRef getRequestor() {
+        return requestor;
+    }
+
+    public RequestType getType() {
+        return type;
     }
 }

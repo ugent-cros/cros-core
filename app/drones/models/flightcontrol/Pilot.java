@@ -7,10 +7,7 @@ import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.flightcontrol.messages.LandingCompletedMessage;
-import drones.models.flightcontrol.messages.RequestForLandingGrantedMessage;
-import drones.models.flightcontrol.messages.RequestForLandingMessage;
-import drones.models.flightcontrol.messages.SetCruisingAltitudeMessage;
+import drones.models.flightcontrol.messages.*;
 import models.Drone;
 
 /**
@@ -58,8 +55,11 @@ public abstract class Pilot extends FlightControl{
                 match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
                 match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
-                match(RequestForLandingGrantedMessage.class, s -> requestForLandingAckMessage(s)).
-                match(LandingCompletedMessage.class, s-> landingCompletedMessage(s));
+                match(RequestForLandingGrantedMessage.class, s -> requestForLandingGrantedMessage(s)).
+                match(LandingCompletedMessage.class, s-> landingCompletedMessage(s)).
+                match(RequestForTakeOffMessage.class, s -> requestForTakeOffMessage(s)).
+                match(RequestForTakeOffGrantedMessage.class, s -> requestForTakeOffGrantedMessage(s)).
+                match(TakeOffCompletedMessage.class, s-> takeOffCompletedMessage(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
@@ -72,7 +72,13 @@ public abstract class Pilot extends FlightControl{
 
     protected abstract void requestForLandingMessage(RequestForLandingMessage m);
 
-    protected abstract void requestForLandingAckMessage(RequestForLandingGrantedMessage m);
+    protected abstract void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m);
 
     protected abstract void landingCompletedMessage(LandingCompletedMessage m);
+
+    protected abstract void requestForTakeOffMessage(RequestForTakeOffMessage m);
+
+    protected abstract void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m);
+
+    protected abstract void takeOffCompletedMessage(TakeOffCompletedMessage m);
 }
