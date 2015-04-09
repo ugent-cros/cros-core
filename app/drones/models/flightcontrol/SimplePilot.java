@@ -179,6 +179,7 @@ public class SimplePilot extends Pilot{
 
             @Override
             public void onSuccess(Void result) throws Throwable {
+                actorRef.tell(new LandingCompletedMessage(m.getRequestor(),m.getLocation()),self());
                 actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             }
         }, getContext().system().dispatcher());
@@ -220,6 +221,7 @@ public class SimplePilot extends Pilot{
         dc.takeOff().onSuccess(new OnSuccess<Void>() {
             @Override
             public void onSuccess(Void result) throws Throwable {
+                actorRef.tell(new TakeOffCompletedMessage(m.getRequestor(),m.getLocation()),self());
                 actualWaypoint = 0;
                 goToNextWaypoint();
             }
