@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import akka.actor.ActorRef;
+import akka.dispatch.Futures;
 import akka.dispatch.OnSuccess;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
@@ -12,6 +13,7 @@ import drones.models.Location;
 import drones.models.scheduler.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
+import scala.concurrent.Promise;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -66,7 +68,14 @@ public class SimplePilot extends Pilot{
         if (cruisingAltitude == 0) {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
-        actualWaypoint = 0;
+        //TO DO on failure
+        dc.takeOff().onSuccess(new OnSuccess<Void>() {
+            @Override
+            public void onSuccess(Void result) throws Throwable {
+                actualWaypoint = 0;
+                goToNextWaypoint();
+            }
+        }, getContext().system().dispatcher());
     }
 
     @Override
