@@ -48,5 +48,6 @@ public class CommonTypeProcessor extends CommandTypeProcessor {
     protected void initHandlers() {
         addCommandClassHandler(CommonClass.COMMONSTATE.getVal(), new CommonStateHandler());
         addCommandClassHandler(CommonClass.SETTINGSSTATE.getVal(), new SettingsStateHandler());
+        addCommandClassHandler(CommonClass.CALIBRATIONSTATE.getVal(), new CalibrationStateHandler());
     }
 }

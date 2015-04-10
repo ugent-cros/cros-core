@@ -22,6 +22,9 @@ import java.net.*;
 import java.util.concurrent.TimeUnit;
 
 /**
+ *
+ * !!!! @TODO IMPLEMENT GPS FIX !!!!
+ *
  * Created by brecht on 3/7/15.
  */
 public class ArDrone2Protocol extends UntypedActor {
@@ -166,7 +169,7 @@ public class ArDrone2Protocol extends UntypedActor {
         log.info("[ARDRONE2] Initializing ARDrone 2.0");
 
         sendData(PacketCreator.createPacket(new ATCommandPMODE(seq++, 2))); // Undocumented command
-        sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2,20,2000,3000))); // Undocumented command
+        sendData(PacketCreator.createPacket(new ATCommandMISC(seq++, 2, 20, 2000, 3000))); // Undocumented command
         sendData(PacketCreator.createPacket(new ATCommandFTRIM(seq++)));
 
         // Set the sessions
@@ -191,6 +194,7 @@ public class ArDrone2Protocol extends UntypedActor {
         // Create nav data actor
         ardrone2NavData = getContext().actorOf(Props.create(ArDrone2NavData.class,
                 () -> new ArDrone2NavData(details, listener, getSelf())));
+
 
         // Create config data actor
         ardrone2Config = getContext().actorOf(Props.create(ArDrone2Config.class,

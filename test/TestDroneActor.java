@@ -1,5 +1,7 @@
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.DroneActor;
+import drones.models.Location;
+import drones.util.LocationNavigator;
 import scala.concurrent.Promise;
 
 /**
@@ -79,5 +81,10 @@ public class TestDroneActor extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return null;
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal, 2, 60, 1, 1);
     }
 }

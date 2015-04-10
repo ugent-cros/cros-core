@@ -73,6 +73,20 @@ public class ArDrone2NavData extends UntypedActor {
         }
     }
 
+    private void processRawData(ByteString data) {
+        log.debug("[ARDRONE2NAVDATA] Message received");
+        byte[] received = new byte[data.length()];
+        ByteIterator it = data.iterator();
+
+        int i = 0;
+        while(it.hasNext()) {
+            received[i] = it.getByte();
+            i++;
+        }
+
+        processData(received); //@TODO
+    }
+
     public boolean sendNavData(ByteString data) {
         if (senderAddressNAV != null && senderRef != null) {
             log.info("[ARDRONE2NAVDATA] Sending NAV INIT data");
@@ -89,19 +103,6 @@ public class ArDrone2NavData extends UntypedActor {
         getContext().stop(self());
     }
 
-    private void processRawData(ByteString data) {
-        //log.info("[ARDRONE2NAVDATA] Message received");
-        byte[] received = new byte[data.length()];
-        ByteIterator it = data.iterator();
-
-        int i = 0;
-        while(it.hasNext()) {
-            received[i] = it.getByte();
-            i++;
-        }
-
-        processData(received);
-    }
 
     private void processData(byte[] navdata) {
         if(navdata.length >= 100) { // Otherwise this will crash

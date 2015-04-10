@@ -139,9 +139,10 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeigth());
+        actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
         for (LocationMessage l : evacuationPoints) {
             if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
+
                 evacuationPoints.remove(l);
                 noFlyPoints.add(l.getLocation());
                 switch (l.getType()) {
