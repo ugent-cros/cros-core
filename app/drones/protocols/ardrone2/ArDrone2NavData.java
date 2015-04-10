@@ -90,7 +90,7 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        log.info("[ARDRONE2NAVDATA] Message received");
+        log.debug("[ARDRONE2NAVDATA] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -124,6 +124,7 @@ public class ArDrone2NavData extends UntypedActor {
             }
             listener.tell(stateMessage, getSelf());
 
+            log.info("BatteryMessage:{}", battery);
             Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
             listener.tell(batteryMessage, getSelf());
 
@@ -132,6 +133,9 @@ public class ArDrone2NavData extends UntypedActor {
 
             Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
             listener.tell(attitudeMessage, getSelf());
+        } else {
+            //sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
+            parent.tell(new InitCompletedMessage(), getSelf());
         }
     }
 }

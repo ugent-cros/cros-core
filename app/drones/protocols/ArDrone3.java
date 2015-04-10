@@ -78,7 +78,7 @@ public class ArDrone3 extends UntypedActor {
         initHandlers(); //TODO: static lazy loading
 
         final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
-        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
+        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
 
