@@ -49,10 +49,10 @@ public class LocationNavigator {
         float movedDistance = res[0];
         float movedBearing = res[1];
 
-        double vr = 0;
+        double vz = 0;
         double heightDiff = goal.getHeight() - location.getHeight();
         if(Math.abs(heightDiff) > MIN_HEIGHT_DIFF){ // check if we have to go up/down
-            vr = Math.abs(heightDiff) > maxVerticalVelocity ? Math.signum(heightDiff) : (heightDiff / maxVerticalVelocity); // pos = rise, neg = down
+            vz = Math.abs(heightDiff) > maxVerticalVelocity ? Math.signum(heightDiff) : (heightDiff / maxVerticalVelocity); // pos = rise, neg = down
         }
 
         res = Location.computeDistanceAndBearing(location, goal);
@@ -61,12 +61,13 @@ public class LocationNavigator {
 
         double vx = goalDistance > maxForwardVelocity ? 1d : (goalDistance / maxForwardVelocity); // move max forward
 
+        vx /= 2;
         if(movedDistance > gpsAccuracy){
             previousLocation = location; // significant location update
 
             if(goalDistance < gpsAccuracy){ // we arrived at our destination with best effort accuracy
-                if(vr != 0){
-                    return new MoveCommand(0, 0, 0, vr);
+                if(vz != 0){
+                    return new MoveCommand(0, 0, vz, 0);
                 } else {
                     return null; // Arrived
                 }
@@ -74,30 +75,30 @@ public class LocationNavigator {
                 hadHeading = true;
                 float bearingDiff = goalBearing - movedBearing; // calculate difference angle that we have to correct
                 if(Math.abs(bearingDiff) < MIN_BEARING_DIFF){ // we don't care about 10 degrees off, continue
-                    return new MoveCommand(vx, 0, 0, vr);
+                    return new MoveCommand(vx, 0, vz, 0);
                 } else {
                     if(bearingDiff > 180f){
                         bearingDiff -= 360f; // faster to go left
                     } else if(bearingDiff < -180f) {
                         bearingDiff += 360f; // faster to go right
                     }
-                    double vz = Math.abs(bearingDiff) > maxAngularVelocity ? Math.signum(bearingDiff) : (bearingDiff / maxAngularVelocity); // take max angle or relative to angular velocity
-                    if(bearingDiff > MAX_DIFF_BEARING){
-                        vx *= 0.5; // When we require a high angle we lower the forward speed
+                    double vr = Math.abs(bearingDiff) > maxAngularVelocity ? Math.signum(bearingDiff) : (bearingDiff / maxAngularVelocity); // take max angle or relative to angular velocity
+                    if(bearingDiff > MAX_DIFF_BEARING/2){
+                        vx *= 0.3; // When we require a high angle we lower the forward speed
                     }
+
                     return new MoveCommand(vx, 0, vz, vr);
                 }
             }
         } else {
-            if(goalDistance < gpsAccuracy && Math.abs(vr) < MIN_VR_VALUE){ // we started in region we wanted already
+            if(goalDistance < gpsAccuracy && Math.abs(vz) < MIN_VR_VALUE){ // we started in region we wanted already
                 return null;
             } else {
                 if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
                     vx *= 0.5;
                 }
-                return new MoveCommand(vx, 0, 0, vr); // movement not significant enough to take angle measurement into account
+                return new MoveCommand(vx, 0, vz, 0); // movement not significant enough to take angle measurement into account
             }
-
         }
     }
 

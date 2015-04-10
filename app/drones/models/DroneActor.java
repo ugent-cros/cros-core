@@ -107,6 +107,12 @@ public abstract class DroneActor extends AbstractActor {
                 match(GPSFixChangedMessage.class, s -> {
                     log.info("GPS fix changed: [{}]", s.isFixed());
                     gpsFix.setValue(s.isFixed());
+                    if(s.isFixed()) {
+                        //TODO: publish navigationstatechanged/reason
+                        navigationState.setValue(NavigationState.AVAILABLE);
+                    }else {
+                        navigationState.setValue(NavigationState.UNAVAILABLE);
+                    }
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
@@ -202,6 +208,7 @@ public abstract class DroneActor extends AbstractActor {
                 navigator.setCurrentLocation(null);
                 navigator.setGoal(null);
             } else { // execute the movement command
+                log.info("Move: {}, location: {}", cmd, location);
                 Promise<Void> v = Futures.promise();
                 v.future().onFailure(new OnFailure() {
                     @Override

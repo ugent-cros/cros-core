@@ -418,7 +418,7 @@ public class ArDrone3 extends UntypedActor {
         log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
         boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        double[] vars = new double[]{cmd.getVy(), cmd.getVx(), cmd.getVr(), cmd.getVz()};
         for (int i = 0; i < 4; i++) {
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
