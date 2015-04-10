@@ -40,12 +40,12 @@ public class SimplePilot extends Pilot {
     
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
-     * @param drone                  Drone to control.
+     * @param droneId                  Drone to control.
      * @param linkedWithControlTower True if connected to ControlTower
      * @param waypoints              Route to fly, the drone will land on the last item
      */
-    public SimplePilot(ActorRef reporterRef, Drone drone, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
-        super(reporterRef, drone, linkedWithControlTower);
+    public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+        super(reporterRef, droneId, linkedWithControlTower);
 
         if (waypoints.size() < 1) {
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -131,7 +131,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+                    reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -182,7 +182,7 @@ public class SimplePilot extends Pilot {
             @Override
             public void onSuccess(Void result) throws Throwable {
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+                reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
             }
         }, getContext().system().dispatcher());
     }
