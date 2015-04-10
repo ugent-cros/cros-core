@@ -1,4 +1,4 @@
-package drones.models.scheduler;
+package drones.models.scheduler.messages;
 
 /**
  * Created by Ronald on 7/04/2015.
