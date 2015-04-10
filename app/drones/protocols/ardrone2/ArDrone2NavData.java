@@ -212,7 +212,7 @@ public class ArDrone2NavData extends UntypedActor {
     private void batteryChanged(byte[] navdata) {
         int battery = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
 
-        //log.info("Battery: {}", battery);
+        log.info("Battery: {}", battery);
 
         Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
         listener.tell(batteryMessage, getSelf());
