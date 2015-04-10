@@ -52,6 +52,9 @@ public class SimplePilot extends Pilot {
         this.waypoints = waypoints;
     }
 
+    /**
+     * Use only for testing!
+     */
     public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
