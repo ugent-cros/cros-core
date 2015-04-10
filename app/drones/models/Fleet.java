@@ -105,10 +105,7 @@ public class Fleet {
                 return null;
 
             // Create commander
-            ActorRef ref = Akka.system().actorOf(
-                    Props.create(driver.getActorClass(),
-                            () -> driver.createActor(droneEntity)));
-            commander = new DroneCommander(ref);
+            commander = new DroneCommander(droneEntity.getAddress(), driver);
             drones.put(droneEntity.getId(), commander);
         }
 

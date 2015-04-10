@@ -47,13 +47,13 @@ public class SimpleControlTower extends ControlTower{
     @Override
     protected void droneArrivalMessage(DroneArrivalMessage m) {
         //to do remove
-       actorRef.tell(m,self());
+        reporterRef.tell(m, self());
     }
 
     @Override
     protected void addDroneMessage(AddDroneMessage m) {
         if(numberOfDrones >= maxNumberOfDrones){
-            actorRef.tell(new ControlTowerFullMessage(m),self());
+            reporterRef.tell(new ControlTowerFullMessage(m),self());
         } else {
             //find available drone height
             for (int i = 0; i < maxNumberOfDrones; i++) {

@@ -13,8 +13,8 @@ import drones.models.scheduler.DroneArrivalMessage;
  */
 public abstract class ControlTower extends FlightControl{
 
-    public ControlTower(ActorRef actorRef) {
-        super(actorRef);
+    public ControlTower(ActorRef reporterRef) {
+        super(reporterRef);
     }
 
     @Override

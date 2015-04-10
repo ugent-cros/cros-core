@@ -14,14 +14,14 @@ import drones.models.flightcontrol.messages.*;
  */
 public abstract class FlightControl extends AbstractActor {
 
-    protected ActorRef actorRef;
+    protected ActorRef reporterRef;
 
     protected static final double DEFAULT_ALTITUDE = 5;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public FlightControl(ActorRef actorRef) {
-        this.actorRef = actorRef;
+    public FlightControl(ActorRef reporterRef) {
+        this.reporterRef = reporterRef;
 
         //Receive behaviour
         receive(createListeners().
