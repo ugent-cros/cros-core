@@ -1,10 +1,16 @@
 package drones.models.scheduler;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.EmptyLocalActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import drones.models.Fleet;
 import models.Assignment;
 import models.Drone;
+import play.libs.Akka;
 
 /**
  * Created by Ronald on 16/03/2015.
@@ -20,20 +26,61 @@ Accepts:
 public abstract class Scheduler extends AbstractActor {
 
 
+    protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     protected final Fleet fleet = Fleet.getFleet();
+    private static ActorRef scheduler;
+    private static Object lock = new Object();
+
+    /**
+     * Get an actor reference to the drone scheduler
+     * @return
+     */
+    public static ActorRef getScheduler() throws SchedulerException{
+        synchronized (lock) {
+            if (scheduler == null || scheduler.isTerminated()) {
+                throw new SchedulerException("The scheduler has not been started yet.");
+            } else {
+                return scheduler;
+            }
+        }
+    }
+
+    public static void start(Class<? extends Scheduler> type) throws SchedulerException{
+        synchronized (lock) {
+            if (scheduler == null || scheduler.isTerminated()) {
+                scheduler = Akka.system().actorOf(Props.create(type));
+            } else {
+                throw new SchedulerException("The scheduler has already been started.");
+            }
+        }
+    }
+
+    public static void stop() throws SchedulerException{
+        synchronized (lock) {
+            if (scheduler != null) {
+                if(scheduler.isTerminated()) {
+                    Akka.system().stop(scheduler);
+                }
+                scheduler = null;
+            } else {
+                throw new SchedulerException("The scheduler cannot be stopped before it has started.");
+            }
+        }
+    }
+
 
     public Scheduler(){
         //Receive behaviour
         receive(ReceiveBuilder.
-                        match(AssignmentMessage.class, message -> {
-                            receiveAssignmentMessage(message);
-                        }).
-                        match(DroneArrivalMessage.class, message -> {
-                            receiveDroneArrivalMessage(message);
-                        }).
-                        match(DroneArrivalMessage.class, message -> {
-                            receiveDroneBatteryMessage(message);
-                        }).build()
+                        match(AssignmentMessage.class,
+                                message -> receiveAssignmentMessage(message)
+                        ).
+                        match(DroneArrivalMessage.class,
+                                message -> receiveDroneArrivalMessage(message)
+                        ).
+                        match(DroneBatteryMessage.class,
+                                message -> receiveDroneBatteryMessage(message)
+                        ).build()
         );
     }
 
@@ -85,6 +132,6 @@ public abstract class Scheduler extends AbstractActor {
      * Tell the scheduler a that a drone has insufficient battery to finish his assignment
      * @param message message containing the drone, the current location and remaining battery percentage.
      */
-    protected abstract void receiveDroneBatteryMessage(DroneArrivalMessage message);
+    protected abstract void receiveDroneBatteryMessage(DroneBatteryMessage message);
 
 }
