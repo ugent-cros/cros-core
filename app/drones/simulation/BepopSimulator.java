@@ -273,7 +273,7 @@ public class BepopSimulator extends DroneActor {
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
-                (float)topSpeed, 60f, 4f, 0.8f); // Bebop parameters
+                2f,  40f, 0.4f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {

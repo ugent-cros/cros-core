@@ -208,7 +208,6 @@ public abstract class DroneActor extends AbstractActor {
                 navigator.setCurrentLocation(null);
                 navigator.setGoal(null);
             } else { // execute the movement command
-                log.info("Move: {}, location: {}", cmd, location);
                 Promise<Void> v = Futures.promise();
                 v.future().onFailure(new OnFailure() {
                     @Override

@@ -11,7 +11,6 @@ public class LocationNavigator {
     private Location previousLocation;
     private Location goal;
     private float maxAngularVelocity;
-    private float maxForwardVelocity;
     private float maxVerticalVelocity;
     private float gpsAccuracy;
     private boolean hadHeading;
@@ -20,12 +19,11 @@ public class LocationNavigator {
     private float degreesLeft = 0;
     private boolean left;
 
-    private NavigationState navigationState;
-
     private static final float MAX_DIFF_BEARING = 30f;
     private static final double MIN_HEIGHT_DIFF = 0.3;
     private static final double MIN_BEARING_DIFF = 10f;
     private static final double MIN_VR_VALUE = 0.1;
+    private static final double SLOW_RADIUS = 10; //go slower within 10m
 
     /**
      * Creates a new location navigation session
@@ -33,15 +31,13 @@ public class LocationNavigator {
      * @param currentLocation The current location
      * @param gpsAccuracy The accuracy of the GPS in meters
      * @param maxAngularVelocity The maximum angular velocity in degrees (for vz = 1)
-     * @param maxForwardVelocity The maximum forward velocity in m/s
      * @param maxVerticalVelocity The maximum vertical velocity (up) in m/s
      */
-    public LocationNavigator(Location currentLocation, Location goal, float gpsAccuracy, float maxAngularVelocity, float maxForwardVelocity, float maxVerticalVelocity){
+    public LocationNavigator(Location currentLocation, Location goal, float gpsAccuracy, float maxAngularVelocity, float maxVerticalVelocity){
         this.goal = goal;
         this.previousLocation = currentLocation;
         this.gpsAccuracy = gpsAccuracy;
         this.maxAngularVelocity = maxAngularVelocity;
-        this.maxForwardVelocity = maxForwardVelocity;
         this.maxVerticalVelocity = maxVerticalVelocity;
     }
 
@@ -64,13 +60,20 @@ public class LocationNavigator {
         float goalDistance = res[0];
         float goalBearing = res[1];
 
-        double vx = goalDistance > maxForwardVelocity ? 1d : (goalDistance / maxForwardVelocity); // move max forward
+        // When within 10m, go slower
+        double vx;
+        if(goalDistance < SLOW_RADIUS && goalDistance > gpsAccuracy){
+            vx = 0.5;
+        } else if(goalDistance < gpsAccuracy) {
+            vx = goalDistance / gpsAccuracy; // the closer, the slower
+        } else {
+            vx = 1d; // else full ahead
+        }
 
-        vx /= 2;
         if(movedDistance > gpsAccuracy){
             previousLocation = location; // significant location update
 
-            if(goalDistance < gpsAccuracy*2){ // we arrived at our destination with best effort accuracy
+            if(goalDistance < gpsAccuracy*1.2){ // we arrived at our destination with best effort accuracy
                 if(vz != 0){
                     return new MoveCommand(0, 0, vz, 0);
                 } else {
@@ -102,7 +105,7 @@ public class LocationNavigator {
                 }
             }
         } else {
-            if(goalDistance < gpsAccuracy*2 && Math.abs(vz) < MIN_VR_VALUE){ // we started in region we wanted already
+            if(goalDistance < gpsAccuracy*1.2 && Math.abs(vz) < MIN_VR_VALUE){ // we started in region we wanted already
                 return null;
             } else {
                 if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates

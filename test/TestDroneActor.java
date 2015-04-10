@@ -85,6 +85,6 @@ public class TestDroneActor extends DroneActor {
 
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal, 2, 60, 1, 1);
+        return new LocationNavigator(currentLocation, goal, 2, 40, 1);
     }
 }
