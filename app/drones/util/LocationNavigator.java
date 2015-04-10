@@ -15,10 +15,15 @@ public class LocationNavigator {
     private float maxVerticalVelocity;
     private float gpsAccuracy;
     private boolean hadHeading;
+
+    // Rotational values
+    private float degreesLeft = 0;
+    private boolean left;
+
     private NavigationState navigationState;
 
     private static final float MAX_DIFF_BEARING = 30f;
-    private static final double MIN_HEIGHT_DIFF = 0.5;
+    private static final double MIN_HEIGHT_DIFF = 0.3;
     private static final double MIN_BEARING_DIFF = 10f;
     private static final double MIN_VR_VALUE = 0.1;
 
@@ -82,9 +87,13 @@ public class LocationNavigator {
                     } else if(bearingDiff < -180f) {
                         bearingDiff += 360f; // faster to go right
                     }
-                    double vr = Math.abs(bearingDiff) > maxAngularVelocity ? Math.signum(bearingDiff) : (bearingDiff / maxAngularVelocity); // take max angle or relative to angular velocity
+
+                    double vr = 0;
                     if(bearingDiff > MAX_DIFF_BEARING/2){
-                        vx *= 0.3; // When we require a high angle we lower the forward speed
+                        vx = 0;
+                        left = bearingDiff < 0;
+                        degreesLeft = Math.max(0, bearingDiff - maxAngularVelocity);
+                        vr = left ? -1 : 1;
                     }
 
                     return new MoveCommand(vx, 0, vz, vr);
@@ -97,7 +106,15 @@ public class LocationNavigator {
                 if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
                     vx *= 0.5;
                 }
-                return new MoveCommand(vx, 0, vz, 0); // movement not significant enough to take angle measurement into account
+
+                double vr = 0;
+                if(degreesLeft > 0){
+                    degreesLeft = Math.max(0, degreesLeft - maxAngularVelocity);
+                    vx = 0;
+                    vr = left ? -1 : 1;
+                }
+
+                return new MoveCommand(vx, 0, vz, vr); // movement not significant enough to take angle measurement into account
             }
         }
     }
