@@ -112,7 +112,10 @@ public class SimplePilot extends Pilot {
             if (actualWaypoint == waypoints.size()) {
                 //arrived at destination => land
                 land();
-                //reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+<<<<<<< HEAD
+=======
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
@@ -128,7 +131,11 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+<<<<<<< HEAD
+                    actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
+=======
+                    reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
                 }
             }, getContext().system().dispatcher());
         }
@@ -178,8 +185,12 @@ public class SimplePilot extends Pilot {
 
             @Override
             public void onSuccess(Void result) throws Throwable {
+<<<<<<< HEAD
+                actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
+=======
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
             }
         }, getContext().system().dispatcher());
     }
