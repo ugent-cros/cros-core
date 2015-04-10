@@ -80,10 +80,10 @@ public class ArDrone2Config extends UntypedActor {
     byte[] configDatav= new byte[10000];
 
     private void processData(ByteString byteData) {
-        ByteIterator it = byteData.iterator();
-        while(it.hasNext()) {
-            //byte
-        }
+        //ByteIterator it = byteData.iterator();
+        //while(it.hasNext()) {
+        //    //byte
+        //}
 
         String data = byteData.decodeString("UTF-8");
         String[] configValues = data.split("\n");
@@ -96,15 +96,21 @@ public class ArDrone2Config extends UntypedActor {
         for(String configValue: configValues) {
             String[] configPair = configValue.replaceAll("\\s+","").split("=");
 
-            String key = configPair[0];
-            String value = configPair[1];
+            String key, value;
+            if(configPair.length == 2) {
+                key = configPair[0];
+                value = configPair[1];
+            } else {
+                break;
+            }
 
             if(key.equals(ConfigKeys.GEN_NUM_VERSION_SOFT.getKey())) {
-                log.info("Software version: {}", value);
+                log.info("- Software version: {}", value);
                 softwareVersion = value;
             } else if(key.equals(ConfigKeys.GEN_NUM_VERSION_MB.getKey())) {
-                log.info("Hardware version: {}", value);
+                log.info("- Hardware version: {}", value);
                 hardwareVersion = value;
+                break; // @TODO temp fix
             }
         }
 
