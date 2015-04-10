@@ -10,7 +10,7 @@ import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
 
@@ -37,7 +37,6 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
-    
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone                  Drone to control.
@@ -113,7 +112,10 @@ public class SimplePilot extends Pilot {
             if (actualWaypoint == waypoints.size()) {
                 //arrived at destination => land
                 land();
-                //reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+<<<<<<< HEAD
+=======
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
@@ -129,7 +131,11 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+<<<<<<< HEAD
+                    actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
+=======
+                    reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
                 }
             }, getContext().system().dispatcher());
         }
@@ -179,8 +185,12 @@ public class SimplePilot extends Pilot {
 
             @Override
             public void onSuccess(Void result) throws Throwable {
+<<<<<<< HEAD
+                actorRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation),self());
+=======
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+>>>>>>> cba53132503e72799b042817f89807b4e41aaf6e
             }
         }, getContext().system().dispatcher());
     }

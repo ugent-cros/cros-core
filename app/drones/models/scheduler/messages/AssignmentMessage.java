@@ -9,14 +9,14 @@ import java.io.Serializable;
  */
 public class AssignmentMessage implements Serializable{
 
-    private Assignment assignment;
+    private long assignmentId;
 
-    public AssignmentMessage(Assignment assignment) {
-        this.assignment = assignment;
+    public AssignmentMessage(long assignmentId) {
+        this.assignmentId = assignmentId;
     }
 
-    public Assignment getAssignment() {
-        return assignment;
+    public long getAssignmentId() {
+        return assignmentId;
     }
 
 }
