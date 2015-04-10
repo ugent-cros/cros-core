@@ -2,11 +2,16 @@ package drones.models.flightcontrol;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.DroneArrivalMessage;
 import models.Drone;
 
+import java.util.List;
+
 /**
+ * Simple Control Tower: DO NOT ADD A DRONE ON A LOCATION WHERE ANOTHER DRONE WANTS TO LAND
+ *
  * Created by Sander on 10/04/2015.
  */
 public class SimpleControlTower extends ControlTower{
@@ -21,6 +26,7 @@ public class SimpleControlTower extends ControlTower{
     private Drone[] drones;
     private ActorRef[] pilots;
     private int numberOfDrones = 0;
+    private List<Location> noFlyPoints;
 
     private boolean started = false;
 
@@ -82,9 +88,10 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void requestMessage(RequestMessage m) {
+        noFlyPoints.add(m.getLocation());
         for (int i = 0; i < maxNumberOfDrones; i++) {
             if(usedAltitudes[i]){
-                if(getAltitudeForIndex(i) < m.getLocation().getHeigth() && m.getRequestor() != pilots[i]){
+                if(getAltitudeForIndex(i) < m.getLocation().getHeigth() && m.getRequester() != pilots[i]){
                     pilots[i].tell(m,self());
                 } else {
                     return;
@@ -95,11 +102,12 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
-        m.getRequestor().tell(m,self());
+        m.getRequester().tell(m,self());
     }
 
     @Override
     protected void completedMessage(CompletedMessage m) {
+        noFlyPoints.remove(m.getLocation());
         for (int i = 0; i < maxNumberOfDrones; i++) {
             if(usedAltitudes[i]){
                 pilots[i].tell(m, self());
