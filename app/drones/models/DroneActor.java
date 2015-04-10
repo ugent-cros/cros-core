@@ -93,7 +93,7 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(GPSFixChangedMessage.class, s -> {
-                    log.info("GPS fix changed: [{}]", s.isFixed());
+                    //log.info("GPS fix changed: [{}]", s.isFixed());
                     gpsFix.setValue(s.isFixed());
                     eventBus.publish(new DroneEventMessage(s));
                 }).

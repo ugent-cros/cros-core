@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.pf.ReceiveBuilder;
+import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.messages.ProductVersionChangedMessage;
 import drones.messages.RequestConfigMessage;
@@ -35,6 +36,7 @@ public class ArDrone2Config extends UntypedActor {
         this.parent = parent;
 
         this.remote = new InetSocketAddress(details.getIp(), DefaultPorts.CONTROL_PORT.getPort());
+
         // TCP manager
         tcpManager = Tcp.get(getContext().system()).manager();
         tcpManager.tell(TcpMessage.connect(remote), getSelf());
@@ -75,12 +77,21 @@ public class ArDrone2Config extends UntypedActor {
         getContext().stop(getSelf());
     }
 
+    byte[] configDatav= new byte[10000];
+
     private void processData(ByteString byteData) {
+        ByteIterator it = byteData.iterator();
+        while(it.hasNext()) {
+            //byte
+        }
+
         String data = byteData.decodeString("UTF-8");
         String[] configValues = data.split("\n");
 
         String hardwareVersion = "";
         String softwareVersion = "";
+
+        log.info(data);
 
         for(String configValue: configValues) {
             String[] configPair = configValue.replaceAll("\\s+","").split("=");
@@ -101,5 +112,9 @@ public class ArDrone2Config extends UntypedActor {
         listener.tell(versionMessage, getSelf());
 
         log.info(data);
+    }
+
+    private void parseData(String data) {
+
     }
 }

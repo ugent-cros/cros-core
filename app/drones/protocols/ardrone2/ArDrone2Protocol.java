@@ -17,9 +17,6 @@ import drones.util.ardrone2.PacketCreator;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.net.*;
 import java.util.concurrent.TimeUnit;
@@ -77,7 +74,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
-                    .match(InitCompletedMessage.class, s -> sendInitNavData())
+                    .match(InitNavDataMessage.class, s -> sendInitNavData())
                             // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
@@ -92,13 +89,14 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .match(RequestConfigMessage.class, s -> handleConfigRequest())
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
+
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
                     })
                     .build());
 
-            listener.tell(new InitCompletedMessage(), getSelf());
+            listener.tell(new InitNavDataMessage(), getSelf());
         } else if (msg instanceof DroneConnectionDetails) {
             log.info("[ARDRONE2] DroneConnectionDetails received");
             droneDiscovered((DroneConnectionDetails) msg);
@@ -275,7 +273,18 @@ public class ArDrone2Protocol extends UntypedActor {
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.GEN_NAVDATA_DEMO, "TRUE")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.GEN_NAVDATA_DEMO, "FALSE")));
+        // Send ACK
+        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
+    }
+
+    private void sendConfigDataCommand() {
+        log.info("[ARDRONE2] Config init completed");
+
+        // Enable nav data
+        // Disable bootstrap
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.GEN_NAVDATA_DEMO, "FALSE")));
         // Send ACK
         sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
     }

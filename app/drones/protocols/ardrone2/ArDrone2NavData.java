@@ -65,7 +65,7 @@ public class ArDrone2NavData extends UntypedActor {
 
             // Enable nav data
             sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
-            parent.tell(new InitCompletedMessage(), getSelf());
+            parent.tell(new InitNavDataMessage(), getSelf());
         } else {
             log.info(msg.toString());
             log.info("[ARDRONE2NAVDATA] Unhandled message received");
@@ -90,7 +90,7 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        log.info("[ARDRONE2NAVDATA] Message received");
+        //log.info("[ARDRONE2NAVDATA] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -136,6 +136,7 @@ public class ArDrone2NavData extends UntypedActor {
                 }
 
                 if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
+                    //log.info("Parsing demo data");
                     parseDemoData(navdata);
                 } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
                     parseGPSData(navdata, offset);
@@ -149,6 +150,7 @@ public class ArDrone2NavData extends UntypedActor {
             // gpsDataChanged(navdata)
         } else {
             log.info("Packet doesn't contain data");
+            parent.tell(new InitNavDataMessage(), getSelf());
         }
     }
 
@@ -210,6 +212,8 @@ public class ArDrone2NavData extends UntypedActor {
     private void batteryChanged(byte[] navdata) {
         int battery = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
 
+        //log.info("Battery: {}", battery);
+
         Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
         listener.tell(batteryMessage, getSelf());
     }
@@ -244,7 +248,7 @@ public class ArDrone2NavData extends UntypedActor {
     private FlyingState parseCtrlState(int state) {
         switch(state) {
             case 2:
-                log.info("Landed");
+                //log.info("Landed");
                 return FlyingState.LANDED;
             case 3:
                 log.info("Flying");
