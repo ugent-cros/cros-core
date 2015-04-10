@@ -81,7 +81,7 @@ public class SimpleControlTower extends ControlTower{
     }
 
     @Override
-    protected void requestForLandingMessage(RequestForLandingMessage m) {
+    protected void requestMessage(RequestMessage m) {
         for (int i = 0; i < maxNumberOfDrones; i++) {
             if(usedAltitudes[i]){
                 if(getAltitudeForIndex(i) < m.getLocation().getHeigth() && m.getRequestor() != pilots[i]){
@@ -94,39 +94,12 @@ public class SimpleControlTower extends ControlTower{
     }
 
     @Override
-    protected void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m) {
+    protected void requestGrantedMessage(RequestGrantedMessage m) {
         m.getRequestor().tell(m,self());
     }
 
     @Override
-    protected void landingCompletedMessage(LandingCompletedMessage m) {
-        for (int i = 0; i < maxNumberOfDrones; i++) {
-            if(usedAltitudes[i]){
-                pilots[i].tell(m, self());
-            }
-        }
-    }
-
-    @Override
-    protected void requestForTakeOffMessage(RequestForTakeOffMessage m) {
-        for (int i = 0; i < maxNumberOfDrones; i++) {
-            if(usedAltitudes[i]){
-                if(getAltitudeForIndex(i) < m.getLocation().getHeigth() && m.getRequestor() != pilots[i]){
-                    pilots[i].tell(m,self());
-                } else {
-                    return;
-                }
-            }
-        }
-    }
-
-    @Override
-    protected void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m) {
-        m.getRequestor().tell(m,self());
-    }
-
-    @Override
-    protected void takeOffCompletedMessage(TakeOffCompletedMessage m) {
+    protected void completedMessage(CompletedMessage m) {
         for (int i = 0; i < maxNumberOfDrones; i++) {
             if(usedAltitudes[i]){
                 pilots[i].tell(m, self());

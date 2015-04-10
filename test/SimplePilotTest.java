@@ -126,19 +126,19 @@ public class SimplePilotTest extends TestSuperclass {
 
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForTakeOffMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
-                simplePilot.tell(new RequestForTakeOffGrantedMessage(simplePilot,STERRE),getRef());
+                simplePilot.tell(new RequestGrantedMessage(RequestType.TAKEOFF,simplePilot,STERRE),getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, TakeOffCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, CompletedMessage.class);
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForLandingMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
                 Location tmp = new Location(destination.getLocation().getLatitude(),destination.getLocation().getLongitude(),destination.getLocation().getAltitude());
-                simplePilot.tell(new RequestForLandingGrantedMessage(simplePilot,tmp),getRef());
+                simplePilot.tell(new RequestGrantedMessage(RequestType.LANDING,simplePilot,tmp),getRef());
 
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,CompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING, DroneArrivalMessage.class, CompletedMessage.class);
             }
         };
     }

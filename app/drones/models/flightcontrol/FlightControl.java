@@ -26,12 +26,9 @@ public abstract class FlightControl extends AbstractActor {
         //Receive behaviour
         receive(createListeners().
                         match(StartFlightControlMessage.class, s -> start()).
-                        match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
-                        match(RequestForLandingGrantedMessage.class, s -> requestForLandingGrantedMessage(s)).
-                        match(LandingCompletedMessage.class, s -> landingCompletedMessage(s)).
-                        match(RequestForTakeOffMessage.class, s -> requestForTakeOffMessage(s)).
-                        match(RequestForTakeOffGrantedMessage.class, s -> requestForTakeOffGrantedMessage(s)).
-                        match(TakeOffCompletedMessage.class, s -> takeOffCompletedMessage(s)).
+                        match(RequestMessage.class, s -> requestMessage(s)).
+                        match(RequestGrantedMessage.class, s -> requestGrantedMessage(s)).
+                        match(CompletedMessage.class, s -> completedMessage(s)).
                         matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
@@ -43,15 +40,9 @@ public abstract class FlightControl extends AbstractActor {
      */
     public abstract void start();
 
-    protected abstract void requestForLandingMessage(RequestForLandingMessage m);
+    protected abstract void requestMessage(RequestMessage m);
 
-    protected abstract void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m);
+    protected abstract void requestGrantedMessage(RequestGrantedMessage m);
 
-    protected abstract void landingCompletedMessage(LandingCompletedMessage m);
-
-    protected abstract void requestForTakeOffMessage(RequestForTakeOffMessage m);
-
-    protected abstract void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m);
-
-    protected abstract void takeOffCompletedMessage(TakeOffCompletedMessage m);
+    protected abstract void completedMessage(CompletedMessage m);
 }

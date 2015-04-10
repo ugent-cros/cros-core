@@ -22,6 +22,12 @@ public abstract class LocationMessage implements Serializable{
         this.type = type;
     }
 
+    public LocationMessage(LocationMessage m){
+        this.requestor = m.getRequestor();
+        this.location = m.getLocation();
+        this.type = m.getType();
+    }
+
     public Location getLocation() {
         return location;
     }
