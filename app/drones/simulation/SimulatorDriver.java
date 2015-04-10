@@ -3,7 +3,6 @@ package drones.simulation;
 import drones.models.DroneActor;
 import drones.models.DroneDriver;
 import drones.models.Location;
-import models.Drone;
 import models.DroneType;
 
 import java.util.HashSet;
@@ -38,7 +37,7 @@ public class SimulatorDriver implements DroneDriver {
     }
 
     @Override
-    public <T extends DroneActor> T createActor(Drone droneEntity) {
+    public <T extends DroneActor> T createActor(String droneAddress) {
         return (T) new BepopSimulator(startLocation, maxHeight, angleWrtEquator, topSpeed);
     }
 }
