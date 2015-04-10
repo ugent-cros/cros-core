@@ -17,7 +17,7 @@ import models.Drone;
  */
 public abstract class Pilot extends FlightControl{
 
-    protected Drone drone = null;
+    protected Drone drone;
     protected DroneCommander dc;
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
@@ -34,9 +34,10 @@ public abstract class Pilot extends FlightControl{
     /**
      * Use only for testing!
      */
-    public Pilot(ActorRef actorRef, DroneCommander dc, boolean linkedWithControlTower) {
-        super(actorRef);
+    public Pilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower) {
+        super(reporterRef);
         this.dc = dc;
+        this.drone = new Drone();
         this.linkedWithControlTower = linkedWithControlTower;
 
         setSubscribeMessages();

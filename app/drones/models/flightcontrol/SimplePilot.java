@@ -37,6 +37,7 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+    
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone                  Drone to control.
@@ -63,7 +64,10 @@ public class SimplePilot extends Pilot {
         this.waypoints = waypoints;
     }
 
-    //Only for testing
+
+    /**
+     * Use only for testing!
+     */
     public SimplePilot(ActorRef reporterRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
@@ -139,7 +143,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+                    reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -176,14 +180,14 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
-        switch (m.getType()){
+        switch (m.getType()) {
             case LANDING:
-                dc.land().onSuccess(new OnSuccess<Void>(){
+                dc.land().onSuccess(new OnSuccess<Void>() {
 
                     @Override
                     public void onSuccess(Void result) throws Throwable {
                         reporterRef.tell(new CompletedMessage(m), self());
-                        reporterRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                        reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
                     }
                 }, getContext().system().dispatcher());
                 break;
@@ -192,7 +196,7 @@ public class SimplePilot extends Pilot {
                 dc.takeOff().onSuccess(new OnSuccess<Void>() {
                     @Override
                     public void onSuccess(Void result) throws Throwable {
-                        reporterRef.tell(new CompletedMessage(m),self());
+                        reporterRef.tell(new CompletedMessage(m), self());
                         actualWaypoint = 0;
                         goToNextWaypoint();
                     }
@@ -201,7 +205,6 @@ public class SimplePilot extends Pilot {
             default:
                 log.warning("No handler for: [{}]", m.getType());
         }
-
     }
 
     @Override
