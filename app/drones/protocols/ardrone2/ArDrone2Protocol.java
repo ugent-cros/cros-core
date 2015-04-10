@@ -207,7 +207,7 @@ public class ArDrone2Protocol extends UntypedActor {
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "TRUE")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, "general:navdata_demo", "FALSE")));
         // Send ACK
         sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
     }

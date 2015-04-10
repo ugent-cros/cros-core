@@ -105,6 +105,9 @@ public class Fleet {
                 return null;
 
             // Create commander
+
+            commander = new DroneCommander(droneEntity.getAddress(), driver);
+
             drones.put(droneEntity.getId(), commander);
         }
 
