@@ -10,16 +10,16 @@ import java.util.List;
  */
 public class AddDroneMessage {
 
-    private Drone drone;
+    private Long droneId;
     private List<Checkpoint> waypoints;
 
-    public AddDroneMessage(Drone drone, List<Checkpoint> waypoints) {
+    public AddDroneMessage(Long droneId, List<Checkpoint> waypoints) {
         this.waypoints = waypoints;
-        this.drone = drone;
+        this.droneId = droneId;
     }
 
-    public Drone getDrone() {
-        return drone;
+    public Long getDroneId() {
+        return droneId;
     }
 
     public List<Checkpoint> getWaypoints() {

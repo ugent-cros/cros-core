@@ -23,7 +23,7 @@ public class SimpleControlTower extends ControlTower{
     private boolean[] usedAltitudes;
 
     //array of drones
-    private Drone[] drones;
+    private Long[] drones;
     private ActorRef[] pilots;
     private int numberOfDrones = 0;
     private List<Location> noFlyPoints;
@@ -36,7 +36,7 @@ public class SimpleControlTower extends ControlTower{
         this.minAltitude = minAltitude;
         this.maxNumberOfDrones = maxNumberOfDrones;
         usedAltitudes = new boolean[maxNumberOfDrones];
-        drones = new Drone[maxNumberOfDrones];
+        drones = new Long[maxNumberOfDrones];
         pilots = new ActorRef[maxNumberOfDrones];
     }
 
@@ -59,12 +59,12 @@ public class SimpleControlTower extends ControlTower{
             for (int i = 0; i < maxNumberOfDrones; i++) {
                 if(!usedAltitudes[i]){
                     numberOfDrones++;
-                    drones[i] = m.getDrone();
+                    drones[i] = m.getDroneId();
                     usedAltitudes[i] = true;
                     final double altitude = getAltitudeForIndex(i);
                     pilots[i] = getContext().actorOf(
                             Props.create(SimplePilot.class,
-                                    () -> new SimplePilot(self(), m.getDrone().getId(), true, m.getWaypoints(), altitude)));
+                                    () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), altitude)));
 
                     if(started){
                         //to do add needed messages
