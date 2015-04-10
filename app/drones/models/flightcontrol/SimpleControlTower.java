@@ -64,7 +64,7 @@ public class SimpleControlTower extends ControlTower{
                     final double altitude = getAltitudeForIndex(i);
                     pilots[i] = getContext().actorOf(
                             Props.create(SimplePilot.class,
-                                    () -> new SimplePilot(self(), m.getDrone(), true, m.getWaypoints(), altitude)));
+                                    () -> new SimplePilot(self(), m.getDrone().getId(), true, m.getWaypoints(), altitude)));
 
                     if(started){
                         //to do add needed messages
