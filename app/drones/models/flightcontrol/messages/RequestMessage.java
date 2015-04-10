@@ -8,7 +8,7 @@ import drones.models.Location;
  */
 public class RequestMessage extends LocationMessage{
 
-    public RequestMessage(RequestType requestType, ActorRef requester, Location location) {
+    public RequestMessage(LocationMessage.RequestType requestType, ActorRef requester, Location location) {
         super(requester,location, requestType);
     }
 

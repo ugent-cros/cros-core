@@ -113,7 +113,7 @@ public class SimplePilotTest extends TestSuperclass {
     public void requestMessages() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
             {
-                
+
                 //init
                 final ActorRef bebopSimulator = system.actorOf(
                         Props.create(BepopSimulator.class,
