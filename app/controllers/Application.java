@@ -159,7 +159,7 @@ public class Application extends Controller {
     }
 
     public static F.Promise<Result> getBatteryPercentage(long id){
-        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
