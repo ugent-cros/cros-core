@@ -9,7 +9,7 @@ import com.avaje.ebean.Query;
 
 import drones.models.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
-import drones.models.flightcontrol.StartFlightControlMessage;
+import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
