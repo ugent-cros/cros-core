@@ -18,4 +18,5 @@ public class AssignmentMessage implements Serializable{
     public Assignment getAssignment() {
         return assignment;
     }
+
 }

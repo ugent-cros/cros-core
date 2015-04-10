@@ -3,6 +3,8 @@ package drones.models.scheduler;
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
 import drones.models.Fleet;
+import drones.models.scheduler.messages.AssignmentMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Assignment;
 import models.Drone;
 

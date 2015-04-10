@@ -10,6 +10,8 @@ import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
+import drones.models.scheduler.messages.AssignmentMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
