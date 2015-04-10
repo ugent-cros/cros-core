@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.flightcontrol.messages.*;
+import drones.models.scheduler.DroneArrivalMessage;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -18,12 +19,12 @@ public abstract class ControlTower extends FlightControl{
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {
-        return ReceiveBuilder.matchAny(o -> log.info("ControlTower message recv: [{}]", o.getClass().getCanonicalName()));
+        return ReceiveBuilder.
+                match(DroneArrivalMessage.class, s -> droneArrivalMessage(s)).
+                match(AddDroneMessage.class, s -> addDroneMessage(s));
     }
 
-    @Override
-    public void start() {
+    protected abstract void droneArrivalMessage(DroneArrivalMessage m);
 
-    }
-
+    protected abstract void addDroneMessage(AddDroneMessage m);
 }

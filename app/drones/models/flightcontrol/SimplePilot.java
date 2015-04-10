@@ -43,7 +43,18 @@ public class SimplePilot extends Pilot{
      * @param drone Drone to control.
      * @param linkedWithControlTower True if connected to ControlTower
      * @param waypoints Route to fly, the drone will land on the last item
+     * @param cruisingAltitude Altitude to fly
      */
+    public SimplePilot(ActorRef actorRef, Drone drone,boolean linkedWithControlTower, List<Checkpoint> waypoints, double cruisingAltitude) {
+        super(actorRef, drone, linkedWithControlTower);
+        this.cruisingAltitude = cruisingAltitude;
+
+        if(waypoints.size() < 1){
+            throw new IllegalArgumentException("Waypoints must contain at least 1 element");
+        }
+        this.waypoints = waypoints;
+    }
+
     public SimplePilot(ActorRef actorRef, Drone drone,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(actorRef, drone, linkedWithControlTower);
 
@@ -53,6 +64,7 @@ public class SimplePilot extends Pilot{
         this.waypoints = waypoints;
     }
 
+    //Only for testing
     public SimplePilot(ActorRef actorRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(actorRef, dc, linkedWithControlTower);
 
@@ -179,7 +191,7 @@ public class SimplePilot extends Pilot{
 
             @Override
             public void onSuccess(Void result) throws Throwable {
-                actorRef.tell(new LandingCompletedMessage(m.getRequestor(),m.getLocation()),self());
+                actorRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
                 actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             }
         }, getContext().system().dispatcher());
