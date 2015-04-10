@@ -148,11 +148,6 @@ public class BepopSimulator extends DroneActor {
             double distance = Location.distance(currentLocation, homeLocation);  // m
             double timeTillArrival = distance/topSpeed;
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
-            //DEBUG
-            System.out.println("---------------------------------");
-            System.out.println("distance: " + distance);
-            System.out.println("timeTillArrival: " + timeTillArrival);
-            System.out.println(currentLocation.getLongtitude() + "," + currentLocation.getLatitude() + "," + currentLocation.getHeigth());
             if (timeTillArrival > timeStep) {
                 // Not there yet
                 double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();

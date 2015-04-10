@@ -33,4 +33,10 @@ public abstract class LocationMessage implements Serializable{
     public RequestType getType() {
         return type;
     }
+
+    public enum RequestType {
+        TAKEOFF,
+        LANDING
+    }
+
 }
