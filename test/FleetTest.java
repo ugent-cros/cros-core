@@ -43,7 +43,7 @@ public class FleetTest extends TestSuperclass {
         }
 
         @Override
-        public <T extends DroneActor> T createActor(Drone droneEntity) {
+        public <T extends DroneActor> T createActor(String droneAddress) {
             return null;
         }
 
