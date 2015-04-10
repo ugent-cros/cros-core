@@ -91,7 +91,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
     public Future<Void> setMaxHeight(float meters) {
         if(meters <= 0.5)
             throw new IllegalArgumentException("Max height cannot be lower than 0.5m");
-        return ask(droneActor, new SetMaxHeigthRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
+        return ask(droneActor, new SetMaxHeightRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
             }
@@ -258,6 +258,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
     @Override
     public Future<Boolean> isOnline() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
+    public Future<Boolean> isCalibrationRequired() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
             public Boolean apply(Object s) {
                 return (Boolean) ((ExecutionResultMessage) s).getValue();
             }

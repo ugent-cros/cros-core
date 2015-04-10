@@ -245,9 +245,9 @@ public class Application extends Controller {
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
         return F.Promise.wrap(d.getLocation()).map(v -> {
             ObjectNode result = Json.newObject();
-            result.put("long", v.getLongtitude());
+            result.put("long", v.getLongitude());
             result.put("lat", v.getLatitude());
-            result.put("altitude", v.getHeigth());
+            result.put("altitude", v.getHeight());
             return ok(result);
         });
     }

@@ -95,7 +95,7 @@ public class Fleet {
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
-        DroneCommander commander = drones.get(droneEntity);
+        DroneCommander commander = drones.get(droneEntity.getId());
 
         // If commander does not exist yet, create it
         if (commander == null) {
@@ -105,7 +105,6 @@ public class Fleet {
                 return null;
 
             // Create commander
-            commander = new DroneCommander(droneEntity.getAddress(), driver);
             drones.put(droneEntity.getId(), commander);
         }
 

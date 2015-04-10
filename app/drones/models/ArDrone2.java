@@ -9,6 +9,7 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.InitCompletedMessage;
 import drones.protocols.ardrone2.ArDrone2Protocol;
+import drones.util.LocationNavigator;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -136,6 +137,13 @@ public class ArDrone2 extends DroneActor {
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
                 match(InitCompletedMessage.class, s -> handleInitCompletedResponse());
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f, 60f, 4f, 1f); // TODO: adjust: send adjustments to the drone
+        // Max: 2f, 350f, ?, 2f // See ARDrone developer guide
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {

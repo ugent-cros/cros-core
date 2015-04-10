@@ -6,13 +6,21 @@ import drones.handlers.ardrone3.CommonTypeProcessor;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
 import org.apache.commons.lang3.CharSet;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.nio.charset.Charset;
+import java.util.Date;
 
 /**
  * Created by Cedric on 3/8/2015.
  */
 public class PacketCreator {
+
+    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
+    public static final DateTimeFormatter TIME_FORMAT = ISODateTimeFormat.basicTTimeNoMillis();
 
     public static Packet createFlatTrimPacket(){
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)0, null);
@@ -65,13 +73,13 @@ public class PacketCreator {
 
     public static Packet createSetVideoStreamingStatePacket(boolean enabled){
         ByteStringBuilder b = new ByteStringBuilder();
-        b.putByte(enabled ? (byte)1 : (byte)0);
+        b.putByte(enabled ? (byte) 1 : (byte) 0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.MEDIASTREAMING.getVal(), (short)0, b.result());
     }
 
     public static Packet createSetHullPacket(boolean hull){
         ByteStringBuilder b = new ByteStringBuilder();
-        b.putByte(hull ? (byte)1 : (byte)0);
+        b.putByte(hull ? (byte) 1 : (byte) 0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.SPEEDSETTINGS.getVal(), (short)2, b.result());
     }
 
@@ -97,7 +105,33 @@ public class PacketCreator {
 
     public static Packet createNavigateHomePacket(boolean start){
         ByteStringBuilder b = new ByteStringBuilder();
-        b.putByte(start ? (byte)1 : (byte)0);
+        b.putByte(start ? (byte) 1 : (byte) 0);
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)5, b.result());
+    }
+
+    public static String getDateString(DateTime date){
+        return date.toString(DATE_FORMAT);
+    }
+
+    public static String getTimeString(DateTime time){
+        return time.toString(TIME_FORMAT);
+    }
+
+    public static Packet createCurrentDatePacket(DateTime date){
+        String content = getDateString(date);
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putBytes(content.getBytes(Charset.forName("UTF-8")));
+        b.putByte((byte)0);
+
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)1, b.result());
+    }
+
+    public static Packet createCurrentTimePacket(DateTime time){
+        String content = getTimeString(time);
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putBytes(content.getBytes(Charset.forName("UTF-8")));
+        b.putByte((byte)0);
+
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)2, b.result());
     }
 }

@@ -21,6 +21,9 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 /**
+ *
+ * !!!! @TODO IMPLEMENT GPS FIX !!!!
+ *
  * Created by brecht on 3/7/15.
  */
 public class ArDrone2Protocol extends UntypedActor {
