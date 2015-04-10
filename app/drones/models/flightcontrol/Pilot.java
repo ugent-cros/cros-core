@@ -7,6 +7,7 @@ import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
+import drones.models.flightcontrol.messages.*;
 import models.Drone;
 
 /**
@@ -21,8 +22,8 @@ public abstract class Pilot extends FlightControl{
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef actorRef, Drone drone, boolean linkedWithControlTower) {
-        super(actorRef);
+    public Pilot(ActorRef reporterRef, Drone drone, boolean linkedWithControlTower) {
+        super(reporterRef);
         this.drone = drone;
         this.linkedWithControlTower = linkedWithControlTower;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
@@ -52,10 +53,7 @@ public abstract class Pilot extends FlightControl{
         return ReceiveBuilder.
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
-                match(LocationChangedMessage.class, s -> locationChanged(s)).
-                match(RequestForLandingMessage.class, s -> requestForLandingMessage(s)).
-                match(RequestForLandingAckMessage.class, s -> requestForLandingAckMessage(s)).
-                match(LandingCompletedMessage.class, s-> landingCompletedMessage(s));
+                match(LocationChangedMessage.class, s -> locationChanged(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
@@ -66,9 +64,4 @@ public abstract class Pilot extends FlightControl{
 
     protected abstract void locationChanged(LocationChangedMessage m);
 
-    protected abstract void requestForLandingMessage(RequestForLandingMessage m);
-
-    protected abstract void requestForLandingAckMessage(RequestForLandingAckMessage m);
-
-    protected abstract void landingCompletedMessage(LandingCompletedMessage m);
 }
