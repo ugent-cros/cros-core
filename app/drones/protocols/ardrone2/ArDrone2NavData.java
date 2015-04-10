@@ -90,7 +90,7 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        log.info("[ARDRONE2NAVDATA] Message received");
+        log.debug("[ARDRONE2NAVDATA] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
