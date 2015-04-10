@@ -16,14 +16,14 @@ public abstract class LocationMessage implements Serializable{
 
     private RequestType type;
 
-    public LocationMessage(ActorRef requestor, Location location, RequestType type) {
-        this.requestor = requestor;
+    public LocationMessage(ActorRef requester, Location location, RequestType type) {
+        this.requestor = requester;
         this.location = location;
         this.type = type;
     }
 
     public LocationMessage(LocationMessage m){
-        this.requestor = m.getRequestor();
+        this.requestor = m.getRequester();
         this.location = m.getLocation();
         this.type = m.getType();
     }
@@ -32,7 +32,7 @@ public abstract class LocationMessage implements Serializable{
         return location;
     }
 
-    public ActorRef getRequestor() {
+    public ActorRef getRequester() {
         return requestor;
     }
 
