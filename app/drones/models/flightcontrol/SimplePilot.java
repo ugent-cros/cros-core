@@ -39,13 +39,13 @@ public class SimplePilot extends Pilot{
 
     /**
      *
-     * @param actorRef Actor to report the messages. In theory this should be the same actor that sends the start message.
+     * @param reporterRef Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone Drone to control.
      * @param linkedWithControlTower True if connected to ControlTower
      * @param waypoints Route to fly, the drone will land on the last item
      */
-    public SimplePilot(ActorRef actorRef, Drone drone,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
-        super(actorRef, drone, linkedWithControlTower);
+    public SimplePilot(ActorRef reporterRef, Drone drone,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+        super(reporterRef, drone, linkedWithControlTower);
 
         if(waypoints.size() < 1){
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -53,8 +53,8 @@ public class SimplePilot extends Pilot{
         this.waypoints = waypoints;
     }
 
-    public SimplePilot(ActorRef actorRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
-        super(actorRef, dc, linkedWithControlTower);
+    public SimplePilot(ActorRef reporterRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+        super(reporterRef, dc, linkedWithControlTower);
 
         if(waypoints.size() < 1){
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
@@ -113,7 +113,7 @@ public class SimplePilot extends Pilot{
             if(actualWaypoint == waypoints.size()){
                 //arrived at destination => land
                 land();
-                actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(),waypoint.getLongitude(), cruisingAltitude);
@@ -123,13 +123,13 @@ public class SimplePilot extends Pilot{
 
     private void land(){
         if(linkedWithControlTower){
-            actorRef.tell(new RequestForLandingMessage(self(),actualLocation),self());
+            reporterRef.tell(new RequestForLandingMessage(self(),actualLocation),self());
         } else {
             dc.land().onSuccess(new OnSuccess<Void>(){
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                    reporterRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -144,10 +144,10 @@ public class SimplePilot extends Pilot{
                 noFlyPoints.add(l.getLocation());
                 switch (l.getType()){
                     case LANDING:
-                        actorRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(),l.getLocation()), self());
+                        reporterRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(),l.getLocation()), self());
                         break;
                     case TAKEOFF:
-                        actorRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(),l.getLocation()), self());
+                        reporterRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(),l.getLocation()), self());
                         break;
                     default:
                         log.debug("Unsupported type");
@@ -169,7 +169,7 @@ public class SimplePilot extends Pilot{
             evacuationPoints.add(m);
         } else {
             noFlyPoints.add(m.getLocation());
-            actorRef.tell(new RequestForLandingGrantedMessage(m.getRequestor(),m.getLocation()), self());
+            reporterRef.tell(new RequestForLandingGrantedMessage(m.getRequestor(),m.getLocation()), self());
         }
     }
 
@@ -179,8 +179,8 @@ public class SimplePilot extends Pilot{
 
             @Override
             public void onSuccess(Void result) throws Throwable {
-                actorRef.tell(new LandingCompletedMessage(m.getRequestor(),m.getLocation()),self());
-                actorRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
+                reporterRef.tell(new LandingCompletedMessage(m.getRequestor(),m.getLocation()),self());
+                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation),self());
             }
         }, getContext().system().dispatcher());
     }
@@ -211,7 +211,7 @@ public class SimplePilot extends Pilot{
             evacuationPoints.add(m);
         } else {
             noFlyPoints.add(m.getLocation());
-            actorRef.tell(new RequestForTakeOffGrantedMessage(m.getRequestor(),m.getLocation()), self());
+            reporterRef.tell(new RequestForTakeOffGrantedMessage(m.getRequestor(),m.getLocation()), self());
         }
     }
 
@@ -221,7 +221,7 @@ public class SimplePilot extends Pilot{
         dc.takeOff().onSuccess(new OnSuccess<Void>() {
             @Override
             public void onSuccess(Void result) throws Throwable {
-                actorRef.tell(new TakeOffCompletedMessage(m.getRequestor(),m.getLocation()),self());
+                reporterRef.tell(new TakeOffCompletedMessage(m.getRequestor(),m.getLocation()),self());
                 actualWaypoint = 0;
                 goToNextWaypoint();
             }
@@ -235,7 +235,7 @@ public class SimplePilot extends Pilot{
 
     private void takeOff(){
         if(linkedWithControlTower){
-            actorRef.tell(new RequestForTakeOffMessage(self(),actualLocation),self());
+            reporterRef.tell(new RequestForTakeOffMessage(self(),actualLocation),self());
         } else {
             dc.takeOff().onSuccess(new OnSuccess<Void>() {
                 @Override

@@ -12,8 +12,8 @@ import drones.models.flightcontrol.messages.*;
  */
 public abstract class ControlTower extends FlightControl{
 
-    public ControlTower(ActorRef actorRef) {
-        super(actorRef);
+    public ControlTower(ActorRef reporterRef) {
+        super(reporterRef);
     }
 
     @Override

@@ -22,8 +22,8 @@ public abstract class Pilot extends FlightControl{
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef actorRef, Drone drone, boolean linkedWithControlTower) {
-        super(actorRef);
+    public Pilot(ActorRef reporterRef, Drone drone, boolean linkedWithControlTower) {
+        super(reporterRef);
         this.drone = drone;
         this.linkedWithControlTower = linkedWithControlTower;
         dc = Fleet.getFleet().getCommanderForDrone(drone);
