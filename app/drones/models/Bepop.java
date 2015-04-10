@@ -34,9 +34,12 @@ public class Bepop extends DroneActor {
 
     private Promise<Void> initPromise;
 
+    private int d2cPort;
+
     //TODO: use configuration class to pass here
-    public Bepop(String ip, boolean indoor, boolean hull) {
+    public Bepop(int d2cPort, String ip, boolean indoor, boolean hull) {
         this.hull = hull;
+        this.d2cPort = d2cPort;
         this.ip = ip;
         this.indoor = indoor;
     }
@@ -105,10 +108,9 @@ public class Bepop extends DroneActor {
                 initPromise = p;
 
                 if (protocol == null) {
-                    //TODO: randomize listening port for multiple drones later
                     //TODO: dispose each time when udp bound is fixed
                     protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                            () -> new ArDrone3(ArDrone3Discovery.DEFAULT_COMMAND_PORT, Bepop.this.self()))); // Initialize listening already before broadcasting itself
+                            () -> new ArDrone3(d2cPort, Bepop.this.self()))); // Initialize listening already before broadcasting itself
                 }
 
 
@@ -116,7 +118,7 @@ public class Bepop extends DroneActor {
                     discoveryProtocol.tell(new StopMessage(), self());
                 }
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), ArDrone3Discovery.DEFAULT_COMMAND_PORT)));
+                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)));
             }
         }
     }

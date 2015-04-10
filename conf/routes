@@ -5,6 +5,8 @@
 # Home page
 GET            /                                     controllers.Application.index()
 GET            /initDB                               controllers.Application.initDb()
+
+# Drone control stuff
 GET            /init                                 controllers.Application.initDrone(ip: String, bebop: Boolean)
 GET            /battery                              controllers.Application.getBatteryPercentage(id: Long)
 GET            /location                             controllers.Application.getLocation(id: Long)
@@ -22,13 +24,13 @@ GET            /setMaxHeight                         controllers.Application.set
 
 GET            /takeoff                              controllers.Application.takeOff(id: Long)
 GET            /land                                 controllers.Application.land(id: Long)
-GET            /subscribe                            controllers.Application.subscribeMonitor()
-GET            /unsubscribe                          controllers.Application.unsubscribeMonitor()
+GET            /subscribe                            controllers.Application.subscribeMonitor(id: Long)
+GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
 GET            /socket                               controllers.Application.socket()
 
 
-# Drone calls
+# Drone REST calls
 GET            /drones                               controllers.DroneController.getAll()
 POST           /drones                               controllers.DroneController.create()
 DELETE         /drones                               controllers.DroneController.deleteAll()

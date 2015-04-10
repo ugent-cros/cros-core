@@ -94,23 +94,23 @@ public class Fleet {
                 }, Akka.system().dispatcher());
     }
 
+    public DroneCommander createCommanderForDrone(Drone droneEntity){
+        DroneDriver driver = getDriver(droneEntity.getDroneType());
+        if (driver == null)
+            return null;
+
+        // Create commander
+        DroneCommander commander = new DroneCommander(droneEntity.getAddress(), driver);
+
+        drones.put(droneEntity.getId(), commander);
+        return commander;
+    }
+
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
         DroneCommander commander = drones.get(droneEntity.getId());
-
-        // If commander does not exist yet, create it
         if (commander == null) {
-            // Get the driver, if available
-            DroneDriver driver = getDriver(droneEntity.getDroneType());
-            if (driver == null)
-                return null;
-
-            // Create commander
-
-            commander = new DroneCommander(droneEntity.getAddress(), driver);
-
-            drones.put(droneEntity.getId(), commander);
+           throw new IllegalArgumentException("Drone is not initialized yet.");
         }
-
         return commander;
     }
 }

@@ -58,6 +58,7 @@ public class ArDrone3 extends UntypedActor {
 
     private InetSocketAddress senderAddress;
     private ActorRef senderRef;
+    private int receivingPort;
 
     private final ActorRef listener; //to respond messages to
 
@@ -66,6 +67,7 @@ public class ArDrone3 extends UntypedActor {
     private long lastPing = 0;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
+        this.receivingPort = receivingPort;
         this.listener = listener;
 
         this.channels = new EnumMap<>(FrameDirection.class);
@@ -343,7 +345,7 @@ public class ArDrone3 extends UntypedActor {
 
     @Override
     public void preStart() {
-        log.info("Starting ARDrone 3.0 communication protocol.");
+        log.info("Starting ARDrone 3.0 communication protocol. d2c={}", receivingPort);
         getContext().system().scheduler().scheduleOnce(
                 Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
                 getSelf(), "tick", getContext().dispatcher(), null);

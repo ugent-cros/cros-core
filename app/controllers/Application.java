@@ -91,8 +91,6 @@ public class Application extends Controller {
         return ok();
     }
 
-    private static Drone testDroneEntity;
-
     public static F.Promise<Result> initDrone(String ip, boolean bebop) {
         Drone droneEntity;
         if(bebop) {
@@ -103,7 +101,7 @@ public class Application extends Controller {
 
         droneEntity.save();
 
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(droneEntity);
+        DroneCommander d = Fleet.getFleet().createCommanderForDrone(droneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -112,8 +110,9 @@ public class Application extends Controller {
         });
     }
 
-    public static Result subscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static Result subscribeMonitor(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         ActorRef r = Akka.system().actorOf(Props.create(DroneMonitor.class), "droneMonitor");
         d.subscribeTopic(r, BatteryPercentageChangedMessage.class);
 
@@ -140,8 +139,9 @@ public class Application extends Controller {
         return WebSocket.withActor(MessageWebSocket::props);
     }
 
-    public static Result unsubscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static Result unsubscribeMonitor(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
 
         try {
             ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
