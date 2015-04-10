@@ -98,6 +98,7 @@ public abstract class DroneActor extends AbstractActor {
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(BatteryPercentageChangedMessage.class, s -> {
+                    log.info("hier");
                     batteryPercentage.setValue(s.getPercent());
                     eventBus.publish(new DroneEventMessage(s));
                 }).

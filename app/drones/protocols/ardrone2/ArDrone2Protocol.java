@@ -96,7 +96,10 @@ public class ArDrone2Protocol extends UntypedActor {
                     })
                     .build());
 
-            listener.tell(new InitNavDataMessage(), getSelf());
+            listener.tell(new InitCompletedMessage(), getSelf());
+
+            Object batteryMessage = new BatteryPercentageChangedMessage((byte) 15);
+            listener.tell(batteryMessage, getSelf());
         } else if (msg instanceof DroneConnectionDetails) {
             log.info("[ARDRONE2] DroneConnectionDetails received");
             droneDiscovered((DroneConnectionDetails) msg);
@@ -268,19 +271,7 @@ public class ArDrone2Protocol extends UntypedActor {
     }
 
     private void sendInitNavData() {
-        log.info("[ARDRONE2] Init completed");
-
-        // Enable nav data
-        // Disable bootstrap
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.GEN_NAVDATA_DEMO, "FALSE")));
-        // Send ACK
-        sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
-    }
-
-    private void sendConfigDataCommand() {
-        log.info("[ARDRONE2] Config init completed");
-
+        log.info("hier");
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));

@@ -94,7 +94,7 @@ public class Application extends Controller {
 
     public static F.Promise<Result> initDrone() {
         //testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
-        testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
+        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
 
         testDroneEntity.save();
 

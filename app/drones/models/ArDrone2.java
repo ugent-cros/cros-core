@@ -7,7 +7,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.InitNavDataMessage;
+import drones.messages.InitCompletedMessage;
 import drones.protocols.ardrone2.ArDrone2Protocol;
 import scala.concurrent.Promise;
 
@@ -135,7 +135,7 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(InitNavDataMessage.class, s -> handleInitCompletedResponse());
+                match(InitCompletedMessage.class, s -> handleInitCompletedResponse());
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {
