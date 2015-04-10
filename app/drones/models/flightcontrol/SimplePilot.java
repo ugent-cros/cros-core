@@ -53,6 +53,9 @@ public class SimplePilot extends Pilot {
         this.waypoints = waypoints;
     }
 
+    /**
+     * Use only for testing!
+     */
     public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
@@ -113,7 +116,6 @@ public class SimplePilot extends Pilot {
             if (actualWaypoint == waypoints.size()) {
                 //arrived at destination => land
                 land();
-                //reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
