@@ -70,7 +70,7 @@ public class LocationNavigator {
         if(movedDistance > gpsAccuracy){
             previousLocation = location; // significant location update
 
-            if(goalDistance < gpsAccuracy){ // we arrived at our destination with best effort accuracy
+            if(goalDistance < gpsAccuracy*2){ // we arrived at our destination with best effort accuracy
                 if(vz != 0){
                     return new MoveCommand(0, 0, vz, 0);
                 } else {
@@ -82,6 +82,7 @@ public class LocationNavigator {
                 if(Math.abs(bearingDiff) < MIN_BEARING_DIFF){ // we don't care about 10 degrees off, continue
                     return new MoveCommand(vx, 0, vz, 0);
                 } else {
+
                     if(bearingDiff > 180f){
                         bearingDiff -= 360f; // faster to go left
                     } else if(bearingDiff < -180f) {
@@ -89,10 +90,11 @@ public class LocationNavigator {
                     }
 
                     double vr = 0;
-                    if(bearingDiff > MAX_DIFF_BEARING/2){
+                    if(Math.abs(bearingDiff) > MAX_DIFF_BEARING/2){
                         vx = 0;
                         left = bearingDiff < 0;
-                        degreesLeft = Math.max(0, bearingDiff - maxAngularVelocity);
+                        degreesLeft = Math.max(0, Math.abs(bearingDiff) - maxAngularVelocity);
+                        System.out.println("DegreesLeft: " + degreesLeft);
                         vr = left ? -1 : 1;
                     }
 
@@ -100,7 +102,7 @@ public class LocationNavigator {
                 }
             }
         } else {
-            if(goalDistance < gpsAccuracy && Math.abs(vz) < MIN_VR_VALUE){ // we started in region we wanted already
+            if(goalDistance < gpsAccuracy*2 && Math.abs(vz) < MIN_VR_VALUE){ // we started in region we wanted already
                 return null;
             } else {
                 if(!hadHeading) { // when no angle update has been sent, discover using slower movement for faster GPS updates
@@ -125,6 +127,7 @@ public class LocationNavigator {
 
     public void setGoal(Location goal) {
         this.goal = goal;
+        this.degreesLeft = 0;
     }
 
     public Location getCurrentLocation() {
