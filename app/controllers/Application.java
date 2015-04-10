@@ -62,7 +62,7 @@ public class Application extends Controller {
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop,  "address4"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));
 
         Ebean.save(drones);
 
@@ -93,16 +93,21 @@ public class Application extends Controller {
 
     private static Drone testDroneEntity;
 
-    public static F.Promise<Result> initDrone() {
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
-        //testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
+    public static F.Promise<Result> initDrone(String ip, boolean bebop) {
+        Drone droneEntity;
+        if(bebop) {
+            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  ip);
+        } else {
+            droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  ip);
+        }
 
-        testDroneEntity.save();
+        droneEntity.save();
 
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(droneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
+            result.put("id", droneEntity.getId());
             return ok(result);
         });
     }

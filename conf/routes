@@ -5,7 +5,7 @@
 # Home page
 GET            /                                     controllers.Application.index()
 GET            /initDB                               controllers.Application.initDb()
-GET            /init                                 controllers.Application.initDrone()
+GET            /init                                 controllers.Application.initDrone(ip: String, bebop: Boolean)
 GET            /battery                              controllers.Application.getBatteryPercentage()
 GET            /location                             controllers.Application.getLocation()
 GET            /rotation                             controllers.Application.getRotation()
