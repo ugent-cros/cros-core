@@ -37,6 +37,7 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+    
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone                  Drone to control.
@@ -52,6 +53,9 @@ public class SimplePilot extends Pilot {
         this.waypoints = waypoints;
     }
 
+    /**
+     * Use only for testing!
+     */
     public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
@@ -112,7 +116,6 @@ public class SimplePilot extends Pilot {
             if (actualWaypoint == waypoints.size()) {
                 //arrived at destination => land
                 land();
-                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
             } else {
                 models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
                 dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
@@ -128,7 +131,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+                    reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -179,7 +182,7 @@ public class SimplePilot extends Pilot {
             @Override
             public void onSuccess(Void result) throws Throwable {
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(drone, actualLocation), self());
+                reporterRef.tell(new DroneArrivalMessage(drone.getId(), actualLocation), self());
             }
         }, getContext().system().dispatcher());
     }

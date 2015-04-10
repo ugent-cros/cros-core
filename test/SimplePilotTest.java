@@ -12,6 +12,7 @@ import drones.simulation.BepopSimulator;
 import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
