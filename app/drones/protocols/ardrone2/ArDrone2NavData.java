@@ -169,13 +169,14 @@ public class ArDrone2NavData extends UntypedActor {
         listener.tell(gpsFixMessage, getSelf());
 
         if(gpsAvailable) {
-            double latitude = PacketHelper.getDouble(navdata, offset);
+            double latitude = PacketHelper.getDouble(navdata, offsetTemp);
             offsetTemp += 8;
-            double longitude = PacketHelper.getDouble(navdata, offset);
+            double longitude = PacketHelper.getDouble(navdata, offsetTemp);
             offsetTemp += 8;
-            double elevation = PacketHelper.getDouble(navdata, offset);
+            double elevation = PacketHelper.getDouble(navdata, offsetTemp);
             //offsetTemp += 8;
 
+            log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}]", latitude, longitude, elevation);
             Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
             listener.tell(locationMessage, getSelf());
         }
