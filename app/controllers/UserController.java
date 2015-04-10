@@ -1,23 +1,26 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
 import com.avaje.ebean.ExpressionList;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Basestation;
 import models.User;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
-import scala.util.parsing.json.JSONObject$;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
 import static play.mvc.Results.*;
@@ -39,11 +42,8 @@ public class UserController {
     public static Result getAll() {
         ExpressionList<User> exp = QueryHelper.buildQuery(User.class, User.FIND.where());
 
-        List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(User user : exp.findList()) {
-            tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
-                    controllers.routes.UserController.get(user.getId()).url())));
-        }
+        List<JsonHelper.Tuple> tuples = exp.findList().stream().map(user -> new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
+                controllers.routes.UserController.get(user.getId()).url()))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
@@ -52,7 +52,15 @@ public class UserController {
         links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
 
         try {
-            return ok(JsonHelper.createJsonNode(tuples, links, User.class));
+
+            JsonNode result = JsonHelper.createJsonNode(tuples, links, User.class);
+            String[] totalQuery = request().queryString().get("total");
+            if (totalQuery != null && totalQuery.length == 1 && totalQuery[0].equals("true")) {
+                ExpressionList<User> countExpression = QueryHelper.buildQuery(User.class, User.FIND.where(), true);
+                String root = User.class.getAnnotation(JsonRootName.class).value();
+                ((ObjectNode) result.get(root)).put("total",countExpression.findRowCount());
+            }
+            return ok(result);
         } catch(JsonProcessingException ex) {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
@@ -152,7 +160,14 @@ public class UserController {
 
         // Update the user
         User updatedUser = filledForm.get();
-        updatedUser.update(id);
+        updatedUser.setId(id);
+        Set<String> updatedFields = new HashSet<>(filledForm.data().keySet());
+        if (updatedFields.contains("password")) {
+            updatedFields.remove("password");
+            updatedFields.add("shaPassword");
+            updatedFields.add("passwordHashed");
+        }
+        Ebean.update(updatedUser, updatedFields);
 
         return ok(JsonHelper.createJsonNode(updatedUser, getAllLinks(id), User.class));
     }
@@ -245,9 +260,9 @@ public class UserController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", routes.UserController.get(id).url()));
-        links.add(new ControllerHelper.Link("getAuthToken", routes.UserController.getUserAuthToken(id).url()));
-        links.add(new ControllerHelper.Link("invalidateAuthToken", routes.UserController.invalidateAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.get(id).url()));
+        links.add(new ControllerHelper.Link("getAuthToken", controllers.routes.UserController.getUserAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("invalidateAuthToken", controllers.routes.UserController.invalidateAuthToken(id).url()));
         return links;
     }
 

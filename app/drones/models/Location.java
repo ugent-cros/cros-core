@@ -7,6 +7,8 @@ import java.io.Serializable;
  */
 public class Location implements Serializable {
 
+    public static final double EARTH_RADIUS = 6371000d; //meters
+
     //Decimal Degrees = Degrees + minutes/60 + seconds/3600
     //https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
 
@@ -33,17 +35,27 @@ public class Location implements Serializable {
     }
 
     public static double distance(Location l1, Location l2){
+        return distance(l1, l2.getLongtitude(), l2.getLatitude());
+    }
+
+    public static double distance(Location l1, double longitude2, double latitude2){
         // Harversine calculation
         //https://stackoverflow.com/questions/837872/calculate-distance-in-meters-when-you-know-longitude-and-latitude-in-java
 
-        double earthRadius = 6371000d; //meters
-        double dLat = Math.toRadians(l2.getLatitude()-l1.getLatitude());
-        double dLng = Math.toRadians(l2.getLongtitude()-l1.getLongtitude());
+        double dLat = Math.toRadians(latitude2-l1.getLatitude());
+        double dLng = Math.toRadians(longitude2-l1.getLongtitude());
         double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(Math.toRadians(l1.getLatitude())) * Math.cos(Math.toRadians(l2.getLatitude())) *
+                Math.cos(Math.toRadians(l1.getLatitude())) * Math.cos(Math.toRadians(latitude2)) *
                         Math.sin(dLng/2) * Math.sin(dLng/2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return earthRadius * c;
+        return EARTH_RADIUS * c;
+    }
+
+    public double distance(double longitude2, double latitude2){
+        return distance(this, longitude2, latitude2);
+    }
+    public double distance(Location l2){
+        return distance(this, l2);
     }
 
     public static short getDegrees(float num){

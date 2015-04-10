@@ -1,6 +1,7 @@
 package drones.models;
 
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
@@ -26,8 +27,20 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     private boolean initialized = false;
 
+    public DroneCommander(String droneAddress, DroneDriver driver) {
+
+        // Create DroneActor
+        droneActor = Akka.system().actorOf(
+                Props.create(driver.getActorClass(),
+                        () -> driver.createActor(droneAddress)));
+    }
+
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
 
     @Override

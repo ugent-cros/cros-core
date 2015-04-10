@@ -1,20 +1,22 @@
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.SimpleScheduler;
+import play.Application;
 import play.GlobalSettings;
+import play.Logger;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.F;
 import play.libs.Json;
 import play.libs.Scala;
 import play.mvc.Action;
 import play.mvc.Http;
 import play.mvc.Result;
-import play.api.mvc.Results.Status;
 import play.mvc.Results;
 import scala.Tuple2;
 import scala.collection.Seq;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static play.mvc.Results.internalServerError;
 
 /**
  * Created by matthias on 20/03/2015.
@@ -29,6 +31,7 @@ public class Global extends GlobalSettings {
         @Override
         public F.Promise<Result> call(Http.Context ctx) throws java.lang.Throwable {
             F.Promise<Result> result = this.delegate.call(ctx);
+
             Http.Response response = ctx.response();
             response.setHeader("Access-Control-Allow-Origin", "*");
             return result;
@@ -49,7 +52,25 @@ public class Global extends GlobalSettings {
         return F.Promise.pure(error);
     }
 
+    public void onStart(Application application) {
+        super.onStart(application);
+        try {
+            Scheduler.start(SimpleScheduler.class);
+        }catch(SchedulerException ex){
+            Logger.error(ex.toString());
+        }
+    }
+
     @Override
+    public void onStop(Application application) {
+        super.onStop(application);
+        try {
+            Scheduler.stop();
+        }catch(SchedulerException ex){
+            Logger.error(ex.toString());
+        }
+    }
+
     public Action<?> onRequest(Http.Request request, java.lang.reflect.Method actionMethod) {
         return new ActionWrapper(super.onRequest(request, actionMethod));
     }

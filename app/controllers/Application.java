@@ -73,9 +73,15 @@ public class Application extends Controller {
 
         Ebean.save(users);
 
-        Checkpoint checkpoint = new Checkpoint(1,2,3);
+        Checkpoint checkpoint1 = new Checkpoint(51.023144,3.709484,3);
+        Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441,3);
+        Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945,3);
+        Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428,3);
         List<Checkpoint> checkpoints = new ArrayList<>();
-        checkpoints.add(checkpoint);
+        checkpoints.add(checkpoint1);
+        checkpoints.add(checkpoint2);
+        checkpoints.add(checkpoint3);
+        checkpoints.add(checkpoint4);
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
 
@@ -111,7 +117,17 @@ public class Application extends Controller {
     }
 
     public static WebSocket<String> testSocket() {
-        return WebSocket.withActor(TestWebSocket::props);
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(TestWebSocket::props);
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
     }
 
     public static WebSocket<String> socket() {

@@ -1,6 +1,5 @@
 package drones.models;
 
-import models.Drone;
 import models.DroneType;
 
 import java.util.Set;
@@ -12,5 +11,5 @@ public interface DroneDriver {
 
     public Set<DroneType> supportedTypes();
     public <T extends DroneActor> Class<T> getActorClass();
-    public <T extends DroneActor> T createActor(Drone droneEntity);
+    public <T extends DroneActor> T createActor(String address);
 }
