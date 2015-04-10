@@ -17,15 +17,18 @@ import models.Drone;
  */
 public abstract class Pilot extends FlightControl{
 
-    protected Drone drone;
+    protected Long droneId;
     protected DroneCommander dc;
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef reporterRef, Drone drone, boolean linkedWithControlTower) {
+    public Pilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower) {
         super(reporterRef);
-        this.drone = drone;
+        this.droneId = droneId;
         this.linkedWithControlTower = linkedWithControlTower;
+
+        //get Drone
+        Drone drone = Drone.FIND.byId(droneId);
         dc = Fleet.getFleet().getCommanderForDrone(drone);
 
         setSubscribeMessages();
@@ -37,7 +40,7 @@ public abstract class Pilot extends FlightControl{
     public Pilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower) {
         super(reporterRef);
         this.dc = dc;
-        this.drone = new Drone();
+        this.droneId = new Long(0);
         this.linkedWithControlTower = linkedWithControlTower;
 
         setSubscribeMessages();
