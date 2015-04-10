@@ -109,9 +109,7 @@ public class BepopSimulator extends DroneActor {
         if(!flyingToHome && !crashed) {
 
             flyingToHome = true;
-
-            //WHY?
-            //tellSelf(new TakeOffRequestMessage());
+            
             tellSelf(new NavigationStateChangedMessage(
                     NavigationState.PENDING,
                     reason

@@ -16,7 +16,7 @@ import models.Drone;
 
 /**
  * Created by Sander on 18/03/2015.
- * 
+ *
  * Pilot class to fly with the drone to its destination via the waypoints.
  * He lands on the last item in the list.
  */
