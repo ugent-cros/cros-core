@@ -37,6 +37,7 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+    
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
      * @param drone                  Drone to control.
