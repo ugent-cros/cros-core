@@ -96,9 +96,14 @@ public class LocationNavigator {
                     if(Math.abs(bearingDiff) > MAX_DIFF_BEARING/2){
                         vx = 0;
                         left = bearingDiff < 0;
-                        degreesLeft = Math.max(0, Math.abs(bearingDiff) - maxAngularVelocity);
-                        System.out.println("DegreesLeft: " + degreesLeft);
-                        vr = left ? -1 : 1;
+
+                        float todoTurn = Math.abs(bearingDiff) > maxAngularVelocity ? maxAngularVelocity : Math.abs(bearingDiff); // degrees that have to be turned or max capacity
+                        if(maxAngularVelocity > todoTurn)
+                            vr = (todoTurn / maxAngularVelocity) * (left ? -1 : 1); // normalize the rotation
+                        else
+                            vr = left ? -1 : 1; // full power rotate
+
+                        degreesLeft = Math.max(0, Math.abs(bearingDiff) - todoTurn);
                     }
 
                     return new MoveCommand(vx, 0, vz, vr);
@@ -113,12 +118,16 @@ public class LocationNavigator {
                 }
 
                 double vr = 0;
-                if(degreesLeft > 0){
-                    degreesLeft = Math.max(0, degreesLeft - maxAngularVelocity);
-                    vx = 0;
-                    vr = left ? -1 : 1;
-                }
+                if(degreesLeft > 0) {
+                    vx = 0; // don't move forward while rotating
+                    float todoTurn = Math.abs(degreesLeft) > maxAngularVelocity ? maxAngularVelocity : Math.abs(degreesLeft); // degrees that have to be turned or max capacity
+                    if (maxAngularVelocity > todoTurn)
+                        vr = (todoTurn / maxAngularVelocity) * (left ? -1 : 1); //normalize the rotation
+                    else
+                        vr = left ? -1 : 1; //full power rotate
 
+                    degreesLeft = Math.max(0, degreesLeft - todoTurn); // subtract the already turned rotation
+                }
                 return new MoveCommand(vx, 0, vz, vr); // movement not significant enough to take angle measurement into account
             }
         }
