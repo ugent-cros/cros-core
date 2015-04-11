@@ -25,6 +25,7 @@ public abstract class ATCommand {
         ib = bb.asIntBuffer();
 
         this.seq = seq;
+        this.commandName = commandName;
     }
 
     /**
