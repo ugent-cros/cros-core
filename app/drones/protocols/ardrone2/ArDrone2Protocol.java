@@ -275,7 +275,6 @@ public class ArDrone2Protocol extends UntypedActor {
     }
 
     private void sendInitNavData() {
-        log.info("hier");
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));

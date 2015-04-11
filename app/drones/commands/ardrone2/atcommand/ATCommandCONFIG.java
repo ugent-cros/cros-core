@@ -23,7 +23,7 @@ public class ATCommandCONFIG extends ATCommand {
      * @param value The value of the config command
      */
     public ATCommandCONFIG(int seq, ConfigKeys key, String value) {
-        super(seq);
+        super(seq, COMMAND_NAME);
         this.key = key;
         this.value = value;
     }
@@ -37,13 +37,5 @@ public class ATCommandCONFIG extends ATCommand {
         return String.format("%d,\"%s\",\"%s\"", seq, key.getKey(), value);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 
 }

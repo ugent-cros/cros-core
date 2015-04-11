@@ -20,7 +20,7 @@ public class ATCommandMISC extends ATCommand {
      * @param param4 Undocumented parameter
      */
     public ATCommandMISC(int seq, int param1, int param2, int param3, int param4) {
-        super(seq);
+        super(seq, COMMAND_NAME);
         this.param1 = param1;
         this.param2 = param2;
         this.param3 = param3;
@@ -44,12 +44,4 @@ public class ATCommandMISC extends ATCommand {
         return String.format("%d,%d,%d,%d,%d", seq, param1, param2, param3, param4);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

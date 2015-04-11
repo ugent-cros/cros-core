@@ -16,10 +16,10 @@ public class ATCommandANIM extends ATCommand {
      *
      * @param seq The sequence number of the command
      * @param anim The ID of the animation
-     * @param dur The duration of the animation
+     * @param dur The duration of the animation [s]
      */
     public ATCommandANIM(int seq, AnimationID anim, int dur) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.anim = anim;
         this.dur = dur;
@@ -32,15 +32,6 @@ public class ATCommandANIM extends ATCommand {
     @Override
     protected String parametersToString() {
         return String.format("%d,%d,%d", seq, anim.getID(), dur);
-    }
-
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
     }
 
     /**

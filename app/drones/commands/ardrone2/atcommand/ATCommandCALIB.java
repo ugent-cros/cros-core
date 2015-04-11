@@ -19,7 +19,7 @@ public class ATCommandCALIB extends ATCommand {
      * @param deviceNumber The device ID that must be calibrated
      */
     public ATCommandCALIB(int seq, int deviceNumber) {
-        super(seq);
+        super(seq, COMMAND_NAME);
         this.deviceNumber = deviceNumber;
     }
 
@@ -39,14 +39,5 @@ public class ATCommandCALIB extends ATCommand {
     @Override
     protected String parametersToString() {
         return String.format("%d,%d", seq, deviceNumber);
-    }
-
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
     }
 }

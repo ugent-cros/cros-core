@@ -17,11 +17,11 @@ public class ATCommandLED extends ATCommand {
      *
      * @param seq The sequence number of the command
      * @param anim The ID of the animation
-     * @param freq The frequency of the animation
-     * @param dur The duration of the animation
+     * @param freq The frequency of the animation [Hz]
+     * @param dur The duration of the animation [s]
      */
     public ATCommandLED(int seq, LEDID anim, float freq, int dur) {
-        super(seq);
+        super(seq, COMMAND_NAME);
     }
 
     /**
@@ -33,20 +33,12 @@ public class ATCommandLED extends ATCommand {
         return String.format("%d,%d,%d,%d", seq, anim.getID(), intOfFloat(freq), dur);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 
     /**
      *
      */
     public enum LEDID {
-        BLINK_GREEN_RE(0),
+        BLINK_GREEN_RED(0),
         BLINK_GREEN(1),
         BLINK_RED(2),
         BLINK_ORANGE(3),

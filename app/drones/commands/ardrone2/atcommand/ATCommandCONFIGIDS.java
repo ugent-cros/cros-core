@@ -36,7 +36,7 @@ public class ATCommandCONFIGIDS extends ATCommand {
      * @param appIDS The application ID
      */
     public ATCommandCONFIGIDS(int seq, String session, String user, String appIDS) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.session = session;
         this.user = user;
@@ -52,12 +52,4 @@ public class ATCommandCONFIGIDS extends ATCommand {
         return String.format("%d,\"%s\",\"%s\",\"%s\"", seq, session, user, appIDS);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

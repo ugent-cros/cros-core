@@ -17,7 +17,7 @@ public class ATCommandPMODE extends ATCommand {
      * @param param1 Undocumented parameter
      */
     public ATCommandPMODE(int seq, int param1) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.param1 = param1;
     }
@@ -39,12 +39,4 @@ public class ATCommandPMODE extends ATCommand {
         return String.format("%d,%d", seq, param1);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

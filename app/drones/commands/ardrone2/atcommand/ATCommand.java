@@ -10,6 +10,7 @@ import java.nio.IntBuffer;
  * Implementation of a ARDrone 2.0 command
  */
 public abstract class ATCommand {
+    private String commandName;
     protected int seq;
     private FloatBuffer fb;
     private IntBuffer ib;
@@ -18,7 +19,7 @@ public abstract class ATCommand {
      *
      * @param seq The sequence number of the command
      */
-    public ATCommand(int seq) {
+    public ATCommand(int seq, String commandName) {
         ByteBuffer bb = ByteBuffer.allocate(4);
         fb = bb.asFloatBuffer();
         ib = bb.asIntBuffer();
@@ -52,7 +53,17 @@ public abstract class ATCommand {
      *
      * @return The name of the command
      */
-    protected abstract String getCommandName();
+    private String getCommandName() {
+        return commandName;
+    }
+
+    /**
+     *
+     * @param commandName The name of the command
+     */
+    protected void setCommandName(String commandName) {
+        this.commandName = commandName;
+    }
 
     /**
      *

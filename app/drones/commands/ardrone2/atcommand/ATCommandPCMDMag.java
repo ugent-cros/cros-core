@@ -28,6 +28,8 @@ public class ATCommandPCMDMag extends ATCommandPCMD {
     public ATCommandPCMDMag(int seq, int flag, float roll, float pitch, float gaz, float yaw, float psi, float accPsi) {
         super(seq, flag, roll, pitch, gaz, yaw);
 
+        super.setCommandName(COMMAND_NAME);
+
         this.psi = psi;
         this.accPsi = accPsi;
     }
@@ -42,12 +44,4 @@ public class ATCommandPCMDMag extends ATCommandPCMD {
                 intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw), intOfFloat(psi), intOfFloat(accPsi));
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

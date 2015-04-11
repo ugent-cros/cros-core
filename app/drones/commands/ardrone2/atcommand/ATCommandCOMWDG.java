@@ -15,7 +15,7 @@ public class ATCommandCOMWDG extends ATCommand {
      * @param seq The sequence number of the command
      */
     public ATCommandCOMWDG(int seq) {
-        super(seq);
+        super(seq, COMMAND_NAME);
     }
 
     /**
@@ -27,12 +27,4 @@ public class ATCommandCOMWDG extends ATCommand {
         return String.format("%d", seq);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

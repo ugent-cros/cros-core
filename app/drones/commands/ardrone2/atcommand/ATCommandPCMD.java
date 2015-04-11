@@ -28,7 +28,7 @@ public class ATCommandPCMD extends ATCommand {
      * Parameters: see A.R.Drone Developer Guide (p. 36)
      */
     public ATCommandPCMD(int seq, int flag, float roll, float pitch, float gaz, float yaw) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.flag = flag;
         this.roll = roll;
@@ -47,12 +47,4 @@ public class ATCommandPCMD extends ATCommand {
                 intOfFloat(roll), intOfFloat(pitch), intOfFloat(gaz), intOfFloat(yaw));
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

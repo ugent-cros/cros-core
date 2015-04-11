@@ -28,7 +28,7 @@ public class ATCommandCONTROL extends ATCommand {
      * @param param2 Undocumented parameter
      */
     public ATCommandCONTROL(int seq, int param1, int param2) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.param1 = param1;
         this.param2 = param2;
@@ -43,12 +43,4 @@ public class ATCommandCONTROL extends ATCommand {
         return String.format("%d,%d,%d", seq, param1, param2);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }

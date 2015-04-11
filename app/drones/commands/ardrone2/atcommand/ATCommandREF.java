@@ -19,7 +19,7 @@ public class ATCommandREF extends ATCommand {
      * @param input A bit vector
      */
     public ATCommandREF(int seq, int input) {
-        super(seq);
+        super(seq, COMMAND_NAME);
 
         this.input = input;
     }
@@ -33,12 +33,4 @@ public class ATCommandREF extends ATCommand {
         return String.format("%d,%d", seq, input);
     }
 
-    /**
-     *
-     * @return The name of the command
-     */
-    @Override
-    protected String getCommandName() {
-        return COMMAND_NAME;
-    }
 }
