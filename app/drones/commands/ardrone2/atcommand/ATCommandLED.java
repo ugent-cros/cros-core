@@ -22,6 +22,10 @@ public class ATCommandLED extends ATCommand {
      */
     public ATCommandLED(int seq, LEDID anim, float freq, int dur) {
         super(seq, COMMAND_NAME);
+
+        this.anim = anim;
+        this.freq = freq;
+        this.dur = dur;
     }
 
     /**
