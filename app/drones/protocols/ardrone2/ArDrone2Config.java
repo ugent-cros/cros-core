@@ -77,14 +77,7 @@ public class ArDrone2Config extends UntypedActor {
         getContext().stop(getSelf());
     }
 
-    byte[] configDatav= new byte[10000];
-
     private void processData(ByteString byteData) {
-        //ByteIterator it = byteData.iterator();
-        //while(it.hasNext()) {
-        //    //byte
-        //}
-
         String data = byteData.decodeString("UTF-8");
         String[] configValues = data.split("\n");
 

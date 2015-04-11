@@ -26,6 +26,7 @@ public class ArDrone2NavData extends UntypedActor {
     // Bytes to be sent to enable navdata
     private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
     private static final int HEADER_VALUE = 0x55667788;
+    private static final int MIN_SIZE = 100;
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private ActorRef senderRef;
@@ -74,7 +75,7 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        //log.debug("[ARDRONE2NAVDATA] Message received");
+        log.debug("[ARDRONE2NAVDATA] Message received");
         byte[] received = new byte[data.length()];
         ByteIterator it = data.iterator();
 
@@ -84,7 +85,7 @@ public class ArDrone2NavData extends UntypedActor {
             i++;
         }
 
-        processData(received); //@TODO
+        processData(received);
     }
 
     public boolean sendNavData(ByteString data) {
@@ -105,7 +106,7 @@ public class ArDrone2NavData extends UntypedActor {
 
 
     private void processData(byte[] navdata) {
-        if(navdata.length >= 100) { // Otherwise this will crash
+        if(navdata.length >= MIN_SIZE) { // Otherwise this will crash
             int offset = 0;
 
             int header = PacketHelper.getInt(navdata, offset);
@@ -116,16 +117,9 @@ public class ArDrone2NavData extends UntypedActor {
             offset += 4;
 
             int state = PacketHelper.getInt(navdata, offset);
-            offset += 4;
+            offset += 12;
 
             // Parse state
-
-            //int dataSequence = PacketHelper.getInt(navdata, offset);
-            offset += 4;
-
-            //int visionFlag = PacketHelper.getInt(navdata, offset);
-            offset += 4;
-
             while(offset < navdata.length) {
                 int optionTag = PacketHelper.getShort(navdata, offset);
                 offset += 2;
@@ -147,8 +141,6 @@ public class ArDrone2NavData extends UntypedActor {
 
             }
 
-            //parseDemoData(navdata);
-            // gpsDataChanged(navdata)
         } else {
             log.info("Packet doesn't contain data");
             parent.tell(new InitNavDataMessage(), getSelf());
@@ -164,6 +156,7 @@ public class ArDrone2NavData extends UntypedActor {
         alertStateChanged(navdata);
     }
 
+    // @TODO to be tested when GPS module arrives
     private void parseGPSData(byte[] navdata, int offset) {
         int offsetTemp = offset;
         boolean gpsAvailable =PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
@@ -212,8 +205,6 @@ public class ArDrone2NavData extends UntypedActor {
 
     private void batteryChanged(byte[] navdata) {
         int battery = PacketHelper.getInt(navdata, NAV_BATTERY_OFFSET.getOffset());
-
-        //log.info("Battery: {}", battery);
 
         Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
         listener.tell(batteryMessage, getSelf());
