@@ -33,6 +33,7 @@ GET            /drones                               controllers.DroneController
 POST           /drones                               controllers.DroneController.create()
 DELETE         /drones                               controllers.DroneController.deleteAll()
 GET            /drones/total                         controllers.DroneController.getTotal()
+GET            /drones/types                         controllers.DroneController.getSuportedTypes()
 GET            /drones/:id                           controllers.DroneController.get(id: Long)
 DELETE         /drones/:id                           controllers.DroneController.delete(id: Long)
 PUT            /drones/:id                           controllers.DroneController.update(id: Long)

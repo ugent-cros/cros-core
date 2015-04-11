@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import models.Drone;
+import models.DroneType;
 import models.Location;
 import models.User;
 import play.data.Form;
@@ -44,6 +45,7 @@ public class DroneController {
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
         links.add(new ControllerHelper.Link("total", controllers.routes.DroneController.getTotal().url()));
+        links.add(new ControllerHelper.Link("types", controllers.routes.DroneController.getSuportedTypes().url()));
 
         try {
             JsonNode result = JsonHelper.createJsonNode(tuples, links, Drone.class);
@@ -63,6 +65,11 @@ public class DroneController {
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getTotal() {
         return ok(JsonHelper.addRootElement(Json.newObject().put("total", Drone.FIND.findRowCount()), Drone.class));
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
+    public static Result getSuportedTypes() {
+        return ok(JsonHelper.addRootElement(Json.toJson(Fleet.registeredDrivers().keySet()), DroneType.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
