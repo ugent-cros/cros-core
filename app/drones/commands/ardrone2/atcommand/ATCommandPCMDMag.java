@@ -29,7 +29,7 @@ public class ATCommandPCMDMag extends ATCommandPCMD {
         super(seq, flag, roll, pitch, gaz, yaw);
 
         this.psi = psi;
-        this.accPsi = psi;
+        this.accPsi = accPsi;
     }
 
     /**

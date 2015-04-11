@@ -7,7 +7,6 @@ import akka.event.LoggingAdapter;
 import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteIterator;
 import akka.util.ByteString;
 import drones.messages.ProductVersionChangedMessage;
 import drones.messages.RequestConfigMessage;
@@ -94,7 +93,7 @@ public class ArDrone2Config extends UntypedActor {
                 key = configPair[0];
                 value = configPair[1];
             } else {
-                break;
+                return;
             }
 
             if(key.equals(ConfigKeys.GEN_NUM_VERSION_SOFT.getKey())) {
@@ -111,9 +110,5 @@ public class ArDrone2Config extends UntypedActor {
         listener.tell(versionMessage, getSelf());
 
         log.info(data);
-    }
-
-    private void parseData(String data) {
-
     }
 }

@@ -69,14 +69,14 @@ public class ATCommandANIM extends ATCommand {
         FLIP_RIGHT(19),  // AR.Drone 2.0
         ANIM_MAYDAY(20);
 
-        private final int id;
+        private final int ID;
 
-        private AnimationID(int id) {
-            this.id = id;
+        private AnimationID(int ID) {
+            this.ID = ID;
         }
 
         private int getID() {
-            return id;
+            return ID;
         }
     }
 }
