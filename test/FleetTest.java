@@ -6,8 +6,10 @@ import drones.simulation.SimulatorDriver;
 import models.Drone;
 import models.DroneType;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -80,15 +82,14 @@ public class FleetTest extends TestSuperclass {
         startFakeApplication();
 
         // Check if simulator driver is registered, if not register
-        Fleet f = Fleet.getFleet();
-        if(!f.registeredDrivers().containsKey(SimulatorDriver.SIMULATOR_TYPE)) {
-            f.registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
+        if (!Fleet.registeredDrivers().containsKey(SimulatorDriver.SIMULATOR_TYPE)) {
+            Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
         }
     }
 
     @AfterClass
     public static void teardown() {
-        stopFakeApplication();;
+        stopFakeApplication();
     }
 
     @Test
@@ -97,11 +98,10 @@ public class FleetTest extends TestSuperclass {
         DroneType type = new DroneType("RegTest1", "1");
         DummyDriver driver = new DummyDriver("Reg test", type);
 
-        Fleet f = Fleet.getFleet();
-        f.registerDriver(type, driver);
+        Fleet.registerDriver(type, driver);
 
         // Check if registered
-        Map<DroneType, DroneDriver> drivers = f.registeredDrivers();
+        Map<DroneType, DroneDriver> drivers = Fleet.registeredDrivers();
         assertThat(drivers.get(type) == driver);    // reference equality
 
         // Check if registered once
@@ -117,16 +117,15 @@ public class FleetTest extends TestSuperclass {
         DummyDriver driver1 = new DummyDriver("Driver1", type1);
         DummyDriver driver2 = new DummyDriver("Driver2", type1);
 
-        Fleet f = Fleet.getFleet();
         // Register 1st driver for multiple types
-        f.registerDriver(type1, driver1);
-        f.registerDriver(type2, driver1);
+        Fleet.registerDriver(type1, driver1);
+        Fleet.registerDriver(type2, driver1);
 
         // Replace driver for 2nd type
-        f.registerDriver(type2, driver2);
+        Fleet.registerDriver(type2, driver2);
 
         // Check if both drivers are registered for the correct type
-        Map<DroneType, DroneDriver> drivers = f.registeredDrivers();
+        Map<DroneType, DroneDriver> drivers = Fleet.registeredDrivers();
         assertThat(drivers.get(type1) == driver1);    // reference equality
         assertThat(drivers.get(type2) == driver2);
     }
@@ -137,8 +136,7 @@ public class FleetTest extends TestSuperclass {
         DroneType type = new DroneType("RegTest3", "1");
         DummyDriver driver = new DummyDriver("DriverTest3", type);
 
-        Fleet f = Fleet.getFleet();
-        assertThat(f.unregisterDriver(type, driver)).isFalse();
+        assertThat(Fleet.unregisterDriver(type, driver)).isFalse();
     }
 
     @Test
@@ -148,11 +146,10 @@ public class FleetTest extends TestSuperclass {
         DummyDriver driver1 = new DummyDriver("DriverTest4.1", type);
         DummyDriver driver2 = new DummyDriver("DriverTest4.2", null);
 
-        Fleet f = Fleet.getFleet();
-        f.registerDriver(type, driver1);
+        Fleet.registerDriver(type, driver1);
 
         // Register 1st driver for multiple types
-        assertThat(f.unregisterDriver(type, driver2)).isFalse();
+        assertThat(Fleet.unregisterDriver(type, driver2)).isFalse();
     }
 
     @Test
@@ -161,15 +158,27 @@ public class FleetTest extends TestSuperclass {
         DroneType type = new DroneType("RegTest5", "1");
         DummyDriver driver = new DummyDriver("DriverTest5", type);
 
-        Fleet f = Fleet.getFleet();
-        f.registerDriver(type, driver);
+        Fleet.registerDriver(type, driver);
 
         // Register 1st driver for multiple types
-        assertThat(f.unregisterDriver(type, driver)).isTrue();
+        assertThat(Fleet.unregisterDriver(type, driver)).isTrue();
     }
 
     @Test
-    public void getCommander_ForNonRegisteredType_ReturnsNull() {
+    public void createCommander_ForNonRegisteredType_ReturnsNull() {
+
+        //TODO: later an exception instead maybe?
+        DroneType type = new DroneType("RegTest6", "1");
+        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, type, "x");
+        drone.save();
+
+        Fleet f = Fleet.getFleet();
+        assertThat(f.createCommanderForDrone(drone)).isNull();
+    }
+
+
+    @Test(expected=IllegalArgumentException.class)
+    public void getCommander_ForNonRegisteredDrone_Throws() {
 
         //TODO: later an exception instead maybe?
         DroneType type = new DroneType("RegTest6", "1");
@@ -189,7 +198,8 @@ public class FleetTest extends TestSuperclass {
         Drone drone = new Drone("FleetTestDrone7", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
         drone.save();
 
-        assertThat(f.getCommanderForDrone(drone)).isNotNull();
+        DroneCommander cmd = f.createCommanderForDrone(drone);
+        Assert.assertEquals(cmd, f.getCommanderForDrone(drone));
     }
 
     @Test
@@ -202,9 +212,11 @@ public class FleetTest extends TestSuperclass {
         drone.save();
 
         // TODO: rethink desired behavior: do we want 2 commanders for the same drone?
+        DroneCommander cmd = f.createCommanderForDrone(drone);
         DroneCommander commander1 = f.getCommanderForDrone(drone);
         DroneCommander commander2 = f.getCommanderForDrone(drone);
 
-        assertThat(commander1 == commander2);   // referene equality should hold
+        Assert.assertEquals(cmd, commander1);   // referene equality should hold
+        Assert.assertEquals(commander1, commander2);
     }
 }

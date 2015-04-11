@@ -109,7 +109,7 @@ public class Fleet {
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
         DroneCommander commander = drones.get(droneEntity.getId());
         if (commander == null) {
-           throw new IllegalArgumentException("Drone is not initialized yet.");
+           throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
         }
         return commander;
     }
