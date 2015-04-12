@@ -101,6 +101,7 @@ public class DroneActorTest extends TestSuperclass{
     }
 
     @Test
+    @Ignore   // Not used anymore from protocol, obsolete using LocationNavigator
     public void navigationStateChanged_Arrives() throws Exception {
         droneActor.tell(new NavigationStateChangedMessage(NavigationState.PENDING, NavigationStateReason.REQUESTED), null);
         NavigationState state = Await.result(commander.getNavigationState(), TIMEOUT);
