@@ -2,14 +2,17 @@ package drones.models.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.pf.UnitPFBuilder;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
+import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.messages.AssignmentMessage;
 import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.models.scheduler.messages.DroneBatteryMessage;
+import drones.models.scheduler.messages.ScheduleMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
@@ -35,21 +38,28 @@ public class SimpleScheduler extends Scheduler {
     // Minimum battery percentage a drone needs to get an assignment
     private static final int MIN_BATTERY_PERCENTAGE = 50;
     // Maximum waiting time for a commander to answer
-    private static final Duration TIMEOUT = Duration.create(10, TimeUnit.SECONDS);
+    protected static final Duration TIMEOUT = Duration.create(2, TimeUnit.SECONDS);
 
 
     // Limited queue size to prevent to many assignments in memory
-    private static final int MAX_QUEUE_SIZE = 25;
-    private Queue<Assignment> queue;
+    protected static final int MAX_QUEUE_SIZE = 100;
+    protected Queue<Assignment> queue;
 
     public SimpleScheduler() {
         this.queue = new PriorityQueue<>((a1, a2) -> Long.compare(a1.getId(), a2.getId()));
     }
 
     @Override
+    protected UnitPFBuilder<Object> initReceivers() {
+        return super.initReceivers().
+                match(AssignmentMessage.class,
+                        message -> receiveAssignmentMessage(message)
+                );
+    }
+
     protected void receiveAssignmentMessage(AssignmentMessage message) {
         // Start scheduling
-        schedule();
+        schedule(null);
     }
 
     @Override
@@ -65,7 +75,7 @@ public class SimpleScheduler extends Scheduler {
         relieve(drone, assignment);
 
         // Start scheduling again
-        schedule();
+        schedule(null);
     }
 
     @Override
@@ -94,11 +104,11 @@ public class SimpleScheduler extends Scheduler {
 
 
     /**
-     * Schedule loop.
+     * Simple Schedule loop.
      * Breaks when there are no more assignments in the queue and database.
      * Breaks when there are no more available drones.
      */
-    protected void schedule() {
+    protected void schedule(ScheduleMessage message) {
         while (true) {
             // Provide assignments
             if (queue.isEmpty()) {
@@ -176,6 +186,7 @@ public class SimpleScheduler extends Scheduler {
      */
     protected boolean isValidDrone(Drone drone) {
         // FIND OR CREATE COMMANDER
+        Fleet fleet = Fleet.getFleet();
         DroneCommander commander = null;
         try {
             commander = fleet.getCommanderForDrone(drone);

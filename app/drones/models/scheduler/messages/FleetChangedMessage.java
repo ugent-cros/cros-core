@@ -23,6 +23,7 @@ public class FleetChangedMessage {
 
     public enum Action{
         ADDED,
-        REMOVED;
+        REMOVED,
+        UPDATED;
     }
 }
