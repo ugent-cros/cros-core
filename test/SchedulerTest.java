@@ -80,23 +80,22 @@ public class SchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void submitAssignments_Succeeds() throws Exception {
-        List<Assignment> assignments = new ArrayList<>();
-        for (long i = 1; i <= 10; i++) {
-            Assignment assignment = new Assignment();
-            assignment.setId(i);
-            assignment.setProgress(0);
-            assignments.add(assignment);
-        }
-        Ebean.save(assignments);
+    public void scheduleAssignment_Succeeds() throws Exception {
+        Assignment assignment = new Assignment();
+        assignment.setId(13l);
+        assignment.setProgress(0);
+        assignment.save();
 
         Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
-        drone.setId(1l);
+        drone.setId(14l);
         drone.save();
 
-        Scheduler.getScheduler().tell(new AssignmentMessage(1l), null);
+        Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), null);
         Thread.sleep(3000);
         drone = Drone.FIND.byId(drone.getId());
+        assignment = Assignment.FIND.byId(assignment.getId());
+        Assert.assertTrue(assignment.getAssignedDrone().getId() == drone.getId());
         Assert.assertTrue(drone.getStatus() == Drone.Status.UNAVAILABLE);
+
     }
 }
