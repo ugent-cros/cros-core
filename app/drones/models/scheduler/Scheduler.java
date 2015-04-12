@@ -10,6 +10,7 @@ import akka.japi.pf.ReceiveBuilder;
 import drones.models.Fleet;
 import drones.models.scheduler.messages.AssignmentMessage;
 import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneBatteryMessage;
 import models.Assignment;
 import models.Drone;
 import play.libs.Akka;

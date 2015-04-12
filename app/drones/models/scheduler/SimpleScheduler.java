@@ -12,6 +12,7 @@ import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.messages.AssignmentMessage;
 import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneBatteryMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
@@ -190,7 +191,7 @@ public class SimpleScheduler extends Scheduler{
 
         } catch (Exception ex) {
             // Something failed with this drone
-            log.warning("Drone with unknown status is present in the system.");
+            log.warning("[SimpleScheduler] Drone with unknown status is present in the system.");
             drone.setStatus(Drone.Status.UNKNOWN);
             return false;
         }

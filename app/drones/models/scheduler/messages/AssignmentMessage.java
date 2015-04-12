@@ -9,9 +9,9 @@ import java.io.Serializable;
  */
 public class AssignmentMessage implements Serializable{
 
-    private long assignmentId;
+    private Long assignmentId;
 
-    public AssignmentMessage(long assignmentId) {
+    public AssignmentMessage(Long assignmentId) {
         this.assignmentId = assignmentId;
     }
 
