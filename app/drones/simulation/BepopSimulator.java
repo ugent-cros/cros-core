@@ -5,6 +5,8 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
+import drones.models.*;
+import drones.util.LocationNavigator;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
 import play.libs.Akka;
@@ -148,25 +150,25 @@ public class BepopSimulator extends DroneActor {
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
             if (timeTillArrival > timeStep) {
                 // Not there yet
-                double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
+                double deltaLongitude = homeLocation.getLongitude() - currentLocation.getLongitude();
                 double deltaLatitude = homeLocation.getLatitude() - currentLocation.getLatitude();
-                double deltaAltitude = homeLocation.getHeigth() - currentLocation.getHeigth();
+                double deltaAltitude = homeLocation.getHeight() - currentLocation.getHeight();
 
                 double fraction = timeStep/timeTillArrival;
-                double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
+                double newLongitude = currentLocation.getLongitude() + deltaLongitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
-                double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
+                double newHeight = currentLocation.getHeight() + deltaAltitude * fraction;
                 tellSelf(new LocationChangedMessage(
-                        newLongtitude,
+                        newLongitude,
                         newLatitude,
                         newHeight));
             } else {
                 // We have arrived
                 flyingToHome = false;
                 tellSelf(new LocationChangedMessage(
-                        homeLocation.getLongtitude(),
+                        homeLocation.getLongitude(),
                         homeLocation.getLatitude(),
-                        homeLocation.getHeigth()
+                        homeLocation.getHeight()
                 ));
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
                 tellSelf(new NavigationStateChangedMessage(
@@ -203,7 +205,7 @@ public class BepopSimulator extends DroneActor {
             double dEquator = vEquator * durationInSec;
 
             // Calculate delta in radians
-            double radius = Location.EARTH_RADIUS + location.getRawValue().getHeigth();
+            double radius = Location.EARTH_RADIUS + location.getRawValue().getHeight();
             double deltaLatitude = dNS/radius  * 180/Math.PI;          // in degrees
             double deltaLongitude = dEquator/radius  * 180/Math.PI;    // in degrees
 
@@ -213,12 +215,14 @@ public class BepopSimulator extends DroneActor {
             if (latitude > 90) latitude = 180 -latitude;
             if (latitude < -90) latitude = Math.abs(latitude) -180;
 
-            double longitude = (oldLocation.getLongtitude() + deltaLongitude);    // in degrees
+
+            double longitude = (oldLocation.getLongitude() + deltaLongitude);    // in degrees
+
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
-            Location newLocation = new Location(latitude, longitude, oldLocation.getHeigth());
-            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeigth()));
+            Location newLocation = new Location(latitude, longitude, oldLocation.getHeight());
+            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeight()));
         }
     }
 
@@ -264,6 +268,12 @@ public class BepopSimulator extends DroneActor {
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
                 match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f,  40f, 0.4f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {

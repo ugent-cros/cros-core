@@ -57,12 +57,11 @@ public class Application extends Controller {
 
         List<Drone> drones = new ArrayList<>();
         DroneType bepop = new DroneType("ARDrone3", "bepop");
-        DroneType ardrone2 = new DroneType("ARDrone2", "ARDrone2");
         drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop,  "address4"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));
 
         Ebean.save(drones);
 
@@ -91,24 +90,28 @@ public class Application extends Controller {
         return ok();
     }
 
-    private static Drone testDroneEntity;
+    public static F.Promise<Result> initDrone(String ip, boolean bebop) {
+        Drone droneEntity;
+        if(bebop) {
+            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE, ip);
+        } else {
+            droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE, ip);
+        }
 
-    public static F.Promise<Result> initDrone() {
-        testDroneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "192.168.42.1");
-        //testDroneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "192.168.1.1");
+        droneEntity.save();
 
-        testDroneEntity.save();
-
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+        DroneCommander d = Fleet.getFleet().createCommanderForDrone(droneEntity);
         return F.Promise.wrap(d.init()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
+            result.put("id", droneEntity.getId());
             return ok(result);
         });
     }
 
-    public static Result subscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static Result subscribeMonitor(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         ActorRef r = Akka.system().actorOf(Props.create(DroneMonitor.class), "droneMonitor");
         d.subscribeTopic(r, BatteryPercentageChangedMessage.class);
 
@@ -135,8 +138,9 @@ public class Application extends Controller {
         return WebSocket.withActor(MessageWebSocket::props);
     }
 
-    public static Result unsubscribeMonitor(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static Result unsubscribeMonitor(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
 
         try {
             ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
@@ -153,8 +157,9 @@ public class Application extends Controller {
         }
     }
 
-    public static F.Promise<Result> getBatteryPercentage(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getBatteryPercentage(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
@@ -162,8 +167,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> setOutdoor(boolean outdoor){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> setOutdoor(boolean outdoor, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.setOutdoor(outdoor)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("outdoor", outdoor);
@@ -171,8 +177,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> setMaxHeight(float meters){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> setMaxHeight(float meters, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.setMaxHeight(meters)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("maxHeight", meters);
@@ -180,8 +187,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> setHull(boolean hull){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> setHull(boolean hull, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.setHull(hull)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("hull", hull);
@@ -189,8 +197,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> flatTrim(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> flatTrim(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.flatTrim()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -198,8 +207,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> calibrate(boolean hull, boolean outdoor){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> calibrate(boolean hull, boolean outdoor, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.calibrate(outdoor, hull)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -207,8 +217,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> moveToLocation(double latitude, double longitude, double altitude){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> moveToLocation(double latitude, double longitude, double altitude, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.moveToLocation(latitude, longitude, altitude)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "requested");
@@ -221,8 +232,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> moveVector(double vx, double vy, double vz, double vr){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> moveVector(double vx, double vy, double vz, double vr, long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.move3d(vx, vy, vz, vr)).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "requested");
@@ -236,19 +248,21 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> getLocation(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getLocation(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getLocation()).map(v -> {
             ObjectNode result = Json.newObject();
-            result.put("long", v.getLongtitude());
+            result.put("long", v.getLongitude());
             result.put("lat", v.getLatitude());
-            result.put("altitude", v.getHeigth());
+            result.put("altitude", v.getHeight());
             return ok(result);
         });
     }
 
-    public static F.Promise<Result> getAltitude(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getAltitude(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getAltitude()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("altitude", v);
@@ -256,8 +270,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> getVersion(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getVersion(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getVersion()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("softwareVersion", v.getSoftware());
@@ -266,8 +281,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> getSpeed(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getSpeed(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getSpeed()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("vx", v.getVx());
@@ -277,8 +293,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> getRotation(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> getRotation(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getRotation()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("yaw", v.getYaw());
@@ -288,9 +305,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> takeOff(){
-        Drone drone = Drone.FIND.where().eq("name", "bepop").findUnique();
-       DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+    public static F.Promise<Result> takeOff(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.takeOff()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
@@ -298,8 +315,9 @@ public class Application extends Controller {
         });
     }
 
-    public static F.Promise<Result> land(){
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(testDroneEntity);
+    public static F.Promise<Result> land(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.land()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
