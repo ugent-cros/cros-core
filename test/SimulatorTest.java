@@ -5,11 +5,14 @@ import akka.testkit.TestActorRef;
 import drones.messages.*;
 import drones.models.DroneCommander;
 import drones.models.FlyingState;
+import drones.models.Location;
 import drones.simulation.BepopSimulator;
 import drones.simulation.SimulatorDriver;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
+import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
@@ -22,11 +25,12 @@ import static org.fest.assertions.Assertions.assertThat;
  */
 public class SimulatorTest extends TestSuperclass {
 
-    private SimulatorDriver driver = new SimulatorDriver();
+    static SimulatorDriver driver = new SimulatorDriver();
     static ActorSystem system;
 
     @BeforeClass
     public static void setup() {
+        driver.topSpeed = 500; //10m/s
         startFakeApplication();
         system = ActorSystem.create();
     }
@@ -125,7 +129,7 @@ public class SimulatorTest extends TestSuperclass {
     }
 
     @Test
-    public void move3dNorth_Hovering_Moves() throws Exception {
+    public void move3d_Hovering_Moves() throws Exception {
 
         // Prepare commander
         DroneCommander commander = newCommander();
@@ -185,7 +189,7 @@ public class SimulatorTest extends TestSuperclass {
             }
 
             // Check if location changed correctly
-            new JavaTestKit.AwaitAssert(Duration.create(3, TimeUnit.SECONDS), Duration.create(1, TimeUnit.SECONDS)) {
+            new AwaitAssert(Duration.create(3, TimeUnit.SECONDS), Duration.create(1, TimeUnit.SECONDS)) {
                 @Override
                 protected void check() {
 
@@ -226,6 +230,54 @@ public class SimulatorTest extends TestSuperclass {
             // Unsubscribe
             commander.unsubscribe(listener.getRef());
             commander.unsubscribe(tracker.getRef());
+        }};
+    }
+
+    @Ignore // Test does not succeed when navigator is used
+    @Test
+    public void moveToLocation_Hovering_MovesTowardsLocation() throws Exception {
+
+        final double errorRadius = 10; // 10 meters
+
+        new JavaTestKit(system) {{
+
+            // Prepare commander
+            DroneCommander commander = newCommander();
+            commander.init();
+            commander.subscribeTopic(getRef(), FlyingStateChangedMessage.class);
+
+            // Wait until commander has taken off
+            commander.takeOff();
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    FlyingStateChangedMessage state = expectMsgClass(FlyingStateChangedMessage.class);
+                    return state.getState() == FlyingState.HOVERING;
+                }
+            };
+            commander.unsubscribe(getRef());
+
+            // Locations
+            Location rosier = new Location(51.04545, 3.7249, 10);
+            Location initialLocation = Await.result(commander.getLocation(), Duration.create(2, TimeUnit.SECONDS));
+            double distance = rosier.distance(initialLocation);
+
+            // Listen for location changes
+            JavaTestKit tracker = new JavaTestKit(system);
+            commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
+
+            // Send drone to some location, intial location is sterre
+            commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
+
+            // Check if were getting closer
+            while(distance > errorRadius) {
+
+                LocationChangedMessage locationUpdate  = tracker.expectMsgClass(LocationChangedMessage.class);
+                double newDistance = rosier.distance(locationUpdate.getLongitude(), locationUpdate.getLatitude());
+                assertThat(newDistance).isLessThan(distance);
+                distance = newDistance;
+                System.out.println("Still " + distance + "m to go.");
+            }
         }};
     }
 }

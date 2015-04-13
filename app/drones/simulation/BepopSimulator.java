@@ -170,6 +170,7 @@ public class BepopSimulator extends DroneActor {
                         homeLocation.getLatitude(),
                         homeLocation.getHeight()
                 ));
+                tellSelf(new SpeedChangedMessage(0, 0, 0));
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
                 tellSelf(new NavigationStateChangedMessage(
                         NavigationState.AVAILABLE,
