@@ -276,10 +276,7 @@ public class BepopSimulator extends DroneActor {
                     //processOrientation(rot);
                     eventBus.publish(new DroneEventMessage(s));
 
-                    // Process new roation by:
-                    // 1. updating angleWrtNorth
-
-                    // 2. update speed according to rotation
+                    // Process new rotation by: update speed according to rotation
                     Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
                     tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
                 });
@@ -498,7 +495,6 @@ public class BepopSimulator extends DroneActor {
         // Update rotation: this will also update the speed
         // Next simulation step will use the updated speed values
         tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
-
 
         // After a 1.5 second: the rotation should be set back to normal
         setDefaultRotation = Akka.system().scheduler().scheduleOnce(
