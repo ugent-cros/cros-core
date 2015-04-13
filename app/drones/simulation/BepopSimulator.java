@@ -9,6 +9,7 @@ import drones.models.*;
 import drones.util.LocationNavigator;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
@@ -267,7 +268,28 @@ public class BepopSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
+                // Intercept attitude change message
+                match(AttitudeChangedMessage.class, s -> {
+                    // Set new rotation
+                    Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
+                    rotation.setValue(rot);
+                    //processOrientation(rot);
+                    eventBus.publish(new DroneEventMessage(s));
+
+                    // Process new roation by:
+                    // 1. updating angleWrtNorth
+
+                    // 2. update speed according to rotation
+                    Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
+                    tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
+                });
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f,  40f, 0.4f); // Bebop parameters
     }
 
     @Override
@@ -469,15 +491,18 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
         }
 
-        // 1: update rotation
-        tellSelf(new AttitudeChangedMessage(vy, vx, vr));
-        // 2: calculate speed resulting from the rotation
-        Speed newSpeed = calculateSpeed(new Rotation(vy, vx, vr), vz);
-        // 3: update the speed
-        tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
-        // After processing these messages, simulateMove will have the correct behaviour
+        // Calculate rotation
+        double roll = vy * Math.PI/3;   // 1 <-> 60°
+        double pitch = vx * Math.PI/3;  // 1 <-> 60°
+        double deltaYaw = vr * Math.PI/6;    // 1 <-> turn of 30°
+        double yaw = rotation.getRawValue().getYaw() + deltaYaw;
 
-        p.failure(new NotImplementedException());
+        // Update rotation: this will also update the speed
+        tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
+
+        // Next simulation step will use the updated speed values
+
+        p.success(null);
     }
 
     @Override
