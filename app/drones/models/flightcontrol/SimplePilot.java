@@ -10,7 +10,7 @@ import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
 

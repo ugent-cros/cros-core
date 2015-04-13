@@ -1,4 +1,4 @@
-package drones.models.scheduler;
+package drones.models.scheduler.messages;
 
 import models.Drone;
 import drones.models.DroneCommander;
