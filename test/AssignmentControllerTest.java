@@ -33,9 +33,9 @@ public class AssignmentControllerTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Create some checkpoints and add them to a list
-        Checkpoint chckpnt1 = new Checkpoint(1,2,3);
-        Checkpoint chckpnt2 = new Checkpoint(2,4,6);
-        Checkpoint chckpnt3 = new Checkpoint(3,6,9);
+        Checkpoint chckpnt1 = new Checkpoint(2,1,3);
+        Checkpoint chckpnt2 = new Checkpoint(4,2,6);
+        Checkpoint chckpnt3 = new Checkpoint(6,3,9);
         List<Checkpoint> list1 = new ArrayList<>();
         List<Checkpoint> list2 = new ArrayList<>();
         list1.add(chckpnt1);
@@ -100,7 +100,7 @@ public class AssignmentControllerTest extends TestSuperclass {
     @Test
     public void create_AuthorizedRequest_AssignmentCreated() {
         List<Checkpoint> route = new ArrayList<>();
-        route.add(new Checkpoint(5,6,7));
+        route.add(new Checkpoint(6,5,7));
         Assignment assignmentToBeAdded = new Assignment(route, null);
         JsonNode node = JsonHelper.createJsonNode(assignmentToBeAdded, Assignment.class);
 
@@ -128,7 +128,7 @@ public class AssignmentControllerTest extends TestSuperclass {
     @Test
     public void delete_AuthorizedRequestWithValidId_AssignmentDeleted() {
         List<Checkpoint> route = new ArrayList<>();
-        Checkpoint checkpointToBeRemoved = new Checkpoint(5,6,7);
+        Checkpoint checkpointToBeRemoved = new Checkpoint(6,5,7);
         route.add(checkpointToBeRemoved);
         Assignment assignmentToBeRemoved = new Assignment(route, null);
         assignmentToBeRemoved.save();

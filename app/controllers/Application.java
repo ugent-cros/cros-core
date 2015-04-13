@@ -73,10 +73,10 @@ public class Application extends Controller {
 
         Ebean.save(users);
 
-        Checkpoint checkpoint1 = new Checkpoint(51.023144,3.709484,3);
-        Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441,3);
-        Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945,3);
-        Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428,3);
+        Checkpoint checkpoint1 = new Checkpoint(51.023144, 3.709484, 3);
+        Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441, 3);
+        Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945, 3);
+        Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428, 3);
         List<Checkpoint> checkpoints = new ArrayList<>();
         checkpoints.add(checkpoint1);
         checkpoints.add(checkpoint2);
