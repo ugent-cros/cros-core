@@ -69,7 +69,8 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
     public static Result getSuportedTypes() {
-        return ok(JsonHelper.addRootElement(Json.toJson(Fleet.registeredDrivers().keySet()), DroneType.class));
+        JsonNode node = JsonHelper.addRootElement(Json.toJson(Fleet.registeredDrivers().keySet()), DroneType.class);
+        return ok(JsonHelper.addRootElement(node, Drone.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -141,7 +142,8 @@ public class DroneController {
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
             Location l = new Location(v.getLongtitude(),v.getLatitude(), altitude);
-            return ok(JsonHelper.addRootElement(Json.toJson(l), Location.class));
+            JsonNode node = JsonHelper.addRootElement(Json.toJson(l), Location.class);
+            return ok(JsonHelper.addRootElement(node, Drone.class));
         }));
 
     }
@@ -178,7 +180,8 @@ public class DroneController {
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getRotation()).map(rotation -> {
-            JsonNode node = Json.newObject().put("rotation", Json.toJson(rotation));
+            ObjectNode node = Json.newObject();
+            node.put("rotation", Json.toJson(rotation));
             return ok(JsonHelper.addRootElement(node, Drone.class));
         });
     }
@@ -191,7 +194,22 @@ public class DroneController {
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getSpeed()).map(speed -> {
-            JsonNode node = Json.newObject().put("speed", Json.toJson(speed));
+            ObjectNode node = Json.newObject();
+            node.put("speed", Json.toJson(speed));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> altitude(Long id) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getAltitude()).map(altitude -> {
+            ObjectNode node = Json.newObject();
+            node.put("altitude", Json.toJson(altitude));
             return ok(JsonHelper.addRootElement(node, Drone.class));
         });
     }
@@ -245,6 +263,7 @@ public class DroneController {
         links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
         links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).url()));
         links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).url()));
+        links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).url()));
         return links;
     }
 

@@ -39,6 +39,7 @@ DELETE         /drones/:id                           controllers.DroneController
 PUT            /drones/:id                           controllers.DroneController.update(id: Long)
 GET            /drones/:id/testConnection            controllers.DroneController.testConnection(id: Long)
 GET            /drones/:id/battery                   controllers.DroneController.battery(id: Long)
+GET            /drones/:id/altitude                  controllers.DroneController.altitude(id: Long)
 GET            /drones/:id/cameraCapture             controllers.DroneController.cameraCapture(id: Long)
 GET            /drones/:id/location                  controllers.DroneController.location(id: Long)
 GET            /drones/:id/speed                     controllers.DroneController.speed(id: Long)
