@@ -5,8 +5,6 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
-import drones.models.*;
-import drones.util.LocationNavigator;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
 import drones.util.LocationNavigator;
@@ -14,7 +12,6 @@ import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -37,13 +34,15 @@ public class BepopSimulator extends DroneActor {
     // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
-    protected Cancellable simulationTick;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
     protected double initialAngleWithRespectToEquator; // in radians, facing East is 0
 
+    // Private variables needed for simulation
+    private Cancellable simulationTick;
+    private Cancellable setDefaultRotation;
 
     // internal state
     private boolean crashed = false;
@@ -292,12 +291,6 @@ public class BepopSimulator extends DroneActor {
                 2f,  40f, 0.4f); // Bebop parameters
     }
 
-    @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal,
-                2f,  40f, 0.4f); // Bebop parameters
-    }
-
     protected void processBatteryLevel(byte percentage) {
 
         if(percentage < batteryLowLevel) {
@@ -420,7 +413,7 @@ public class BepopSimulator extends DroneActor {
         if (connectionLost) return;
 
         //  Land
-        p.failure(new NotImplementedException());
+        p.failure(new Exception("Not implemented yet"));
     }
 
     @Override
@@ -491,6 +484,11 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
         }
 
+        // Cancel setting the rotation back to normal if a new move message arrives
+        if (setDefaultRotation != null) {
+            setDefaultRotation.cancel();
+        }
+
         // Calculate rotation
         double roll = vy * Math.PI/3;   // 1 <-> 60°
         double pitch = vx * Math.PI/3;  // 1 <-> 60°
@@ -498,9 +496,18 @@ public class BepopSimulator extends DroneActor {
         double yaw = rotation.getRawValue().getYaw() + deltaYaw;
 
         // Update rotation: this will also update the speed
+        // Next simulation step will use the updated speed values
         tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
 
-        // Next simulation step will use the updated speed values
+
+        // After a 1.5 second: the rotation should be set back to normal
+        setDefaultRotation = Akka.system().scheduler().scheduleOnce(
+                Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
+                self(),
+                new AttitudeChangedMessage(0, 0, 0),
+                Akka.system().dispatcher(),
+                self()
+        );
 
         p.success(null);
     }
