@@ -7,9 +7,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.models.scheduler.messages.DroneArrivalMessage;
-import drones.models.scheduler.messages.DroneBatteryMessage;
-import drones.models.scheduler.messages.ScheduleMessage;
+import drones.models.scheduler.messages.*;
 import models.Assignment;
 import models.Drone;
 import play.libs.Akka;
@@ -20,30 +18,24 @@ import play.libs.Akka;
 
 /*
 Class to schedule assignments.
-Accepts:
--Fleet: gives a collection of drones to use.
--Long: tells the scheduler to fetch the assignment with this id
--Assignment: return this assignment to mark it as completed
  */
 public abstract class Scheduler extends AbstractActor {
 
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    protected SchedulerEventBus eventBus;
     private static ActorRef scheduler;
     private static Object lock = new Object();
 
-    public Scheduler() {
+    protected Scheduler() {
         //Receive behaviour
+        eventBus = new SchedulerEventBus();
         UnitPFBuilder<Object> builder = initReceivers();
         builder.matchAny(m -> log.warning("[Scheduler] Received unknown message: [{}]", m.getClass().getName()));
         receive(builder.build());
     }
 
-    /**
-     * Get an actor reference to the drone scheduler
-     *
-     * @return
-     */
+
     public static ActorRef getScheduler() throws SchedulerException {
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
@@ -77,16 +69,46 @@ public abstract class Scheduler extends AbstractActor {
         }
     }
 
+    /**
+     * Subscribe to get notified by scheduler events.
+     * @param messageType   type of events to subscribe to
+     * @param subscriber    actorref to receive events
+     * @throws SchedulerException
+     */
+    public static void subscribe(Class messageType,ActorRef subscriber) throws SchedulerException{
+        ActorRef publisher = getScheduler();
+        SubscribeMessage message = new SubscribeMessage(messageType);
+        publisher.tell(message,subscriber);
+    }
+
+    /**
+     * Unsubscribe from the scheduler for a specific type of events.
+     * @param messageType
+     * @param subscriber
+     * @throws SchedulerException
+     */
+    public static void unsubscribe(Class messageType,ActorRef subscriber) throws SchedulerException{
+        ActorRef publisher = getScheduler();
+        UnsubscribeMessage message = new UnsubscribeMessage(messageType);
+        publisher.tell(message,subscriber);
+    }
+
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder.
                 match(ScheduleMessage.class,
                         m -> schedule(m)
                 ).
                 match(DroneArrivalMessage.class,
-                        message -> receiveDroneArrivalMessage(message)
+                        m -> receiveDroneArrivalMessage(m)
                 ).
                 match(DroneBatteryMessage.class,
-                        message -> receiveDroneBatteryMessage(message)
+                        m -> receiveDroneBatteryMessage(m)
+                ).
+                match(SubscribeMessage.class,
+                        m -> eventBus.subscribe(sender(), m.getMessageType())
+                ).
+                match(UnsubscribeMessage.class,
+                        m -> eventBus.unsubscribe(sender(), m.getMessageType())
                 );
     }
 

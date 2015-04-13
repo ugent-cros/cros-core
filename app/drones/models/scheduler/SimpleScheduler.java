@@ -94,12 +94,8 @@ public class SimpleScheduler extends Scheduler {
         super.assign(drone, assignment);
         // Get route
         List<Checkpoint> route = assignment.getRoute();
-        // Create SimplePilot
-        ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), drone.getId(), false, route)));
-        // Tell the pilot to start the flight
-        pilot.tell(new StartFlightControlMessage(), self());
+        // Create a new flight.
+        createFlight(drone,route);
     }
 
 
@@ -108,6 +104,7 @@ public class SimpleScheduler extends Scheduler {
      * Breaks when there are no more assignments in the queue and database.
      * Breaks when there are no more available drones.
      */
+    @Override
     protected void schedule(ScheduleMessage message) {
         while (true) {
             // Provide assignments
@@ -122,6 +119,15 @@ public class SimpleScheduler extends Scheduler {
             Assignment assignment = queue.remove();
             assign(drone, assignment);
         }
+    }
+
+    protected void createFlight(Drone drone, List<Checkpoint> route){
+        // Create SimplePilot
+        ActorRef pilot = getContext().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(self(), drone.getId(), false, route)));
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(), self());
     }
 
     /**
