@@ -1,11 +1,14 @@
 package controllers;
 
 import com.avaje.ebean.ExpressionList;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Basestation;
 import models.User;
 import play.data.Form;
+import play.libs.Json;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
@@ -14,6 +17,7 @@ import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
 import static play.mvc.Results.*;
@@ -26,22 +30,32 @@ public class BasestationController {
     public static Result getAll() {
         ExpressionList<Basestation> exp = QueryHelper.buildQuery(Basestation.class, Basestation.FIND.where());
 
-        List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(Basestation basestation : exp.findList()) {
-            tuples.add(new JsonHelper.Tuple(basestation, new ControllerHelper.Link("self",
-                    controllers.routes.BasestationController.get(basestation.getId()).url())));
-        }
+        List<JsonHelper.Tuple> tuples = exp.findList().stream().map(basestation -> new JsonHelper.Tuple(basestation, new ControllerHelper.Link("self",
+                controllers.routes.BasestationController.get(basestation.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.BasestationController.getTotal().absoluteURL(request())));
 
         try {
-            return ok(JsonHelper.createJsonNode(tuples, links, Basestation.class));
+            JsonNode result = JsonHelper.createJsonNode(tuples, links, Basestation.class);
+            String[] totalQuery = request().queryString().get("total");
+            if (totalQuery != null && totalQuery.length == 1 && totalQuery[0].equals("true")) {
+                ExpressionList<Basestation> countExpression = QueryHelper.buildQuery(Basestation.class, Basestation.FIND.where(), true);
+                String root = Basestation.class.getAnnotation(JsonRootName.class).value();
+                ((ObjectNode) result.get(root)).put("total",countExpression.findRowCount());
+            }
+            return ok(result);
         } catch(JsonProcessingException ex) {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", Basestation.FIND.findRowCount()), Basestation.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -61,7 +75,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
@@ -85,7 +99,7 @@ public class BasestationController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, Basestation.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<Basestation> form = Form.form(Basestation.class).bind(strippedBody);
@@ -113,7 +127,7 @@ public class BasestationController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(id).absoluteURL(request())));
         return links;
     }
 }

@@ -11,12 +11,12 @@ public class LocationChangedMessage implements Serializable {
 
     private double longitude;
     private double latitude;
-    private double gpsHeigth;
+    private double gpsHeight;
 
-    public LocationChangedMessage(double longitude, double latitude, double gpsHeigth) {
+    public LocationChangedMessage(double longitude, double latitude, double gpsHeight) {
         this.longitude = longitude;
         this.latitude = latitude;
-        this.gpsHeigth = gpsHeigth;
+        this.gpsHeight = gpsHeight;
     }
 
     public double getLongitude() {
@@ -31,7 +31,7 @@ public class LocationChangedMessage implements Serializable {
      * Gets the altitude in meters
      * @return
      */
-    public double getGpsHeigth() {
-        return gpsHeigth;
+    public double getGpsHeight() {
+        return gpsHeight;
     }
 }

@@ -38,6 +38,7 @@ public class Drone extends Model {
 
     private int weightLimitation;
 
+    @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
     private Status status;
 
@@ -143,12 +144,13 @@ public class Drone extends Model {
         return result;
     }
 
-    public enum Status {
+    public enum Status{
         AVAILABLE,
         UNAVAILABLE,
         IN_FLIGHT,
         CHARGING,
         EMERGENCY_LANDED,
+        DECOMMISSIONED,
         UNKNOWN
     }
 }

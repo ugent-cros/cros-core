@@ -6,19 +6,20 @@ import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
+import drones.simulation.SimulatorDriver;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
-import static akka.pattern.Patterns.ask;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+
+import static akka.pattern.Patterns.ask;
 
 /**
  * Created by Yasser.
@@ -51,6 +52,11 @@ public class Fleet {
         BepopDriver bepopDriver = new BepopDriver();
         registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
 
+        ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
+        registerDriver(ArDrone2Driver.ARDRONE2_TYPE, ardrone2Driver);
+
+        SimulatorDriver simulatorDriver = new SimulatorDriver();
+        registerDriver(SimulatorDriver.SIMULATOR_TYPE, simulatorDriver);
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
 
@@ -65,7 +71,7 @@ public class Fleet {
 
     /* Instance */
 
-    private ConcurrentMap<Drone, DroneCommander> drones;
+    private ConcurrentMap<Long, DroneCommander> drones;
 
     public Fleet(){
         drones = new ConcurrentHashMap<>();
@@ -88,26 +94,23 @@ public class Fleet {
                 }, Akka.system().dispatcher());
     }
 
+    public DroneCommander createCommanderForDrone(Drone droneEntity){
+        DroneDriver driver = getDriver(droneEntity.getDroneType());
+        if (driver == null)
+            return null;
+
+        // Create commander
+        DroneCommander commander = new DroneCommander(droneEntity.getAddress(), driver);
+
+        drones.put(droneEntity.getId(), commander);
+        return commander;
+    }
+
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
-
-        DroneCommander commander = drones.get(droneEntity);
-
-        // If commander does not exist yet, create it
+        DroneCommander commander = drones.get(droneEntity.getId());
         if (commander == null) {
-
-            // Get the driver, if available
-            DroneDriver driver = getDriver(droneEntity.getDroneType());
-            if (driver == null)
-                return null;
-
-            // Create commander
-            ActorRef ref = Akka.system().actorOf(
-                    Props.create(driver.getActorClass(),
-                            () -> driver.createActor(droneEntity)));
-            commander = new DroneCommander(ref);
-            drones.put(droneEntity, commander);
+           throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
         }
-
         return commander;
     }
 }

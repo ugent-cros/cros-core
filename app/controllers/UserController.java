@@ -1,6 +1,8 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
 import com.avaje.ebean.ExpressionList;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +17,10 @@ import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
 import static play.mvc.Results.*;
@@ -28,7 +33,7 @@ public class UserController {
 
     private static ObjectMapper jsonMapper = new ObjectMapper();
 
-    public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url());
+    public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.getAll().absoluteURL(request()));
 
     private static Form<User> form = Form.form(User.class);
     private static final String PASSWORD_FIELD_KEY = "password";
@@ -37,22 +42,34 @@ public class UserController {
     public static Result getAll() {
         ExpressionList<User> exp = QueryHelper.buildQuery(User.class, User.FIND.where());
 
-        List<JsonHelper.Tuple> tuples = new ArrayList<>();
-        for(User user : exp.findList()) {
-            tuples.add(new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
-                    controllers.routes.DroneController.get(user.getId()).url())));
-        }
+        List<JsonHelper.Tuple> tuples = exp.findList().stream().map(user -> new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
+                controllers.routes.UserController.get(user.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().absoluteURL(request())));
 
         try {
-            return ok(JsonHelper.createJsonNode(tuples, links, User.class));
+
+            JsonNode result = JsonHelper.createJsonNode(tuples, links, User.class);
+            String[] totalQuery = request().queryString().get("total");
+            if (totalQuery != null && totalQuery.length == 1 && totalQuery[0].equals("true")) {
+                ExpressionList<User> countExpression = QueryHelper.buildQuery(User.class, User.FIND.where(), true);
+                String root = User.class.getAnnotation(JsonRootName.class).value();
+                ((ObjectNode) result.get(root)).put("total",countExpression.findRowCount());
+            }
+            return ok(result);
         } catch(JsonProcessingException ex) {
             play.Logger.error(ex.getMessage(), ex);
             return internalServerError();
         }
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static Result getTotal() {
+        return ok(JsonHelper.addRootElement(Json.newObject().put("total", User.FIND.findRowCount()), User.class));
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
@@ -76,7 +93,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -123,7 +140,7 @@ public class UserController {
         try {
             strippedBody = JsonHelper.removeRootElement(body, User.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
-            play.Logger.error(ex.getMessage(), ex);
+            play.Logger.debug(ex.getMessage(), ex);
             return badRequest(ex.getMessage());
         }
         Form<User> filledForm = form.bind(strippedBody);
@@ -143,7 +160,14 @@ public class UserController {
 
         // Update the user
         User updatedUser = filledForm.get();
-        updatedUser.update(id);
+        updatedUser.setId(id);
+        Set<String> updatedFields = new HashSet<>(filledForm.data().keySet());
+        if (updatedFields.contains("password")) {
+            updatedFields.remove("password");
+            updatedFields.add("shaPassword");
+            updatedFields.add("passwordHashed");
+        }
+        Ebean.update(updatedUser, updatedFields);
 
         return ok(JsonHelper.createJsonNode(updatedUser, getAllLinks(id), User.class));
     }
@@ -155,7 +179,8 @@ public class UserController {
         if(client == null) {
             return unauthorized();
         }
-        return redirect(controllers.routes.UserController.get(client.getId()));
+
+        return get(client.getId());
     }
 
     @Authentication({User.Role.ADMIN})
@@ -173,6 +198,10 @@ public class UserController {
         if(userToDelete == null) {
             return notFound();
         }
+
+        User client = SecurityController.getUser();
+        if (client.getId().equals(userToDelete.getId()))
+            return forbidden();
 
         // Delete the user
         userToDelete.delete();
@@ -235,9 +264,9 @@ public class UserController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", routes.UserController.get(id).url()));
-        links.add(new ControllerHelper.Link("getAuthToken", routes.UserController.getUserAuthToken(id).url()));
-        links.add(new ControllerHelper.Link("invalidateAuthToken", routes.UserController.invalidateAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.get(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("getAuthToken", controllers.routes.UserController.getUserAuthToken(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("invalidateAuthToken", controllers.routes.UserController.invalidateAuthToken(id).absoluteURL(request())));
         return links;
     }
 

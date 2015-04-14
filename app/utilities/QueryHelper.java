@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import play.db.ebean.Model;
 import play.libs.Json;
 
-import java.util.Map;
-
 import static play.mvc.Controller.request;
 
 /**
@@ -18,6 +16,10 @@ public class QueryHelper {
     private static final String ORDER = "order";
 
     public static <T extends Model> ExpressionList<T> buildQuery(Class<T> clazz , ExpressionList<T> exp) {
+        return buildQuery(clazz,exp,false);
+    }
+
+    public static <T extends Model> ExpressionList<T> buildQuery(Class<T> clazz , ExpressionList<T> exp, boolean ignorePage) {
         JsonNode model;
         try {
             model = Json.toJson(clazz.newInstance());
@@ -29,7 +31,7 @@ public class QueryHelper {
         int pageSize = getPageSize();
         boolean asc = isAsc();
 
-        for (Map.Entry<String,String[]> e : request().queryString().entrySet()) {
+        request().queryString().entrySet().stream().forEach(e -> {
             switch (e.getKey()) {
                 case "orderBy" :
                     exp.order().asc(e.getValue()[0]);
@@ -37,14 +39,16 @@ public class QueryHelper {
                         exp.order().reverse();
                     break;
                 case "page" :
-                    if (pageSize > 0)
+                    if (pageSize > 0 && !ignorePage)
                         exp.setFirstRow(pageSize * Integer.parseInt(e.getValue()[0])).setMaxRows(pageSize);
+                    break;
+                case "total" :
                     break;
                 default :
                     if (model.findValue(e.getKey()) != null)
                         exp.contains(e.getKey(), e.getValue()[0]);
             }
-        }
+        });
 
         return exp;
     }

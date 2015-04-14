@@ -24,6 +24,12 @@ public interface DroneControl {
      */
     Future<Void> land();
 
+    /**
+     *
+     * @return Promise whether the emergency was initiated
+     */
+    //Future<Void> emergency(); // @TODO
+
     /***
      * Moves the drone in a 3D plane
      * @param vx Pitch left/right between [-1;1]

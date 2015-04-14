@@ -1,15 +1,17 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.SecurityController;
 import controllers.routes;
 import exceptions.IncompatibleSystemException;
-import controllers.SecurityController;
 import models.User;
+import org.fest.assertions.Fail;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import play.libs.Json;
+import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
@@ -154,6 +156,28 @@ public class UserTest extends TestSuperclass {
         FakeRequest update = fakeRequest().withJsonBody(emptyNode);
         Result result = callAction(routes.ref.UserController.update(u.getId()), authorizeRequest(update, getAdmin()));
         assertThat(status(result)).isEqualTo(BAD_REQUEST);
+    }
+
+    @Test
+    public void updatePassword_AuthorizedRequest_UserUpdated() throws IncompatibleSystemException {
+
+        String email = "admin.userupdatepassword@user.tests.cros.com";
+        User u = new User(email, "password", "John", "Doe");
+        u.save();
+
+        // Send request to update this user
+        JsonNode data = JsonHelper.createJsonNode(u, User.class);
+        ObjectNode user = (ObjectNode) data.get("user");
+        String newPassword = "newPassword";
+        user.put("password", newPassword);
+
+        Result result = updateUser(u.getId(), data, getAdmin());
+        assertThat(status(result)).isEqualTo(OK);
+
+        // Check if update was executed
+        User loginUser = User.authenticate(email, newPassword);
+        assertThat(loginUser).isNotNull();
+        assertThat(loginUser.getId()).isEqualTo(u.getId());
     }
 
     @Test
@@ -387,15 +411,22 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
-    public void currentUser_AuthorizedRequest_Redirect() {
+    public void currentUser_AuthorizedRequest_Ok() {
 
         User user = new User("authorized.currentuser@user.tests.cros.com", "password", "John", "Doe");
         user.save();
 
         Result result = callAction(routes.ref.UserController.currentUser(),
                 authorizeRequest(fakeRequest(), user));
-        assertThat(status(result)).isEqualTo(SEE_OTHER);
-        assertThat(redirectLocation(result)).isEqualTo(controllers.routes.UserController.get(user.getId()).url());
+        assertThat(status(result)).isEqualTo(Http.Status.OK);
+
+        try {
+            JsonNode responseJson = JsonHelper.removeRootElement(Json.parse(contentAsString(result)), User.class, false);
+            assertThat(Json.fromJson(responseJson, User.class)).isEqualTo(user);
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Fail.fail(e.getMessage());
+        }
     }
 
     @Test
@@ -423,5 +454,18 @@ public class UserTest extends TestSuperclass {
         List<User> allUsers = User.FIND.all();
         assertThat(allUsers).hasSize(1);
         assertThat(allUsers).contains(getAdmin()); // Equality check
+    }
+
+    @Test
+    public void total_UsersInDatabase_TotalIsCorrect() {
+        int correctTotal = User.FIND.all().size();
+        Result r = callAction(routes.ref.UserController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), User.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
     }
 }
