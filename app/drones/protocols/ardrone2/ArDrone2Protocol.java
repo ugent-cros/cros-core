@@ -117,7 +117,7 @@ public class ArDrone2Protocol extends UntypedActor {
 
     private void handleMaxTilt(SetMaxTiltCommand s) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.CONTROL_EULER_ANGLE_MAX,
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_EULER_ANGLE_MAX,
                 Float.toString(s.getDegrees()))));
     }
 
@@ -175,17 +175,17 @@ public class ArDrone2Protocol extends UntypedActor {
         // Set the sessions
         // Set the configuration IDs
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.CUSTOM_SESSION_ID, ARDRONE_SESSION_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CUSTOM_SESSION_ID, ARDRONE_SESSION_ID)));
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.CUSTOM_PROFILE_ID, ARDRONE_PROFILE_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CUSTOM_PROFILE_ID, ARDRONE_PROFILE_ID)));
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKeys.CUSTOM_APPLICATION_ID, ARDRONE_APPLOCATION_ID)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CUSTOM_APPLICATION_ID, ARDRONE_APPLOCATION_ID)));
 
         sendData(PacketCreator.createPacket(new ATCommandCOMWDG(seq++)));
 
         // 3m max height
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.CONTROL_ALTITUDE_MAX, "3000")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.CONTROL_ALTITUDE_MAX, "3000")));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -208,13 +208,13 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleSetHull(boolean hull) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                ConfigKeys.CONTROL_FLIGHT_WITHOUT_SHELL, Boolean.toString(!hull).toUpperCase())));
+                ConfigKey.CONTROL_FLIGHT_WITHOUT_SHELL, Boolean.toString(!hull).toUpperCase())));
     }
 
     private void handleSetMaxHeight(float meters) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                ConfigKeys.CONTROL_ALTITUDE_MAX, Integer.toString(Math.round(meters * 1000)))));
+                ConfigKey.CONTROL_ALTITUDE_MAX, Integer.toString(Math.round(meters * 1000)))));
     }
 
     private void handleMove(MoveCommand s) {
@@ -243,11 +243,11 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleOutdoor(SetOutdoorCommand cmd) {
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                ConfigKeys.CONTROL_OUTDOOR, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
+                ConfigKey.CONTROL_OUTDOOR, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
 
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                ConfigKeys.CONTROL_FLIGHT_WITHOUT_SHELL, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
+                ConfigKey.CONTROL_FLIGHT_WITHOUT_SHELL, Boolean.toString(cmd.isOutdoor()).toUpperCase())));
     }
 
     private ATCommandCONFIGIDS createConfigIDS(int seq) {
@@ -278,7 +278,7 @@ public class ArDrone2Protocol extends UntypedActor {
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKeys.GEN_NAVDATA_DEMO, "FALSE")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.GEN_NAVDATA_DEMO, "FALSE")));
         // Send ACK
         sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
     }

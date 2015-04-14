@@ -14,11 +14,8 @@ import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import static drones.protocols.ardrone2.ConfigKeys.*;
 
 /**
  * Created by brecht on 4/6/15.
@@ -36,9 +33,6 @@ public class ArDrone2Config extends UntypedActor {
 
     // Starting key-pair value for config file
     private static final String CONFIG_START_VALUE = "general:num_version_config=1\n";
-    // Config keys for switch case
-    private static final String CONFIG_GEN_VERSION_SOFT = "general:num_version_soft";
-    private static final String CONFIG_GEN_VERSION_MB = "general:num_version_mb";
 
     public ArDrone2Config(DroneConnectionDetails details, final ActorRef listener, final ActorRef parent) {
         // ArDrone 2 Model
@@ -115,11 +109,11 @@ public class ArDrone2Config extends UntypedActor {
                 key = configPair[0];
                 value = configPair[1];
 
-                switch(key) {
-                    case CONFIG_GEN_VERSION_SOFT:
+                switch(getConfigValue(key)) {
+                    case GEN_NUM_VERSION_SOFT:
                         softwareVersion = value;
                         break;
-                    case CONFIG_GEN_VERSION_MB:
+                    case GEN_NUM_VERSION_MB:
                         hardwareVersion = value;
                         break;
                 }
@@ -133,5 +127,16 @@ public class ArDrone2Config extends UntypedActor {
         listener.tell(versionMessage, getSelf());
 
         log.info(data);
+    }
+
+    private ConfigKey getConfigValue(String configValue) {
+        for(ConfigKey key : ConfigKey.values()) {
+            if(key.getKey().equals(configValue)) {
+                return key;
+            }
+        }
+
+        log.error("Wrong config key received");
+        return null;
     }
 }
