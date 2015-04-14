@@ -5,13 +5,13 @@ package drones.models.scheduler.messages;
  */
 public class AssignmentCancelledMessage {
 
-    private Long assignmentId;
+    private long assignmentId;
 
-    public AssignmentCancelledMessage(Long assignmentId) {
+    public AssignmentCancelledMessage(long assignmentId) {
         this.assignmentId = assignmentId;
     }
 
-    public Long getAssignmentId() {
+    public long getAssignmentId() {
         return assignmentId;
     }
 }

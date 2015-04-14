@@ -5,13 +5,13 @@ package drones.models.scheduler.messages;
  */
 public class DroneRemovedMessage {
 
-    private Long droneId;
+    private long droneId;
 
-    public DroneRemovedMessage(Long droneId){
+    public DroneRemovedMessage(long droneId){
         this.droneId = droneId;
     }
 
-    public Long getDroneId() {
+    public long getDroneId() {
         return droneId;
     }
 }
