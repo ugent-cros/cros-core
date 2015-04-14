@@ -39,14 +39,14 @@ public class Checkpoint extends Model {
         this(0,0,0);
     }
 
-    public Checkpoint (double longitude, double lattitude, double altitude){
+    public Checkpoint (double latitude, double longitude, double altitude){
 
-        this(longitude, lattitude, altitude, 0);
+        this(latitude, longitude, altitude, 0);
     }
 
-    public Checkpoint (double longitude, double lattitude, double altitude, int waitingTime){
+    public Checkpoint (double latitude, double longitude, double altitude, int waitingTime){
 
-        this.setLocation(new Location(longitude, lattitude, altitude));
+        this.setLocation(new Location(latitude, longitude, altitude));
         this.waitingTime = waitingTime;
     }
 
