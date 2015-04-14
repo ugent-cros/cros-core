@@ -146,4 +146,17 @@ public class AssignmentControllerTest extends TestSuperclass {
                 checkpoint.getId().equals(checkpointToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);*/
     }
+
+    @Test
+    public void total_AssignmentsInDatabase_TotalIsCorrect() {
+        int correctTotal = Assignment.FIND.all().size();
+        Result r = callAction(routes.ref.AssignmentController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), Assignment.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
+    }
 }

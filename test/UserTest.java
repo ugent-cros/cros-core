@@ -455,4 +455,17 @@ public class UserTest extends TestSuperclass {
         assertThat(allUsers).hasSize(1);
         assertThat(allUsers).contains(getAdmin()); // Equality check
     }
+
+    @Test
+    public void total_UsersInDatabase_TotalIsCorrect() {
+        int correctTotal = User.FIND.all().size();
+        Result r = callAction(routes.ref.UserController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), User.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
+    }
 }

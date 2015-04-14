@@ -2,7 +2,6 @@ import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import controllers.routes;
 import models.Basestation;
-import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -143,5 +142,18 @@ public class BasestationTest extends TestSuperclass {
 
         long amount = Basestation.FIND.all().stream().filter(d -> d.getId().equals(basestationToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
+    }
+
+    @Test
+    public void total_BasestationsInDatabase_TotalIsCorrect() {
+        int correctTotal = Basestation.FIND.all().size();
+        Result r = callAction(routes.ref.BasestationController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), Basestation.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
     }
 }
