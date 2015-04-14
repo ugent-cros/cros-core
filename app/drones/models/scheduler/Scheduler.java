@@ -59,7 +59,7 @@ public abstract class Scheduler extends AbstractActor {
     public static void stop() throws SchedulerException {
         synchronized (lock) {
             if (scheduler != null) {
-                if (scheduler.isTerminated()) {
+                if (!scheduler.isTerminated()) {
                     Akka.system().stop(scheduler);
                 }
                 scheduler = null;
