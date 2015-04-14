@@ -30,7 +30,7 @@ public class UserController {
 
     private static ObjectMapper jsonMapper = new ObjectMapper();
 
-    public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.getAll().url());
+    public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.getAll().absoluteURL(request()));
 
     private static Form<User> form = Form.form(User.class);
     private static final String PASSWORD_FIELD_KEY = "password";
@@ -40,13 +40,13 @@ public class UserController {
         ExpressionList<User> exp = QueryHelper.buildQuery(User.class, User.FIND.where());
 
         List<JsonHelper.Tuple> tuples = exp.findList().stream().map(user -> new JsonHelper.Tuple(user, new ControllerHelper.Link("self",
-                controllers.routes.UserController.get(user.getId()).url()))).collect(Collectors.toList());
+                controllers.routes.UserController.get(user.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().url()));
-        links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().url()));
-        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.UserController.getTotal().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("me", controllers.routes.UserController.currentUser().absoluteURL(request())));
 
         try {
 
@@ -254,9 +254,9 @@ public class UserController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.get(id).url()));
-        links.add(new ControllerHelper.Link("getAuthToken", controllers.routes.UserController.getUserAuthToken(id).url()));
-        links.add(new ControllerHelper.Link("invalidateAuthToken", controllers.routes.UserController.invalidateAuthToken(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.UserController.get(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("getAuthToken", controllers.routes.UserController.getUserAuthToken(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("invalidateAuthToken", controllers.routes.UserController.invalidateAuthToken(id).absoluteURL(request())));
         return links;
     }
 

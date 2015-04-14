@@ -39,13 +39,13 @@ public class DroneController {
         ExpressionList<Drone> exp = QueryHelper.buildQuery(Drone.class, Drone.FIND.where(),false);
 
         List<JsonHelper.Tuple> tuples = exp.findList().stream().map(drone -> new JsonHelper.Tuple(drone, new ControllerHelper.Link("self",
-                controllers.routes.DroneController.get(drone.getId()).url()))).collect(Collectors.toList());
+                controllers.routes.DroneController.get(drone.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("total", controllers.routes.DroneController.getTotal().url()));
-        links.add(new ControllerHelper.Link("types", controllers.routes.DroneController.getSuportedTypes().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.DroneController.getTotal().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("types", controllers.routes.DroneController.getSuportedTypes().absoluteURL(request())));
 
         try {
             JsonNode result = JsonHelper.createJsonNode(tuples, links, Drone.class);
@@ -255,15 +255,15 @@ public class DroneController {
     private static final List<ControllerHelper.Link> getAllLinks(long id) {
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).url()));
-        links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).url()));
-        links.add(new ControllerHelper.Link("battery", controllers.routes.DroneController.battery(id).url()));
-        links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).url()));
-        links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).url()));
-        links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).url()));
-        links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).url()));
-        links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).url()));
-        links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("battery", controllers.routes.DroneController.battery(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("cameraCapture", controllers.routes.DroneController.cameraCapture(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("emergency", controllers.routes.DroneController.emergency(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("location", controllers.routes.DroneController.location(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).absoluteURL(request())));
         return links;
     }
 
