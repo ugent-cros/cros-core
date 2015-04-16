@@ -141,7 +141,7 @@ public class DroneController {
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
-            Location l = new Location(v.getLongitude(),v.getLatitude(), altitude);
+            Location l = new Location(v.getLatitude(),v.getLongitude(), altitude);
             JsonNode node = JsonHelper.addRootElement(Json.toJson(l), Location.class);
             return ok(JsonHelper.addRootElement(node, Drone.class));
         }));

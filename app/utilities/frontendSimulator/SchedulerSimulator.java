@@ -28,12 +28,12 @@ public class SchedulerSimulator implements Runnable {
         try {
             availableDrone = Drone.FIND.where().eq("status", Drone.Status.AVAILABLE).findList().get(0);
             while (run) {
-                List<Assignment> all = Assignment.FIND.all();
                 List<Assignment> found = Assignment.FIND.where().eq("progress", -1).findList();
                 while (found.isEmpty() && run) {
                     found = Assignment.FIND.where().eq("progress", -1).findList();
                 }
-                if(found.size() + counter > all.size())
+                int amount = Assignment.FIND.findRowCount();
+                if(found.size() + counter > amount)
                     throw new RuntimeException("InitDB detected");
                 Thread.sleep(5000);
                 for(int i = 0; i < found.size() && run; ++i) {
