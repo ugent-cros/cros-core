@@ -18,7 +18,7 @@ import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
-import utilities.TestWebSocket;
+import utilities.frontendSimulator.NotificationSimulator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +88,7 @@ public class Application extends Controller {
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();*/
 
-        new Basestation("testing", 51.025167, 3.711123,7.0).save();
+        new Basestation("testing", 51.020144, 3.709384, 3).save();
 
         return ok();
     }
@@ -129,7 +129,7 @@ public class Application extends Controller {
 
         User u = models.User.findByAuthToken(tokens[0]);
         if (u != null) {
-            return WebSocket.withActor(TestWebSocket::props); // TODO: checking roles and filtering
+            return WebSocket.withActor(NotificationSimulator::props);
         } else {
             return WebSocket.reject(unauthorized());
         }
