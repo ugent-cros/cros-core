@@ -19,13 +19,15 @@ public class NotificationSimulator extends UntypedActor {
         return Props.create(NotificationSimulator.class, out);
     }
     private final ActorRef out;
-    private SchedulerSimulator sheduler = null;
-    private Thread thread = null;
+    private static SchedulerSimulator sheduler = null;
+    private static Thread thread = null;
 
     public NotificationSimulator(ActorRef out) {
         this.out = out;
 
         sheduler = new SchedulerSimulator(this);
+        if(thread != null && thread.isAlive())
+            thread.interrupt();
         thread = new Thread(sheduler);
         thread.start();
     }

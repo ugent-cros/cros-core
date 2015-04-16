@@ -1,13 +1,8 @@
 package utilities.frontendSimulator;
 
-import drones.messages.AssignmentCompletedMessage;
-import drones.messages.AssignmentProgressChangedMessage;
-import drones.messages.AssignmentStartedMessage;
-import drones.messages.LocationChangedMessage;
+import drones.messages.*;
 import models.*;
-import play.Logger;
 
-import javax.persistence.PersistenceException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +28,9 @@ public class AssignmentSimulator implements Runnable {
     public void run() {
         try {
             assignment = initAssigment(assignment);
+            notificationSimulator.sendMessage("droneAssigned", assignment.getId(),
+                    new DroneAssignedMessage(drone.getId()));
+            Thread.sleep(2000);
             Checkpoint currentCheckpoint = assignment.getRoute().get(assignment.getProgress());
             Location currentLocation = currentCheckpoint.getLocation();
             notificationSimulator.sendMessage("locationChanged", drone.getId(),
@@ -59,13 +57,13 @@ public class AssignmentSimulator implements Runnable {
                 simulateNextLocationReached(currentLocation);
             }
         } catch(Exception ex) {
-            Logger.error("An error occured in the sheduler thread, most likely due to initDB during execution.", ex);
+            // An error occured in the assignments thread, most likely due to initDB during execution
             // Try to make drone available again if possible
             run = false;
             try {
                 drone.setStatus(Drone.Status.AVAILABLE);
                 drone.update();
-            } catch(PersistenceException e) {
+            } catch(Exception e) {
                 // Drone no longer available after initDB
             }
         }

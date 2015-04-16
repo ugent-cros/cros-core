@@ -1,6 +1,5 @@
 package utilities.frontendSimulator;
 
-import drones.messages.DroneAssignedMessage;
 import models.Assignment;
 import models.Drone;
 import play.Logger;
@@ -15,28 +14,30 @@ import java.util.concurrent.Executors;
 public class SchedulerSimulator implements Runnable {
     private boolean run = true;
     private NotificationSimulator notificationSimulator;
-    private static final ExecutorService pool =     Executors.newFixedThreadPool(10);
+    private ExecutorService pool = null;
+    private Drone availableDrone = null;
+    private int counter = 0;
 
     public SchedulerSimulator(NotificationSimulator notificationSimulator) {
         this.notificationSimulator = notificationSimulator;
-
     }
 
     @Override
     public void run() {
+        pool = Executors.newFixedThreadPool(10);
         try {
-            Drone availableDrone = Drone.FIND.where().eq("status", Drone.Status.AVAILABLE).findList().get(0);
+            availableDrone = Drone.FIND.where().eq("status", Drone.Status.AVAILABLE).findList().get(0);
             while (run) {
+                List<Assignment> all = Assignment.FIND.all();
                 List<Assignment> found = Assignment.FIND.where().eq("progress", -1).findList();
                 while (found.isEmpty() && run) {
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        Logger.error(e.getMessage(), e);
-                    }
                     found = Assignment.FIND.where().eq("progress", -1).findList();
                 }
+                if(found.size() + counter > all.size())
+                    throw new RuntimeException("InitDB detected");
+                Thread.sleep(5000);
                 for(int i = 0; i < found.size() && run; ++i) {
+                    counter++;
                     Assignment assignment = found.get(i);
                     while (availableDrone == null && run) {
                         try {
@@ -54,17 +55,23 @@ public class SchedulerSimulator implements Runnable {
                         assignment.setAssignedDrone(availableDrone);
                         assignment.setProgress(0);
                         assignment.update();
-                        notificationSimulator.sendMessage("droneAssigned", assignment.getId(),
-                                new DroneAssignedMessage(availableDrone.getId()));
                         pool.execute((new AssignmentSimulator(assignment, availableDrone, notificationSimulator)));
                         availableDrone = null;
                     }
                 }
             }
         } catch(Exception ex) {
-            Logger.error("An error occured in the sheduler thread, most likely due to initDB during execution.", ex);
-            run = false;
+            // An error occured in the assignments thread, most likely due to initDB during execution
             pool.shutdownNow();
+            run = false;
+            if(availableDrone != null) {
+                try {
+                    availableDrone.setStatus(Drone.Status.AVAILABLE);
+                    availableDrone.update();
+                } catch(Exception e) {
+                    // Attempt to reset drone failed
+                }
+            }
         }
     }
 }
