@@ -14,7 +14,6 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.commands.MoveCommand;
 import drones.messages.*;
 import drones.util.LocationNavigator;
-import org.springframework.context.annotation.Lazy;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -399,6 +398,7 @@ public abstract class DroneActor extends AbstractActor {
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
 
+            /*
             synchronized(navigationLock){
                 if(navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
                     v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
@@ -417,9 +417,10 @@ public abstract class DroneActor extends AbstractActor {
                     v.success(null);
                 }
             }
+            */
 
             // Old movetohome code:
-            //moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         }
     }
 
