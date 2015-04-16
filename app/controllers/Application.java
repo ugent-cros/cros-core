@@ -97,11 +97,9 @@ public class Application extends Controller {
         } else {
             droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE, ip);
         }
-
         droneEntity.save();
 
-        DroneCommander d = Fleet.getFleet().createCommanderForDrone(droneEntity);
-        return F.Promise.wrap(d.init()).map(v -> {
+        return F.Promise.wrap(Fleet.getFleet().createCommanderForDrone(droneEntity)).map(d -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             result.put("id", droneEntity.getId());

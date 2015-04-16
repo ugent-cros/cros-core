@@ -103,16 +103,17 @@ public class Fleet {
         // Create commander
         ActorRef droneActor = Akka.system().actorOf(
                 Props.create(driver.getActorClass(),
-                        () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor/%d", droneEntity.getId()));
+                        () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
         DroneCommander commander = new DroneCommander(droneActor);
-        return commander.init().map(v -> {
-                    drones.put(droneEntity.getId(), commander);
-                    return commander;
-                }, Akka.system().dispatcher()
-        );
+        return commander.init().map(new Mapper<Void, DroneCommander>() {
+            public DroneCommander apply(Void s) {
+                drones.put(droneEntity.getId(), commander);
+                return commander;
+            }
+        }, Akka.system().dispatcher());
     }
 
-    public boolean hasCommander(Drone droneEntity){
+    public boolean hasCommander(Drone droneEntity) {
         return drones.containsKey(droneEntity.getId());
     }
 
