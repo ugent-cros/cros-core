@@ -85,24 +85,25 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     @BodyParser.Of(BodyParser.Json.class)
-    public static Result create() {
+    public static F.Promise<Result> create() {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             play.Logger.debug(ex.getMessage(), ex);
-            return badRequest(ex.getMessage());
+            return F.Promise.pure(badRequest(ex.getMessage()));
         }
         Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
 
         if (form.hasErrors())
-            return badRequest(form.errorsAsJson());
+            return F.Promise.pure(badRequest(form.errorsAsJson()));
 
         Drone drone = form.get();
         drone.save();
 
-        return created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class));
+        DroneCommander d = Fleet.getFleet().createCommanderForDrone(drone);
+        return F.Promise.wrap(d.init()).map(v -> created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN})
