@@ -7,7 +7,7 @@ import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.DroneArrivalMessage;
 import drones.simulation.BepopSimulator;
 import models.Checkpoint;
 import org.junit.AfterClass;

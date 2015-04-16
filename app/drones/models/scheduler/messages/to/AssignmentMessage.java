@@ -1,4 +1,4 @@
-package drones.models.scheduler.messages;
+package drones.models.scheduler.messages.to;
 
 import models.Assignment;
 

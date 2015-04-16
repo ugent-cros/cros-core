@@ -7,7 +7,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.models.scheduler.messages.*;
+import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Drone;
 import play.libs.Akka;
@@ -22,20 +22,16 @@ Class to schedule assignments.
 public abstract class Scheduler extends AbstractActor {
 
 
-    protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    protected SchedulerEventBus eventBus;
-    private static ActorRef scheduler;
-    private static Object lock = new Object();
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // STATIC METHODS TO COMMUNICATE WITH THE SCHEDULER EASILY
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    protected Scheduler() {
-        //Receive behaviour
-        eventBus = new SchedulerEventBus();
-        UnitPFBuilder<Object> builder = initReceivers();
-        builder.matchAny(m -> log.warning("[Scheduler] Received unknown message: [{}]", m.getClass().getName()));
-        receive(builder.build());
-    }
-
-
+    /**
+     * Receive an actor reference for the scheduler.
+     * At one time, there can only be one scheduler.
+     * @return an ActorRef for the scheduler.
+     * @throws SchedulerException
+     */
     public static ActorRef getScheduler() throws SchedulerException {
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
@@ -46,6 +42,12 @@ public abstract class Scheduler extends AbstractActor {
         }
     }
 
+    /**
+     * Start the scheduler.
+     * This will create an new actor for the scheduler if there isn't one yet.
+     * @param type  the type of scheduler to be used, has to be a subclass of Scheduler
+     * @throws SchedulerException
+     */
     public static void start(Class<? extends Scheduler> type) throws SchedulerException {
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
@@ -56,11 +58,16 @@ public abstract class Scheduler extends AbstractActor {
         }
     }
 
+    /**
+     * Stop the scheduler.
+     * This will tell the scheduler to cancel all flights safely.
+     * @throws SchedulerException
+     */
     public static void stop() throws SchedulerException {
         synchronized (lock) {
             if (scheduler != null) {
                 if (!scheduler.isTerminated()) {
-                    Akka.system().stop(scheduler);
+                    scheduler.tell(new StopSchedulerMessage(), ActorRef.noSender());
                 }
                 scheduler = null;
             } else {
@@ -93,6 +100,56 @@ public abstract class Scheduler extends AbstractActor {
         publisher.tell(message,subscriber);
     }
 
+    /**
+     * Force the scheduler to start scheduling
+     * @throws SchedulerException
+     */
+    public static void schedule() throws SchedulerException{
+        getScheduler().tell(new ScheduleMessage(), ActorRef.noSender());
+    }
+
+    /**
+     * Cancel an assignment safely.
+     * @param assignmentId id of the assignment to cancel.
+     * @throws SchedulerException
+     */
+    public static void cancelAssignment(long assignmentId) throws SchedulerException{
+        getScheduler().tell(new CancelAssignmentMessage(assignmentId), ActorRef.noSender());
+    }
+
+    /**
+     * Provide a new drone to the scheduler to assign assignments.
+     * @param droneId id of the drone to add to the pool
+     * @throws SchedulerException
+     */
+    public static void addDrone(long droneId) throws SchedulerException{
+        getScheduler().tell(new AddDroneMessage(droneId),ActorRef.noSender());
+    }
+
+    /**
+     * Prohibit the scheduler from using a particular drone for assignments.
+     * @param droneId id of the drone to be removed from the active pool
+     * @throws SchedulerException
+     */
+    public static void removeDrone(long droneId) throws SchedulerException{
+        getScheduler().tell(new RemoveDroneMessage(droneId), ActorRef.noSender());
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    protected SchedulerEventBus eventBus;
+    private static ActorRef scheduler;
+    private static Object lock = new Object();
+
+    protected Scheduler() {
+        //Receive behaviour
+        eventBus = new SchedulerEventBus();
+        UnitPFBuilder<Object> builder = initReceivers();
+        builder.matchAny(m -> log.warning("[Scheduler] Received unknown message: [{}]", m.getClass().getName()));
+        receive(builder.build());
+    }
+
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder.
                 match(ScheduleMessage.class,
@@ -114,7 +171,6 @@ public abstract class Scheduler extends AbstractActor {
 
     /**
      * Updates the dispatch in the database.
-     *
      * @param drone      dispatched drone
      * @param assignment assigned assignment
      */
@@ -129,11 +185,10 @@ public abstract class Scheduler extends AbstractActor {
 
     /**
      * Updates the arrival of a drone in the database
-     *
      * @param drone      drone that arrived
      * @param assignment assignment that has been completed by arrival
      */
-    protected void relieve(Drone drone, Assignment assignment) {
+    protected void unassign(Drone drone, Assignment assignment) {
         // Update drone
         if (drone.getStatus() == Drone.Status.UNAVAILABLE) {
             // Set state available again if possible
@@ -142,7 +197,6 @@ public abstract class Scheduler extends AbstractActor {
         }
         // Update assignment
         assignment.setAssignedDrone(null);
-        assignment.setProgress(100);
         assignment.update();
     }
 

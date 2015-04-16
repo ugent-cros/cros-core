@@ -10,9 +10,8 @@ import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.DroneArrivalMessage;
 import models.Checkpoint;
-import models.Drone;
 
 /**
  * Created by Sander on 18/03/2015.

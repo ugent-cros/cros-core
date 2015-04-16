@@ -1,55 +1,41 @@
 package drones.models.scheduler;
 
-import akka.actor.Cancellable;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.scheduler.messages.*;
+import drones.models.scheduler.messages.to.AddDroneMessage;
+import drones.models.scheduler.messages.to.CancelAssignmentMessage;
+import drones.models.scheduler.messages.to.RemoveDroneMessage;
+import drones.models.scheduler.messages.to.ScheduleMessage;
 import models.*;
 import scala.concurrent.Await;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 10/04/2015.
  */
 public class AdvancedScheduler extends SimpleScheduler implements Comparator<Assignment>{
 
-    private static final FiniteDuration SCHEDULE_INTERVAL = Duration.create(3, TimeUnit.SECONDS);
-    private Cancellable scheduleTimer;
     private Set<Long> dronePool = new HashSet<>();
     private Map<Long, Flight> flights = new HashMap<>();
+    private Set<Long> assignments = new HashSet<>();
 
     public AdvancedScheduler() {
         queue = new PriorityQueue<>(MAX_QUEUE_SIZE,this);
-        // Program the Akka Scheduler to continuously send ScheduleMessages.
-        scheduleTimer = context().system().scheduler().schedule(
-                Duration.Zero(),
-                SCHEDULE_INTERVAL,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        self().tell(new ScheduleMessage(), self());
-                    }
-                },
-                context().system().dispatcher()
-        );
     }
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
         // TODO: add more receivers
         return super.initReceivers().
-                match(AssignmentCancelledMessage.class,
+                match(CancelAssignmentMessage.class,
                         m -> cancelAssignment(m.getAssignmentId())
                 ).
-                match(DroneAddedMessage.class,
+                match(AddDroneMessage.class,
                         m-> addDrone(m.getDroneId())
                 ).
-                match(DroneRemovedMessage.class,
+                match(RemoveDroneMessage.class,
                         m-> removeDrone(m.getDroneId())
                 );
     }

@@ -9,10 +9,10 @@ import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
-import drones.models.scheduler.messages.AssignmentMessage;
-import drones.models.scheduler.messages.DroneArrivalMessage;
-import drones.models.scheduler.messages.DroneBatteryMessage;
-import drones.models.scheduler.messages.ScheduleMessage;
+import drones.models.scheduler.messages.to.AssignmentMessage;
+import drones.models.scheduler.messages.to.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.DroneBatteryMessage;
+import drones.models.scheduler.messages.to.ScheduleMessage;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
@@ -72,7 +72,7 @@ public class SimpleScheduler extends Scheduler {
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
-        relieve(drone, assignment);
+        unassign(drone, assignment);
 
         // Start scheduling again
         schedule(null);
@@ -145,7 +145,7 @@ public class SimpleScheduler extends Scheduler {
         // Fetch 'count' first assignments with progress = 0, ordered by Id
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("progress", 0);
+        query.where().eq("scheduled", true);
         query.orderBy("id");
         List<Assignment> assignments = query.findList();
 
@@ -153,7 +153,7 @@ public class SimpleScheduler extends Scheduler {
         for (Assignment assignment : assignments) {
             queue.add(assignment);
             // Progress = 1 means assignment is added to scheduler queue
-            assignment.setProgress(1);
+            assignment.setScheduled(true);
             assignment.update();
         }
 

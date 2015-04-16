@@ -1,13 +1,13 @@
-package drones.models.scheduler.messages;
+package drones.models.scheduler.messages.to;
 
 /**
  * Created by Ronald on 13/04/2015.
  */
-public class AssignmentCancelledMessage {
+public class CancelAssignmentMessage {
 
     private long assignmentId;
 
-    public AssignmentCancelledMessage(long assignmentId) {
+    public CancelAssignmentMessage(long assignmentId) {
         this.assignmentId = assignmentId;
     }
 

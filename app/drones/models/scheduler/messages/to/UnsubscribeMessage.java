@@ -1,13 +1,13 @@
-package drones.models.scheduler.messages;
+package drones.models.scheduler.messages.to;
 
 /**
  * Created by Ronald on 13/04/2015.
  */
-public class SubscribeMessage {
+public class UnsubscribeMessage {
 
     private Class messageType;
 
-    public SubscribeMessage(Class messageType) {
+    public UnsubscribeMessage(Class messageType) {
         this.messageType = messageType;
     }
 

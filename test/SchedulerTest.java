@@ -1,22 +1,13 @@
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
-import com.avaje.ebean.Ebean;
-import drones.models.DroneException;
-import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
-import drones.models.scheduler.messages.AssignmentMessage;
+import drones.models.scheduler.messages.to.AssignmentMessage;
 import drones.simulation.SimulatorDriver;
 import models.Assignment;
 import models.Drone;
-import models.DroneType;
 import org.junit.*;
-
-import scala.concurrent.duration.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 6/04/2015.
