@@ -57,7 +57,7 @@ public class AssignmentSimulator implements Runnable {
                 simulateNextLocationReached(currentLocation);
             }
         } catch(Exception ex) {
-            // An error occured in the assignments thread, most likely due to initDB during execution
+            // An error occured in the assignments thread, most likely due to initDB during execution.
             // Try to make drone available again if possible
             run = false;
             try {

@@ -28,11 +28,11 @@ public class SchedulerSimulator implements Runnable {
         try {
             availableDrone = Drone.FIND.where().eq("status", Drone.Status.AVAILABLE).findList().get(0);
             while (run) {
-                List<Assignment> all = Assignment.FIND.all();
                 List<Assignment> found = Assignment.FIND.where().eq("progress", -1).findList();
                 while (found.isEmpty() && run) {
                     found = Assignment.FIND.where().eq("progress", -1).findList();
                 }
+                List<Assignment> all = Assignment.FIND.all();
                 if(found.size() + counter > all.size())
                     throw new RuntimeException("InitDB detected");
                 Thread.sleep(5000);
@@ -61,7 +61,7 @@ public class SchedulerSimulator implements Runnable {
                 }
             }
         } catch(Exception ex) {
-            // An error occured in the assignments thread, most likely due to initDB during execution
+            // An error occured in the sheduler thread, most likely due to initDB during execution.
             pool.shutdownNow();
             run = false;
             if(availableDrone != null) {
