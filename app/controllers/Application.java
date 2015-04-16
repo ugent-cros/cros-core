@@ -52,8 +52,8 @@ public class Application extends Controller {
     }
 
     public static Result initDb() throws InterruptedException, TimeoutException {
-        Drone.FIND.all().forEach(d -> d.delete());
         Assignment.FIND.all().forEach(d -> d.delete());
+        Drone.FIND.all().forEach(d -> d.delete());
         User.FIND.all().forEach(d -> d.delete());
         Basestation.FIND.all().forEach(d -> d.delete());
 
