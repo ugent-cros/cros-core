@@ -85,7 +85,7 @@ public class Application extends Controller {
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
 
-        new Basestation("testing", 3.709384, 51.020144, 3).save();
+        new Basestation("testing", 51.020144, 3.709384, 3).save();
 
         return ok();
     }

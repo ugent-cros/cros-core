@@ -39,7 +39,6 @@ public class Basestation extends Model {
     private Location location;
 
     public Basestation(String name, double longitude, double latitude, double altitude){
-
         this.setLocation(new Location(longitude, latitude, altitude));
         this.name = name;
     }

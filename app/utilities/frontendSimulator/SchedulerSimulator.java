@@ -64,6 +64,7 @@ public class SchedulerSimulator implements Runnable {
         } catch(Exception ex) {
             Logger.error("An error occured in the sheduler thread, most likely due to initDB during execution.", ex);
             run = false;
+            pool.shutdownNow();
         }
     }
 }

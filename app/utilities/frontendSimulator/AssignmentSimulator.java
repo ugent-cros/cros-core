@@ -75,7 +75,7 @@ public class AssignmentSimulator implements Runnable {
         // Prepend the default basestation
         Location location = basestation.getLocation();
         assignment.getRoute().add(0, new Checkpoint(
-            location.getLatitude(), location.getLongitude(), location.getAltitude()));
+            location.getLongitude(), location.getLatitude(), location.getAltitude()));
         List<Checkpoint> route = assignment.getRoute().stream().map(c -> new Checkpoint(c.getLocation().getLongitude(),
                 c.getLocation().getLatitude(), c.getLocation().getAltitude(), c.getWaitingTime())).collect(Collectors.toList());
         Assignment extendedAssignment = new Assignment(route, assignment.getCreator());
