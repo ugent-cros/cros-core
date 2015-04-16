@@ -52,7 +52,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public DroneActor() {
-        eventBus = new DroneEventBus();
+        eventBus = new DroneEventBus(self());
         navigationLock = new Object();
 
         batteryPercentage = new LazyProperty<>();
