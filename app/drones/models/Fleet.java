@@ -5,7 +5,7 @@ import akka.actor.Props;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnSuccess;
 import akka.util.Timeout;
-import drones.messages.PingMessage;
+import drones.messages.*;
 import drones.protocols.ICMPPing;
 import drones.simulation.SimulatorDriver;
 import models.Drone;
@@ -74,8 +74,11 @@ public class Fleet {
 
     private ConcurrentMap<Long, DroneCommander> drones;
 
+    private ActorRef fleetBus;
+
     public Fleet() {
         drones = new ConcurrentHashMap<>();
+        fleetBus =  Akka.system().actorOf(Props.create(BroadcastBus.class), "fleetbus");
     }
 
     private ActorRef pinger;
@@ -95,6 +98,33 @@ public class Fleet {
                 }, Akka.system().dispatcher());
     }
 
+    private void registerFleetBus(DroneCommander cmd){
+        cmd.subscribeTopics(fleetBus, new Class[] {
+                LocationChangedMessage.class,
+                BatteryPercentageChangedMessage.class,
+                ConnectionStatusChangedMessage.class,
+                FlyingStateChangedMessage.class,
+                NavigationStateChangedMessage.class,
+                AltitudeChangedMessage.class
+        });
+    }
+
+    /**
+     * Subscribe to all messages of the fleet
+     * @param actor The actor to forward all messages to
+     */
+    public void subscribe(final ActorRef actor){
+        fleetBus.tell(new SubscribeEventMessage(), actor);
+    }
+
+    /**
+     * Unsubscribe to all messages of the fleet
+     * @param actor The actor to unsubscribe
+     */
+    public void unsubscribe(final ActorRef actor){
+        fleetBus.tell(new UnsubscribeEventMessage(), actor);
+    }
+
     public Future<DroneCommander> createCommanderForDrone(Drone droneEntity) {
         DroneDriver driver = getDriver(droneEntity.getDroneType());
         if (driver == null)
@@ -107,6 +137,7 @@ public class Fleet {
         DroneCommander commander = new DroneCommander(droneActor);
         return commander.init().map(new Mapper<Void, DroneCommander>() {
             public DroneCommander apply(Void s) {
+                registerFleetBus(commander);
                 drones.put(droneEntity.getId(), commander);
                 return commander;
             }
