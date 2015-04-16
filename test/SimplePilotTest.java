@@ -45,8 +45,8 @@ public class SimplePilotTest extends TestSuperclass {
 
     public SimplePilotTest() {
         wayPoints = new ArrayList<>();
-        wayPoints.add(new Checkpoint(3.72, 51.0226, 0));
-        destination = new Checkpoint(3.73, 51.0226, 0);
+        wayPoints.add(new Checkpoint(51.0226, 3.72, 0));
+        destination = new Checkpoint(51.0226, 3.73, 0);
         wayPoints.add(destination);
     }
 

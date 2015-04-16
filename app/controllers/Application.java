@@ -25,18 +25,18 @@ import java.util.concurrent.TimeUnit;
 
 public class Application extends Controller {
 
-    public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().url());
+    public static final ControllerHelper.Link homeLink = new ControllerHelper.Link("home", controllers.routes.Application.index().absoluteURL(request()));
 
     public static Result index() {
 
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().url()));
-        links.add(new ControllerHelper.Link("drone", controllers.routes.DroneController.getAll().url()));
-        links.add(new ControllerHelper.Link("assignment", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().url()));
-        links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().url()));
-        links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().url()));
-        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.Application.index().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("drone", controllers.routes.DroneController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("assignment", controllers.routes.AssignmentController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().absoluteURL(request())));
 
         ObjectNode node = Json.newObject();
         for(ControllerHelper.Link link : links)
@@ -73,10 +73,10 @@ public class Application extends Controller {
 
         Ebean.save(users);
 
-        Checkpoint checkpoint1 = new Checkpoint(51.023144,3.709484,3);
-        Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441,3);
-        Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945,3);
-        Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428,3);
+        Checkpoint checkpoint1 = new Checkpoint(51.023144, 3.709484, 3);
+        Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441, 3);
+        Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945, 3);
+        Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428, 3);
         List<Checkpoint> checkpoints = new ArrayList<>();
         checkpoints.add(checkpoint1);
         checkpoints.add(checkpoint2);

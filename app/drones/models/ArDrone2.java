@@ -142,8 +142,7 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
-                2f, 60f, 1f); // TODO: adjust: send adjustments to the drone
-        // Max: 2f, 350f, ?, 2f // See ARDrone developer guide
+                2f, 30f, 1f);
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {

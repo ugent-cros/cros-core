@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  *
- * !!!! @TODO IMPLEMENT GPS FIX !!!!
  *
  * Created by brecht on 3/7/15.
  */
@@ -46,6 +45,10 @@ public class ArDrone2Protocol extends UntypedActor {
     private static final String ARDRONE_SESSION_ID     = "d2e081a3";  // SessionID
     private static final String ARDRONE_PROFILE_ID     = "be27e2e4";  // Profile ID
     private static final String ARDRONE_APPLOCATION_ID = "d87f7e0c";  // Application ID
+
+    private static final int ALTITUDE_MAX = 3000;
+    private static final int VZ_MAX = 1000;
+    private static final double YAW_MAX = 30;
 
     private static final int REF_BIT_FIELD = (1 << 18) | (1 << 20) | (1 << 22) | (1 << 24) | (1 << 28);
 
@@ -185,7 +188,18 @@ public class ArDrone2Protocol extends UntypedActor {
 
         // 3m max height
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.CONTROL_ALTITUDE_MAX, "3000")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.CONTROL_ALTITUDE_MAX,
+                Integer.toString(ALTITUDE_MAX))));
+
+        // max 30 deg yaw
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_CONTROL_YAW,
+                Float.toString((float) Math.toRadians(YAW_MAX)))));
+
+        // max 1m/s vertical speed
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_CONTROL_VZ_MAX,
+               Integer.toString(VZ_MAX))));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -222,7 +236,7 @@ public class ArDrone2Protocol extends UntypedActor {
                 && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVr())) {
 
             float[] v = {-0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
-                    1.0f * (float) s.getVz(), -0.5f * (float) s.getVr()};
+                    1.0f * (float) s.getVz(), 1.0f * (float) s.getVr()};
             boolean mode = Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0;
 
             // Normalization (-1.0 to +1.0)
@@ -278,7 +292,8 @@ public class ArDrone2Protocol extends UntypedActor {
         // Enable nav data
         // Disable bootstrap
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.GEN_NAVDATA_DEMO, "FALSE")));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++, ConfigKey.GEN_NAVDATA_DEMO,
+                Boolean.toString(false).toUpperCase())));
         // Send ACK
         sendData(PacketCreator.createPacket(new ATCommandCONTROL(seq++)));
     }
