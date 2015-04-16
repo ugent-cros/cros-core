@@ -27,14 +27,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     private boolean initialized = false;
 
-    public DroneCommander(String droneAddress, DroneDriver driver) {
-
-        // Create DroneActor
-        droneActor = Akka.system().actorOf(
-                Props.create(driver.getActorClass(),
-                        () -> driver.createActor(droneAddress)));
-    }
-
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }

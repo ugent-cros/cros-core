@@ -3,6 +3,7 @@ package drones.models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Mapper;
+import akka.dispatch.OnSuccess;
 import akka.util.Timeout;
 import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
@@ -64,7 +65,7 @@ public class Fleet {
 
     private static final Fleet fleet = new Fleet();
 
-    public static Fleet getFleet(){
+    public static Fleet getFleet() {
         return fleet;
     }
 
@@ -73,15 +74,15 @@ public class Fleet {
 
     private ConcurrentMap<Long, DroneCommander> drones;
 
-    public Fleet(){
+    public Fleet() {
         drones = new ConcurrentHashMap<>();
     }
 
     private ActorRef pinger;
 
-    public Future<PingResult> isReachable(Drone droneEntity){
+    public Future<PingResult> isReachable(Drone droneEntity) {
         // Lazy load the ping class
-        if(pinger == null){
+        if (pinger == null) {
             pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");
         }
 
@@ -89,27 +90,36 @@ public class Fleet {
                 new Timeout(Duration.create(ICMPPing.PING_TIMEOUT + 1000, TimeUnit.MILLISECONDS)))
                 .map(new Mapper<Object, PingResult>() {
                     public PingResult apply(Object s) {
-                        return (PingResult)s;
+                        return (PingResult) s;
                     }
                 }, Akka.system().dispatcher());
     }
 
-    public DroneCommander createCommanderForDrone(Drone droneEntity){
+    public Future<DroneCommander> createCommanderForDrone(Drone droneEntity) {
         DroneDriver driver = getDriver(droneEntity.getDroneType());
         if (driver == null)
             return null;
 
         // Create commander
-        DroneCommander commander = new DroneCommander(droneEntity.getAddress(), driver);
+        ActorRef droneActor = Akka.system().actorOf(
+                Props.create(driver.getActorClass(),
+                        () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor/%d", droneEntity.getId()));
+        DroneCommander commander = new DroneCommander(droneActor);
+        return commander.init().map(v -> {
+                    drones.put(droneEntity.getId(), commander);
+                    return commander;
+                }, Akka.system().dispatcher()
+        );
+    }
 
-        drones.put(droneEntity.getId(), commander);
-        return commander;
+    public boolean hasCommander(Drone droneEntity){
+        return drones.containsKey(droneEntity.getId());
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
         DroneCommander commander = drones.get(droneEntity.getId());
         if (commander == null) {
-           throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
+            throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
         }
         return commander;
     }
