@@ -1,11 +1,10 @@
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
 import play.Application;
 import play.GlobalSettings;
-import play.libs.Akka;
+import play.Logger;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import play.GlobalSettings;
 import play.libs.F;
 import play.libs.Json;
 import play.libs.Scala;
@@ -55,33 +54,21 @@ public class Global extends GlobalSettings {
 
     public void onStart(Application application) {
         super.onStart(application);
-        startDroneScheduler();
+        try {
+            Scheduler.start(SimpleScheduler.class);
+        }catch(SchedulerException ex){
+            Logger.error(ex.toString());
+        }
     }
 
     @Override
     public void onStop(Application application) {
         super.onStop(application);
-        stopDroneScheduler();
-    }
-
-
-    private static ActorRef scheduler;
-
-    public static void startDroneScheduler(){
-        if(scheduler != null) return;
-        scheduler = Akka.system().actorOf(Props.create(SimpleScheduler.class),"Scheduler");
-    }
-
-    public static void stopDroneScheduler(){
-        Akka.system().stop(scheduler);
-    }
-
-    /**
-     * Get an actor reference to the drone scheduler
-     * @return
-     */
-    public static ActorRef getDroneScheduler() {
-        return scheduler;
+        try {
+            Scheduler.stop();
+        }catch(SchedulerException ex){
+            Logger.error(ex.toString());
+        }
     }
 
     public Action<?> onRequest(Http.Request request, java.lang.reflect.Method actionMethod) {

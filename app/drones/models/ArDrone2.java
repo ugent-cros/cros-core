@@ -26,7 +26,7 @@ public class ArDrone2 extends DroneActor {
     private final boolean hull;
     private final String ip;
     private final Object lock = new Object();
-    private final String NOT_IMPLEMENTED = "Command not implemented";
+    private static final String NOT_IMPLEMENTED = "Command not implemented";
 
     public ArDrone2(String ip, boolean indoor, boolean hull) {
         this.ip = ip;
@@ -142,7 +142,7 @@ public class ArDrone2 extends DroneActor {
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
-                2f, 60f, 4f, 1f); // TODO: adjust: send adjustments to the drone
+                2f, 60f, 1f); // TODO: adjust: send adjustments to the drone
         // Max: 2f, 350f, ?, 2f // See ARDrone developer guide
     }
 

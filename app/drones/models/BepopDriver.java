@@ -1,6 +1,5 @@
 package drones.models;
 
-import models.Drone;
 import models.DroneType;
 
 import java.util.HashSet;
@@ -12,6 +11,8 @@ import java.util.Set;
 public class BepopDriver implements DroneDriver {
 
     public static final DroneType BEPOP_TYPE = new DroneType("ARDrone3", "Bepop");
+
+    private int nextd2cPort = 54321;
 
     @Override
     public Set<DroneType> supportedTypes() {
@@ -27,8 +28,8 @@ public class BepopDriver implements DroneDriver {
     }
 
     @Override
-    public <T extends DroneActor> T createActor(Drone droneEntity) {
+    public <T extends DroneActor> T createActor(String droneAddress) {
         // TODO: set indoor, hull property to true
-        return (T) new Bepop(droneEntity.getAddress(), true, true);
+        return (T) new Bepop(nextd2cPort++, droneAddress, true, true);
     }
 }

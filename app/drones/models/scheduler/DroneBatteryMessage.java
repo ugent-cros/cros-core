@@ -10,18 +10,18 @@ import java.io.Serializable;
  */
 public class DroneBatteryMessage implements Serializable{
 
-    private Drone drone;
+    private long droneId;
     private Location location;
     private int batteryPercentage;
 
-    public DroneBatteryMessage(Drone drone, Location location, int batteryPercentage) {
-        this.drone = drone;
+    public DroneBatteryMessage(long droneId, Location location, int batteryPercentage) {
+        this.droneId = droneId;
         this.location = location;
         this.batteryPercentage = batteryPercentage;
     }
 
-    public Drone getDrone() {
-        return drone;
+    public long getDroneId() {
+        return droneId;
     }
 
     public Location getLocation() {

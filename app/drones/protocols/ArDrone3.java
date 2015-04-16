@@ -58,6 +58,7 @@ public class ArDrone3 extends UntypedActor {
 
     private InetSocketAddress senderAddress;
     private ActorRef senderRef;
+    private int receivingPort;
 
     private final ActorRef listener; //to respond messages to
 
@@ -66,6 +67,7 @@ public class ArDrone3 extends UntypedActor {
     private long lastPing = 0;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
+        this.receivingPort = receivingPort;
         this.listener = listener;
 
         this.channels = new EnumMap<>(FrameDirection.class);
@@ -76,7 +78,7 @@ public class ArDrone3 extends UntypedActor {
         initHandlers(); //TODO: static lazy loading
 
         final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
-        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress("0.0.0.0", receivingPort)), getSelf());
+        udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
     }
 
@@ -343,7 +345,7 @@ public class ArDrone3 extends UntypedActor {
 
     @Override
     public void preStart() {
-        log.info("Starting ARDrone 3.0 communication protocol.");
+        log.info("Starting ARDrone 3.0 communication protocol. d2c={}", receivingPort);
         getContext().system().scheduler().scheduleOnce(
                 Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
                 getSelf(), "tick", getContext().dispatcher(), null);
@@ -416,7 +418,7 @@ public class ArDrone3 extends UntypedActor {
         log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
         boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
 
-        double[] vars = new double[]{cmd.getVx(), cmd.getVy(), cmd.getVr(), cmd.getVz()};
+        double[] vars = new double[]{cmd.getVy(), cmd.getVx(), cmd.getVr(), cmd.getVz()};
         for (int i = 0; i < 4; i++) {
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 

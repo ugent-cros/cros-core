@@ -1,6 +1,5 @@
 package drones.models;
 
-import models.Drone;
 import models.DroneType;
 
 import java.util.HashSet;
@@ -27,8 +26,8 @@ public class ArDrone2Driver implements DroneDriver {
     }
 
     @Override
-    public <T extends DroneActor> T createActor(Drone droneEntity) {
+    public <T extends DroneActor> T createActor(String droneAddress) {
         // TODO: set indoor, hull property to true
-        return (T) new ArDrone2(droneEntity.getAddress(), true, true);
+        return (T) new ArDrone2(droneAddress, true, true);
     }
 }

@@ -32,12 +32,12 @@ public class AssignmentController {
         ExpressionList<Assignment> exp = QueryHelper.buildQuery(Assignment.class, Assignment.FIND.where());
 
         List<JsonHelper.Tuple> tuples = exp.findList().stream().map(assignment -> new JsonHelper.Tuple(assignment, new ControllerHelper.Link("self",
-                controllers.routes.AssignmentController.get(assignment.getId()).url()))).collect(Collectors.toList());
+                controllers.routes.AssignmentController.get(assignment.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("total", controllers.routes.AssignmentController.getTotal().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.AssignmentController.getTotal().absoluteURL(request())));
 
         try {
             JsonNode result = JsonHelper.createJsonNode(tuples, links, Assignment.class);
@@ -108,7 +108,7 @@ public class AssignmentController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(id).absoluteURL(request())));
         return links;
     }
 }

@@ -159,6 +159,28 @@ public class UserTest extends TestSuperclass {
     }
 
     @Test
+    public void updatePassword_AuthorizedRequest_UserUpdated() throws IncompatibleSystemException {
+
+        String email = "admin.userupdatepassword@user.tests.cros.com";
+        User u = new User(email, "password", "John", "Doe");
+        u.save();
+
+        // Send request to update this user
+        JsonNode data = JsonHelper.createJsonNode(u, User.class);
+        ObjectNode user = (ObjectNode) data.get("user");
+        String newPassword = "newPassword";
+        user.put("password", newPassword);
+
+        Result result = updateUser(u.getId(), data, getAdmin());
+        assertThat(status(result)).isEqualTo(OK);
+
+        // Check if update was executed
+        User loginUser = User.authenticate(email, newPassword);
+        assertThat(loginUser).isNotNull();
+        assertThat(loginUser.getId()).isEqualTo(u.getId());
+    }
+
+    @Test
     public void update_AuthorizedRequest_UserUpdated() {
         User u = new User("admin.userupdate@user.tests.cros.com", "password", "John", "Doe");
         u.save();
@@ -432,5 +454,18 @@ public class UserTest extends TestSuperclass {
         List<User> allUsers = User.FIND.all();
         assertThat(allUsers).hasSize(1);
         assertThat(allUsers).contains(getAdmin()); // Equality check
+    }
+
+    @Test
+    public void total_UsersInDatabase_TotalIsCorrect() {
+        int correctTotal = User.FIND.all().size();
+        Result r = callAction(routes.ref.UserController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), User.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
     }
 }
