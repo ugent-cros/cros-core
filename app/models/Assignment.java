@@ -57,7 +57,7 @@ public class Assignment extends Model {
 
     public Assignment() {
         priority = 0;
-        progress = -1;
+        progress = 0;
     }
 
     public Long getId() {
