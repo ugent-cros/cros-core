@@ -102,8 +102,7 @@ public class DroneController {
         Drone drone = form.get();
         drone.save();
 
-        DroneCommander d = Fleet.getFleet().createCommanderForDrone(drone);
-        return F.Promise.wrap(d.init()).map(v -> created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
+        return F.Promise.wrap(Fleet.getFleet().createCommanderForDrone(drone)).map(v -> created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN})

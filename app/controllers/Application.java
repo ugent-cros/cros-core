@@ -23,6 +23,7 @@ import utilities.TestWebSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Application extends Controller {
 
@@ -50,22 +51,22 @@ public class Application extends Controller {
 
     }
 
-    public static Result initDb() {
+    public static Result initDb() throws InterruptedException, TimeoutException {
         Drone.FIND.all().forEach(d -> d.delete());
         Assignment.FIND.all().forEach(d -> d.delete());
         User.FIND.all().forEach(d -> d.delete());
         Basestation.FIND.all().forEach(d -> d.delete());
 
         List<Drone> drones = new ArrayList<>();
-        DroneType bepop = new DroneType("ARDrone3", "bepop");
+        /*DroneType bepop = new DroneType("ARDrone3", "bepop");*/
         /*drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
         drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));*/
         drones.add(new Drone("simulated drone", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "address"));
-
         Ebean.save(drones);
+        Await.ready(Fleet.getFleet().createCommanderForDrone(drones.get(0)), new Timeout(10, TimeUnit.SECONDS).duration());
 
         List<User> users = new ArrayList<>();
         User user = new User("cros@test.be", "freddy", "cros", "tester");

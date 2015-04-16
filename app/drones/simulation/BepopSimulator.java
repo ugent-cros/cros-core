@@ -5,15 +5,13 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
-import drones.models.*;
-import drones.util.LocationNavigator;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -398,7 +396,7 @@ public class BepopSimulator extends DroneActor {
         if (connectionLost) return;
 
         //  Land
-        p.failure(new NotImplementedException());
+        p.failure(new DroneException("action not implemented"));
     }
 
     @Override
@@ -477,7 +475,7 @@ public class BepopSimulator extends DroneActor {
         tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
         // After processing these messages, simulateMove will have the correct behaviour
 
-        p.failure(new NotImplementedException());
+        p.failure(new DroneException("action not implemented"));
     }
 
     @Override
