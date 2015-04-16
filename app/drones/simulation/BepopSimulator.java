@@ -34,13 +34,15 @@ public class BepopSimulator extends DroneActor {
     // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
-    protected Cancellable simulationTick;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
     protected double initialAngleWithRespectToEquator; // in radians, facing East is 0
 
+    // Private variables needed for simulation
+    private Cancellable simulationTick;
+    private Cancellable setDefaultRotation;
 
     // internal state
     private boolean crashed = false;
@@ -168,6 +170,7 @@ public class BepopSimulator extends DroneActor {
                         homeLocation.getLatitude(),
                         homeLocation.getHeight()
                 ));
+                tellSelf(new SpeedChangedMessage(0, 0, 0));
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
                 tellSelf(new NavigationStateChangedMessage(
                         NavigationState.AVAILABLE,
@@ -265,7 +268,19 @@ public class BepopSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
+                // Intercept attitude change message
+                match(AttitudeChangedMessage.class, s -> {
+                    // Set new rotation
+                    Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
+                    rotation.setValue(rot);
+                    //processOrientation(rot);
+                    eventBus.publish(new DroneEventMessage(s));
+
+                    // Process new rotation by: update speed according to rotation
+                    Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
+                    tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
+                });
     }
 
     @Override
@@ -467,15 +482,31 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
         }
 
-        // 1: update rotation
-        tellSelf(new AttitudeChangedMessage(vy, vx, vr));
-        // 2: calculate speed resulting from the rotation
-        Speed newSpeed = calculateSpeed(new Rotation(vy, vx, vr), vz);
-        // 3: update the speed
-        tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
-        // After processing these messages, simulateMove will have the correct behaviour
+        // Cancel setting the rotation back to normal if a new move message arrives
+        if (setDefaultRotation != null) {
+            setDefaultRotation.cancel();
+        }
 
-        p.failure(new DroneException("action not implemented"));
+        // Calculate rotation
+        double roll = vy * Math.PI/3;   // 1 <-> 60°
+        double pitch = vx * Math.PI/3;  // 1 <-> 60°
+        double deltaYaw = vr * Math.PI/6;    // 1 <-> turn of 30°
+        double yaw = rotation.getRawValue().getYaw() + deltaYaw;
+
+        // Update rotation: this will also update the speed
+        // Next simulation step will use the updated speed values
+        tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
+
+        // After a 1.5 second: the rotation should be set back to normal
+        setDefaultRotation = Akka.system().scheduler().scheduleOnce(
+                Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
+                self(),
+                new AttitudeChangedMessage(0, 0, 0),
+                Akka.system().dispatcher(),
+                self()
+        );
+
+        p.success(null);
     }
 
     @Override
