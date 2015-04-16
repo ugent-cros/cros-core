@@ -3,12 +3,14 @@ package drones.models.flightcontrol.messages;
 import models.Checkpoint;
 import models.Drone;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
+ *
  * Created by Sander on 10/04/2015.
  */
-public class AddDroneMessage {
+public class AddDroneMessage implements Serializable {
 
     private Long droneId;
     private List<Checkpoint> waypoints;

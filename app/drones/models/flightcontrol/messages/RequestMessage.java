@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import drones.models.Location;
 
 /**
+ * Message to request permission to land or to take off.
+ *
  * Created by Sander on 23/03/2015.
  */
 public class RequestMessage extends LocationMessage{

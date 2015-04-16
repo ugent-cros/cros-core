@@ -29,7 +29,10 @@ public abstract class FlightControl extends AbstractActor {
                         match(RequestMessage.class, s -> requestMessage(s)).
                         match(RequestGrantedMessage.class, s -> requestGrantedMessage(s)).
                         match(CompletedMessage.class, s -> completedMessage(s)).
-                        matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
+                        match(ShutDownMessage.class, s -> shutDownMessage(s)).
+                        match(EmergencyLandingMessage.class, s -> emergencyLandingMessage(s)).
+                        match(CancelControlMessage.class, s-> cancelControlMessage(s)).
+                matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
 
@@ -45,4 +48,10 @@ public abstract class FlightControl extends AbstractActor {
     protected abstract void requestGrantedMessage(RequestGrantedMessage m);
 
     protected abstract void completedMessage(CompletedMessage m);
+
+    protected abstract void shutDownMessage(ShutDownMessage m);
+
+    protected abstract void emergencyLandingMessage(EmergencyLandingMessage m);
+
+    protected abstract void cancelControlMessage(CancelControlMessage m);
 }

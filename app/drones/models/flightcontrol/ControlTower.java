@@ -21,10 +21,13 @@ public abstract class ControlTower extends FlightControl{
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
                 match(DroneArrivalMessage.class, s -> droneArrivalMessage(s)).
-                match(AddDroneMessage.class, s -> addDroneMessage(s));
+                match(AddDroneMessage.class, s -> addDroneMessage(s)).
+                match(RemoveDroneMessage.class, s -> removeDroneMessage(s));
     }
 
     protected abstract void droneArrivalMessage(DroneArrivalMessage m);
 
     protected abstract void addDroneMessage(AddDroneMessage m);
+
+    protected abstract void removeDroneMessage(RemoveDroneMessage m);
 }

@@ -2,17 +2,23 @@ package drones.models.flightcontrol;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.dispatch.OnSuccess;
+import akka.japi.pf.UnitPFBuilder;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.FlightControlExceptionMessage;
 import models.Checkpoint;
 import models.Drone;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -37,6 +43,7 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+    private boolean landed = true;
     
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
@@ -138,6 +145,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
+                    landed = true;
                     reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
                 }
             }, getContext().system().dispatcher());
@@ -181,6 +189,7 @@ public class SimplePilot extends Pilot {
 
                     @Override
                     public void onSuccess(Void result) throws Throwable {
+                        landed = true;
                         reporterRef.tell(new CompletedMessage(m), self());
                         reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
                     }
@@ -191,6 +200,7 @@ public class SimplePilot extends Pilot {
                 dc.takeOff().onSuccess(new OnSuccess<Void>() {
                     @Override
                     public void onSuccess(Void result) throws Throwable {
+                        landed = false;
                         reporterRef.tell(new CompletedMessage(m), self());
                         actualWaypoint = 0;
                         goToNextWaypoint();
@@ -225,10 +235,50 @@ public class SimplePilot extends Pilot {
             dc.takeOff().onSuccess(new OnSuccess<Void>() {
                 @Override
                 public void onSuccess(Void result) throws Throwable {
+                    landed = false;
                     actualWaypoint = 0;
                     goToNextWaypoint();
                 }
             }, getContext().system().dispatcher());
         }
+    }
+
+    private void addNoFlyPointMessage(AddNoFlyPointMessage m){
+        if(actualLocation.distance(m.getNoFlyPoint()) < NO_FY_RANGE){
+            reporterRef.tell(new FlightControlExceptionMessage("You cannot add a drone within the no-fly-range " +
+                    "of the location where another drone wants to land or to take off"),self());
+        }else{
+            noFlyPoints.add(m.getNoFlyPoint());
+        }
+    }
+
+    @Override
+    protected UnitPFBuilder<Object> createListeners() {
+        return super.createListeners().match(AddNoFlyPointMessage.class,
+                (m) -> addNoFlyPointMessage(m));
+    }
+
+    @Override
+    protected void shutDownMessage(ShutDownMessage m) {
+        if(landed){
+            self().tell(PoisonPill.getInstance(),sender());
+        } else {
+            reporterRef.tell(new FlightControlExceptionMessage("Drone must be landed first."), self());
+        }
+    }
+
+    @Override
+    protected void emergencyLandingMessage(EmergencyLandingMessage m) {
+        try {
+            Await.ready(dc.land(), Duration.create(120,"seconds"));
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+            reporterRef.tell(new FlightControlExceptionMessage("Drone does not react within 120 seconds"), self());
+        }
+    }
+
+    @Override
+    protected void cancelControlMessage(CancelControlMessage m) {
+        land();
     }
 }

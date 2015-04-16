@@ -1,18 +1,22 @@
 package drones.models.flightcontrol;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.japi.pf.UnitPFBuilder;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.FlightControlExceptionMessage;
 import models.Drone;
 
 import java.util.List;
 
 /**
- * Simple Control Tower: DO NOT ADD A DRONE ON A LOCATION WHERE ANOTHER DRONE WANTS TO LAND
+ * Simple Control Tower
+ * DO NOT ADD A DRONE WITHIN THE NO FLY RANGE OF THE LOCATION WHERE ANOTHER DRONE WANTS TO LAND/TAKE OFF
  *
- * Created by Sander on 10/04/2015.
+ * Created by Sander on 08/04/2015.
  */
 public class SimpleControlTower extends ControlTower{
 
@@ -30,8 +34,8 @@ public class SimpleControlTower extends ControlTower{
 
     private boolean started = false;
 
-    public SimpleControlTower(ActorRef actorRef, double maxAltitude, double minAltitude, int maxNumberOfDrones) {
-        super(actorRef);
+    public SimpleControlTower(ActorRef reporterRef, double maxAltitude, double minAltitude, int maxNumberOfDrones) {
+        super(reporterRef);
         this.maxAltitude = maxAltitude;
         this.minAltitude = minAltitude;
         this.maxNumberOfDrones = maxNumberOfDrones;
@@ -46,8 +50,9 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void droneArrivalMessage(DroneArrivalMessage m) {
-        //to do remove
         reporterRef.tell(m, self());
+
+        //remove SimplePilot
     }
 
     @Override
@@ -102,6 +107,7 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
+        //TO CHECK IF ALL ARE RECIEVED
         m.getRequester().tell(m,self());
     }
 
@@ -113,5 +119,31 @@ public class SimpleControlTower extends ControlTower{
                 pilots[i].tell(m, self());
             }
         }
+    }
+
+    private void flightControlExceptionMessage(FlightControlExceptionMessage m){
+        log.error("Error in SimplePilot: " + m.getMessage());
+        reporterRef.tell(m,self());
+    }
+
+    @Override
+    protected void shutDownMessage(ShutDownMessage m) {
+        //TO DO
+        self().tell(PoisonPill.getInstance(), sender());
+    }
+
+    @Override
+    protected void removeDroneMessage(RemoveDroneMessage m) {
+
+    }
+
+    @Override
+    protected void emergencyLandingMessage(EmergencyLandingMessage m) {
+
+    }
+
+    @Override
+    protected void cancelControlMessage(CancelControlMessage m) {
+
     }
 }

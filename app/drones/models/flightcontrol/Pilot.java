@@ -67,5 +67,4 @@ public abstract class Pilot extends FlightControl{
     protected abstract void navigateHomeStateChanged(NavigationStateChangedMessage m);
 
     protected abstract void locationChanged(LocationChangedMessage m);
-
 }
