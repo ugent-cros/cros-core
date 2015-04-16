@@ -85,8 +85,8 @@ public class ArDrone2Config extends UntypedActor {
 
     private void processData(ByteString byteData) {
         String newData = byteData.decodeString("UTF-8");
-        if(newData.equals(CONFIG_START_VALUE)) {
-            data = "";
+        if(newData.toLowerCase().contains(CONFIG_START_VALUE)) {
+            data = newData;
         } else {
             data += newData;
         }
@@ -109,13 +109,16 @@ public class ArDrone2Config extends UntypedActor {
                 key = configPair[0];
                 value = configPair[1];
 
-                switch(getConfigValue(key)) {
-                    case GEN_NUM_VERSION_SOFT:
-                        softwareVersion = value;
-                        break;
-                    case GEN_NUM_VERSION_MB:
-                        hardwareVersion = value;
-                        break;
+                ConfigKey configKey = getConfigValue(key);
+                if(configKey != null) {
+                    switch (configKey) {
+                        case GEN_NUM_VERSION_SOFT:
+                            softwareVersion = value;
+                            break;
+                        case GEN_NUM_VERSION_MB:
+                            hardwareVersion = value;
+                            break;
+                    }
                 }
             } else {
                 log.error("Error in parsing config file");
@@ -125,18 +128,15 @@ public class ArDrone2Config extends UntypedActor {
 
         Object versionMessage = new ProductVersionChangedMessage(softwareVersion, hardwareVersion);
         listener.tell(versionMessage, getSelf());
-
-        log.info(data);
     }
 
     private ConfigKey getConfigValue(String configValue) {
         for(ConfigKey key : ConfigKey.values()) {
-            if(key.getKey().equals(configValue)) {
+            if(key.getKey().toLowerCase().equals(configValue.toLowerCase())) {
                 return key;
             }
         }
 
-        log.error("Wrong config key received");
         return null;
     }
 }
