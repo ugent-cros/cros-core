@@ -1,15 +1,23 @@
 package controllers;
 
+import akka.actor.ActorRef;
+import akka.util.Timeout;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.AssignmentMessage;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
 import models.Assignment;
 import models.User;
+import play.Logger;
 import play.data.Form;
+import play.libs.Akka;
 import play.libs.Json;
 import play.mvc.Result;
+import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
@@ -17,6 +25,7 @@ import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
@@ -92,7 +101,15 @@ public class AssignmentController {
         Assignment assignment = form.get();
         assignment.setCreator(user);
         assignment.save();
-        return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+
+        try {
+            Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
+            return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+        } catch (SchedulerException e) {
+            Logger.error("scheduler error", e);
+            return internalServerError("scheduler could not process new assignment");
+        }
+
     }
 
     @Authentication({User.Role.ADMIN})
@@ -101,8 +118,11 @@ public class AssignmentController {
 
         if(assignment == null)
             return notFound("Requested assignment not found");
+        if(assignment.getAssignedDrone() != null)
+            return forbidden("you cannot delete an assignment which has a drone assigned");
 
         assignment.delete();
+
         return ok();
     }
 
