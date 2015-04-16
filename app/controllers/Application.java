@@ -7,6 +7,7 @@ import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.*;
+import drones.simulation.SimulatorDriver;
 import models.*;
 import play.libs.Akka;
 import play.libs.F;
@@ -36,7 +37,7 @@ public class Application extends Controller {
         links.add(new ControllerHelper.Link("user", controllers.routes.UserController.getAll().absoluteURL(request())));
         links.add(new ControllerHelper.Link("basestation", controllers.routes.BasestationController.getAll().absoluteURL(request())));
         links.add(new ControllerHelper.Link("login", controllers.routes.SecurityController.login().absoluteURL(request())));
-        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.testSocket().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("datasocket", controllers.routes.Application.socket().absoluteURL(request())));
 
         ObjectNode node = Json.newObject();
         for(ControllerHelper.Link link : links)
@@ -57,11 +58,12 @@ public class Application extends Controller {
 
         List<Drone> drones = new ArrayList<>();
         DroneType bepop = new DroneType("ARDrone3", "bepop");
-        drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
+        /*drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));*/
+        drones.add(new Drone("simulated drone", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "address"));
 
         Ebean.save(drones);
 
@@ -73,7 +75,7 @@ public class Application extends Controller {
 
         Ebean.save(users);
 
-        Checkpoint checkpoint1 = new Checkpoint(51.023144, 3.709484, 3);
+        /*Checkpoint checkpoint1 = new Checkpoint(51.023144, 3.709484, 3);
         Checkpoint checkpoint2 = new Checkpoint(51.022562, 3.709441, 3);
         Checkpoint checkpoint3 = new Checkpoint(51.022068, 3.709945, 3);
         Checkpoint checkpoint4 = new Checkpoint(51.022566, 3.710428, 3);
@@ -83,9 +85,9 @@ public class Application extends Controller {
         checkpoints.add(checkpoint3);
         checkpoints.add(checkpoint4);
         Assignment assignment = new Assignment(checkpoints, user);
-        assignment.save();
+        assignment.save();*/
 
-        new Basestation("testing", 5.0,6.0,7.0).save();
+        new Basestation("testing", 51.025167, 3.711123,7.0).save();
 
         return ok();
     }
@@ -128,14 +130,24 @@ public class Application extends Controller {
 
         User u = models.User.findByAuthToken(tokens[0]);
         if (u != null) {
-            return WebSocket.withActor(TestWebSocket::props);
+            return WebSocket.withActor(TestWebSocket::props); // TODO: checking roles and filtering
         } else {
             return WebSocket.reject(unauthorized());
         }
     }
 
     public static WebSocket<String> socket() {
-        return WebSocket.withActor(MessageWebSocket::props);
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(MessageWebSocket::props);
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
     }
 
     public static Result unsubscribeMonitor(long id){

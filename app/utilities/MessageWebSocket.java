@@ -11,10 +11,10 @@ import drones.messages.LocationChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import models.Drone;
+import play.Logger;
 import play.libs.Json;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,31 +33,47 @@ public class MessageWebSocket extends AbstractActor {
     static {
         TYPENAMES = new HashMap<>();
 
-        TYPENAMES.put(BatteryPercentageChangedMessage.class,"batteryPercentageChanged");
-        TYPENAMES.put(AltitudeChangedMessage.class,"altitudeChanged");
-        TYPENAMES.put(LocationChangedMessage.class,"locationChanged");
+        TYPENAMES.put(BatteryPercentageChangedMessage.class, "batteryPercentageChanged");
+        TYPENAMES.put(AltitudeChangedMessage.class, "altitudeChanged");
+        TYPENAMES.put(LocationChangedMessage.class, "locationChanged");
     }
 
     public MessageWebSocket(ActorRef out) {
         this.out = out;
+        ReceiveBuilder builder = null;
 
-        List<Drone> drones = Drone.FIND.where().eq("name", "bepop").findList();
-        Drone d = drones.get(drones.size()-1);
-        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(d);
-        TYPENAMES.keySet().forEach(c -> {
-            commander.subscribeTopic(self(), c);
+        TYPENAMES.keySet().stream().map(messageType -> ReceiveBuilder.match(messageType, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", TYPENAMES.get(messageType));
+            node.put("id", 0); // todo: set to correct id
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        })).reduce((builder1,builder2) -> { builder1.match(builder2); });
 
-            receive(ReceiveBuilder.match(c, s -> {
-                ObjectNode node = Json.newObject();
-                node.put("type", TYPENAMES.get(c));
-                node.put("id", d.getId());
-                node.put("value", Json.toJson(s));
-                out.tell(node.toString(), self());
-            }).build());
+        Drone.FIND.all().forEach(d -> {
+            try {
+                DroneCommander commander = Fleet.getFleet().getCommanderForDrone(d);
+                TYPENAMES.keySet().forEach(c -> {
+                    commander.subscribeTopic(self(), c);
+
+                    if (builder == null) {
+                        builder = ReceiveBuilder.match(c, s -> {
+                            ObjectNode node = Json.newObject();
+                            node.put("type", TYPENAMES.get(c));
+                            node.put("id", d.getId());
+                            node.put("value", Json.toJson(s));
+                            out.tell(node.toString(), self());
+                        });
+                    } else {
+                        builder = builder.match()
+                    }
+                });
+            } catch (IllegalArgumentException e) {
+                Logger.error("un-initialized drones!!!!", e);
+            }
         });
 
-
-
+        receive(ReceiveBuilder.matchAny(c))
     }
 
 }
