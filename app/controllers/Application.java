@@ -17,7 +17,7 @@ import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
-import utilities.TestWebSocket;
+import utilities.frontendSimulator.NotificationSimulator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +50,8 @@ public class Application extends Controller {
     }
 
     public static Result initDb() {
-        Drone.FIND.all().forEach(d -> d.delete());
         Assignment.FIND.all().forEach(d -> d.delete());
+        Drone.FIND.all().forEach(d -> d.delete());
         User.FIND.all().forEach(d -> d.delete());
         Basestation.FIND.all().forEach(d -> d.delete());
 
@@ -85,7 +85,7 @@ public class Application extends Controller {
         Assignment assignment = new Assignment(checkpoints, user);
         assignment.save();
 
-        new Basestation("testing", 5.0,6.0,7.0).save();
+        new Basestation("testing", 3.709384, 51.020144, 3).save();
 
         return ok();
     }
@@ -128,7 +128,7 @@ public class Application extends Controller {
 
         User u = models.User.findByAuthToken(tokens[0]);
         if (u != null) {
-            return WebSocket.withActor(TestWebSocket::props);
+            return WebSocket.withActor(NotificationSimulator::props);
         } else {
             return WebSocket.reject(unauthorized());
         }
