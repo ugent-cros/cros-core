@@ -3,7 +3,7 @@ package drones.models.scheduler.messages.from;
 /**
  * Created by Ronald on 16/04/2015.
  */
-public class SchedulerAssignedMessage {
+public class SchedulerAssignedMessage implements SchedulerEvent{
 
     private long assignmentId;
     private long droneId;

@@ -5,5 +5,5 @@ import java.io.Serializable;
 /**
  * Created by Ronald on 16/04/2015.
  */
-public class SchedulerStoppedMessage implements Serializable{
+public class SchedulerStoppedMessage implements SchedulerEvent{
 }

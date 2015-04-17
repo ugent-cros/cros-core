@@ -5,13 +5,13 @@ package drones.models.scheduler.messages.to;
  */
 public class UnsubscribeMessage {
 
-    private Class messageType;
+    private Class eventType;
 
     public UnsubscribeMessage(Class messageType) {
-        this.messageType = messageType;
+        this.eventType = messageType;
     }
 
-    public Class getMessageType() {
-        return messageType;
+    public Class getEventType() {
+        return eventType;
     }
 }

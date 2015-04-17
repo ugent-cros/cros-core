@@ -5,13 +5,13 @@ package drones.models.scheduler.messages.to;
  */
 public class SubscribeMessage {
 
-    private Class messageType;
+    private Class eventType;
 
-    public SubscribeMessage(Class messageType) {
-        this.messageType = messageType;
+    public SubscribeMessage(Class eventType) {
+        this.eventType = eventType;
     }
 
-    public Class getMessageType() {
-        return messageType;
+    public Class getEventType() {
+        return eventType;
     }
 }

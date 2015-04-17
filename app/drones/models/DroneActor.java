@@ -182,7 +182,7 @@ public abstract class DroneActor extends AbstractActor {
             // When there's no gps fix, continue
             if (!gpsFix.getRawValue()) {
                 // Stop navigator
-                //navigator.setNavigationState(NavigationState.UNAVAILABLE);
+                //navigator.setNavigationState(NavigationState.FLYING);
                 navigator.setCurrentLocation(null);
                 navigator.setGoal(null);
 

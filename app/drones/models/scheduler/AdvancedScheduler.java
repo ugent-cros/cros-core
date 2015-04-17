@@ -1,25 +1,35 @@
 package drones.models.scheduler;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import akka.util.Timeout;
+import com.avaje.ebean.Ebean;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.scheduler.messages.to.AddDroneMessage;
-import drones.models.scheduler.messages.to.CancelAssignmentMessage;
-import drones.models.scheduler.messages.to.RemoveDroneMessage;
-import drones.models.scheduler.messages.to.ScheduleMessage;
+import drones.models.flightcontrol.SimplePilot;
+import drones.models.flightcontrol.messages.StartFlightControlMessage;
+import drones.models.flightcontrol.messages.StopFlightControlMessage;
+import drones.models.scheduler.messages.from.SchedulerCanceledMessage;
+import drones.models.scheduler.messages.from.SchedulerCompletedMessage;
+import drones.models.scheduler.messages.from.SchedulerStoppedMessage;
+import drones.models.scheduler.messages.to.*;
 import models.*;
 import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 10/04/2015.
  */
 public class AdvancedScheduler extends SimpleScheduler implements Comparator<Assignment>{
 
-    private Set<Long> dronePool = new HashSet<>();
-    private Map<Long, Flight> flights = new HashMap<>();
-    private Set<Long> assignments = new HashSet<>();
+    protected static final Timeout STOP_TIMEOUT = new Timeout(Duration.create(10, TimeUnit.SECONDS));
+    protected Set<Long> dronePool = new HashSet<>();
+    protected Map<Long, Flight> flights = new HashMap<>();
 
     public AdvancedScheduler() {
         queue = new PriorityQueue<>(MAX_QUEUE_SIZE,this);
@@ -46,6 +56,51 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             return Long.compare(a1.getId(),a2.getId());
         }else{
             return Integer.compare(a1.getPriority(),a2.getPriority());
+        }
+    }
+
+
+    @Override
+    protected void stop(StopSchedulerMessage message) {
+        // Hotswap new receive behaviour
+        context().become(ReceiveBuilder
+                .match(FlightCanceledMessage.class, m -> returnHome(m.getDroneId()))
+                .match(DroneArrivalMessage.class, m -> termination(m.getDroneId()))
+                .matchAny(m -> log.warning("[AdvancedScheduler] Termination ignored message: [{}]", m.getClass().getName())
+                ).build());
+
+        // Deschedule all assignments in the queue
+        for (Assignment assignment : queue) {
+            assignment.setScheduled(false);
+        }
+        Ebean.save(queue);
+
+        // Cancel all remaining flights
+        if (flights.isEmpty()) {
+            // Termination
+            eventBus.publish(new SchedulerStoppedMessage());
+            context().stop(self());
+        } else {
+            // Cancellation
+            for (Flight flight : flights.values()) {
+                cancelFlight(flight);
+            }
+        }
+    }
+
+    /**
+     * Signal the scheduler that a drone has returned home after stop
+     * Only when every active drone is home safely, we will terminate the scheduler.
+     *
+     * @param droneId
+     */
+    protected void termination(long droneId) {
+        droneArrived(droneId);
+        // Check if we can terminate
+        if (flights.isEmpty()) {
+            eventBus.publish(new SchedulerStoppedMessage());
+            // Terminate the scheduler actor.
+            getContext().stop(self());
         }
     }
 
@@ -78,6 +133,40 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             unassigned.addAll(queue);
             queue = unassigned;
         }
+    }
+
+    @Override
+    protected void droneArrived(long droneId) {
+        // Retrieve flight
+        Flight flight = flights.remove(droneId);
+        if (flight == null) {
+            log.warning("[AdvancedScheduler] Received arrival from nonexistent flight.");
+            return;
+        }
+
+        // Handle the flight control
+        flight.getFlightControl().tell(new StopFlightControlMessage(), self());
+
+        // Retrieve the drone
+        Drone drone = getDrone(flight.getDroneId());
+
+        // Handle the assignment
+        long assignmentId = flight.getAssignmentId();
+        if (assignmentId > Flight.NO_ASSIGNMENT_ID) {
+            // We completed an assignment, yaay!
+            eventBus.publish(new SchedulerCompletedMessage(assignmentId));
+            Assignment assignment = getAssignment(assignmentId);
+            unassign(drone, assignment);
+            // Send the drone back to base
+            returnHome(drone);
+        } else {
+            drone.setStatus(Drone.Status.AVAILABLE);
+            drone.update();
+        }
+
+        // Start scheduling again because there may be assignments waiting.
+        // This will be ignored during termination.
+        self().tell(new ScheduleMessage(), self());
     }
 
     /**
@@ -232,10 +321,22 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         return length;
     }
 
-    @Override
-    protected void createFlight(Drone drone, List<Checkpoint> route) {
+    protected void createFlight(Drone drone, Assignment assignment) {
+        createFlight(drone.getId(), assignment.getId(), assignment.getRoute());
+    }
+
+    protected void createFlight(long droneId, long assignmentId, List<Checkpoint> route) {
         // TODO: Create a new Flight and add it to flights.
         // TODO: Tell a controltower to start a new flight.
+        // For now, we still use SimplePilot.
+        // Create SimplePilot
+        ActorRef pilot = getContext().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(self(), droneId, false, route)));
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(), self());
+        // Create a new flight for administration
+        Flight flight = new Flight(droneId, assignmentId, pilot);
     }
 
     /**
@@ -272,26 +373,46 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     /**
+     * Cancel flight of a drone if any.
+     *
+     * @param droneId id of the drone whose flight will be canceled
+     */
+    protected void cancelFlight(long droneId) {
+        cancelFlight(flights.get(droneId));
+    }
+
+    /**
      * Cancel flight in progress.
      *
-     * @param droneId to identify the right flight.
+     * @param flight to cancel
      */
-    protected void cancelFlight(Long droneId) {
-        // Retrieve flight
-        Flight flight = flights.get(droneId);
+    protected void cancelFlight(Flight flight) {
         if (flight == null) {
             log.warning("[Advanced Scheduler] Tried to cancel nonexistent flight.");
             return;
         }
         // Handle assignment victim
-        Long assignmentId = flight.getAssignmentId();
-        Assignment assignment = getAssignment(assignmentId);
-        assignment.setProgress(0);
-        assignment.setAssignedDrone(null);
-        assignment.save();
+        long assignmentId = flight.getAssignmentId();
+        // Check if this flight is associated with an actual assignment
+        if (assignmentId > Flight.NO_ASSIGNMENT_ID) {
+            Assignment assignment = getAssignment(assignmentId);
+            assignment.setAssignedDrone(null);
+            assignment.update();
+        }
 
         // Handle flightControl
-        // TODO: Tell flightcontrol to stop.
+        // TODO: Change this to work with controltower
+        flight.getFlightControl().tell(new StopFlightControlMessage(),self());
+
+    }
+
+    /**
+     * Creates a flight that sends the drone back to the nearest basestation.
+     *
+     * @param droneId id of the drone to send back to base
+     */
+    protected void returnHome(long droneId) {
+        returnHome(getDrone(droneId));
     }
 
     /**
@@ -315,19 +436,19 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             return;
         }
         Location location = station.getLocation();
-        createFlight(drone, routeTo(location));
+        createFlight(drone.getId(), Flight.RETURN_HOME, routeTo(location));
     }
 
-    protected void cancelAssignment(Long assignmentId) {
+    protected void cancelAssignment(long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
         // Assigned drone
         Drone drone = assignment.getAssignedDrone();
         if (drone != null) {
             // Cancel flight
             cancelFlight(drone.getId());
-            // Send drone back to home
-            returnHome(drone);
         }
+        // Tell the world we successfully canceled this assignment.
+        eventBus.publish(new SchedulerCanceledMessage(assignmentId));
     }
 
     protected Basestation closestBaseStation(Location location) {

@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Created by Ronald on 16/04/2015.
  */
-public class SchedulerRemovedDroneMessage implements Serializable{
+public class SchedulerRemovedDroneMessage implements SchedulerEvent{
 
     private long droneId;
 

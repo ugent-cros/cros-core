@@ -7,6 +7,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import drones.models.scheduler.messages.from.SchedulerEvent;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Drone;
@@ -78,25 +79,25 @@ public abstract class Scheduler extends AbstractActor {
 
     /**
      * Subscribe to get notified by scheduler events.
-     * @param messageType   type of events to subscribe to
+     * @param type   type of events to subscribe to
      * @param subscriber    actorref to receive events
      * @throws SchedulerException
      */
-    public static void subscribe(Class messageType,ActorRef subscriber) throws SchedulerException{
+    public static void subscribe(Class<? extends SchedulerEvent> type,ActorRef subscriber) throws SchedulerException{
         ActorRef publisher = getScheduler();
-        SubscribeMessage message = new SubscribeMessage(messageType);
+        SubscribeMessage message = new SubscribeMessage(type);
         publisher.tell(message,subscriber);
     }
 
     /**
      * Unsubscribe from the scheduler for a specific type of events.
-     * @param messageType
+     * @param type
      * @param subscriber
      * @throws SchedulerException
      */
-    public static void unsubscribe(Class messageType,ActorRef subscriber) throws SchedulerException{
+    public static void unsubscribe(Class<? extends SchedulerEvent> type,ActorRef subscriber) throws SchedulerException{
         ActorRef publisher = getScheduler();
-        UnsubscribeMessage message = new UnsubscribeMessage(messageType);
+        UnsubscribeMessage message = new UnsubscribeMessage(type);
         publisher.tell(message,subscriber);
     }
 
@@ -113,7 +114,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param assignmentId id of the assignment to cancel.
      * @throws SchedulerException
      */
-    public static void cancelAssignment(long assignmentId) throws SchedulerException{
+    public static void cancel(long assignmentId) throws SchedulerException{
         getScheduler().tell(new CancelAssignmentMessage(assignmentId), ActorRef.noSender());
     }
 
@@ -143,30 +144,22 @@ public abstract class Scheduler extends AbstractActor {
     private static Object lock = new Object();
 
     protected Scheduler() {
-        //Receive behaviour
+        // Create an eventbus for listeners
         eventBus = new SchedulerEventBus();
+        //Receive behaviour
         UnitPFBuilder<Object> builder = initReceivers();
         builder.matchAny(m -> log.warning("[Scheduler] Received unknown message: [{}]", m.getClass().getName()));
         receive(builder.build());
     }
 
     protected UnitPFBuilder<Object> initReceivers() {
-        return ReceiveBuilder.
-                match(ScheduleMessage.class,
-                        m -> schedule(m)
-                ).
-                match(DroneArrivalMessage.class,
-                        m -> receiveDroneArrivalMessage(m)
-                ).
-                match(DroneBatteryMessage.class,
-                        m -> receiveDroneBatteryMessage(m)
-                ).
-                match(SubscribeMessage.class,
-                        m -> eventBus.subscribe(sender(), m.getMessageType())
-                ).
-                match(UnsubscribeMessage.class,
-                        m -> eventBus.unsubscribe(sender(), m.getMessageType())
-                );
+        return ReceiveBuilder
+                .match(ScheduleMessage.class, m -> schedule(m))
+                .match(DroneArrivalMessage.class, m -> droneArrived(m.getDroneId()))
+                .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m))
+                .match(SubscribeMessage.class, m -> eventBus.subscribe(sender(), m.getEventType()))
+                .match(UnsubscribeMessage.class, m -> eventBus.unsubscribe(sender(), m.getEventType()))
+                .match(StopSchedulerMessage.class, m -> stop(m));
     }
 
     /**
@@ -176,7 +169,7 @@ public abstract class Scheduler extends AbstractActor {
      */
     protected void assign(Drone drone, Assignment assignment) {
         // Update drone
-        drone.setStatus(Drone.Status.UNAVAILABLE);
+        drone.setStatus(Drone.Status.FLYING);
         drone.update();
         // Update assignment
         assignment.setAssignedDrone(drone);
@@ -190,7 +183,7 @@ public abstract class Scheduler extends AbstractActor {
      */
     protected void unassign(Drone drone, Assignment assignment) {
         // Update drone
-        if (drone.getStatus() == Drone.Status.UNAVAILABLE) {
+        if (drone.getStatus() == Drone.Status.FLYING) {
             // Set state available again if possible
             drone.setStatus(Drone.Status.AVAILABLE);
             drone.update();
@@ -208,14 +201,20 @@ public abstract class Scheduler extends AbstractActor {
 
     /**
      * Tell the scheduler a drone has arrived at it's destination.
-     * @param message message containing the drone and it's destination.
+     * @param droneId id of the drone that arrived
      */
-    protected abstract void receiveDroneArrivalMessage(DroneArrivalMessage message);
+    protected abstract void droneArrived(long droneId);
 
     /**
      * Tell the scheduler a that a drone has insufficient battery to finish his assignment
      * @param message message containing the drone, the current location and remaining battery percentage.
      */
     protected abstract void receiveDroneBatteryMessage(DroneBatteryMessage message);
+
+    /**
+     * Tell the scheduler to stop all flights and terminate itself.
+     * @param message
+     */
+    protected abstract void stop(StopSchedulerMessage message);
 
 }

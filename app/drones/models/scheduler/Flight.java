@@ -1,19 +1,24 @@
 package drones.models.scheduler;
 
 import akka.actor.ActorRef;
-import drones.models.flightcontrol.FlightControl;
-import models.Drone;
 
 /**
  * Created by Ronald on 13/04/2015.
  */
 public class Flight {
 
-    private Long droneId;
-    private Long assignmentId;
+    public static final long NO_ASSIGNMENT_ID = -1;
+    public static final long RETURN_HOME = -2;
+
+    private long droneId;
+    private long assignmentId;
     private ActorRef flightControl;
 
-    public Flight(Long droneId, Long assignmentId, ActorRef flightControl){
+    public Flight(long droneId, ActorRef flightControl) {
+        this(droneId, NO_ASSIGNMENT_ID, flightControl);
+    }
+
+    public Flight(long droneId, long assignmentId, ActorRef flightControl) {
         this.droneId = droneId;
         this.assignmentId = assignmentId;
         this.flightControl = flightControl;

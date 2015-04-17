@@ -2,6 +2,7 @@ package drones.models.scheduler;
 
 import akka.actor.ActorRef;
 import akka.event.japi.LookupEventBus;
+import drones.models.scheduler.messages.from.SchedulerEvent;
 
 import java.lang.invoke.MethodHandles;
 

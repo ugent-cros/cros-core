@@ -23,6 +23,7 @@ public class DroneArrivalMessage implements Serializable{
         return droneId;
     }
 
+    // TODO: remove location
     public Location getLocation() {
         return location;
     }

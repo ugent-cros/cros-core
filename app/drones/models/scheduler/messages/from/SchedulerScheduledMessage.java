@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * Created by Ronald on 16/04/2015.
  */
-public class SchedulerScheduledMessage implements Serializable{
+public class SchedulerScheduledMessage implements SchedulerEvent{
 
     private List<Long> assignmentIds;
 

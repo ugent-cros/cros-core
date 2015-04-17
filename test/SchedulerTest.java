@@ -86,7 +86,7 @@ public class SchedulerTest extends TestSuperclass {
         drone = Drone.FIND.byId(drone.getId());
         assignment = Assignment.FIND.byId(assignment.getId());
         Assert.assertTrue(assignment.getAssignedDrone().getId() == drone.getId());
-        Assert.assertTrue(drone.getStatus() == Drone.Status.UNAVAILABLE);
+        Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);
 
     }
 }
