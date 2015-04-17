@@ -61,7 +61,7 @@ public class MessageWebSocket extends AbstractActor {
             });
         }
 
-        builder = builder.matchAny(o -> Logger.debug("unkown message type..."));
+        builder = builder.matchAny(o -> Logger.debug("[websocket] unkown message type..."));
 
         receive(builder.build());
 

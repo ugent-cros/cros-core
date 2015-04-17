@@ -90,7 +90,7 @@ public class Application extends Controller {
 
         new Basestation("testing", 51.020144, 3.709384, 3).save();
 
-        return ok();
+        return ok("database has been reset");
     }
 
     public static F.Promise<Result> initDrone(String ip, boolean bebop) {
