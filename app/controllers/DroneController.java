@@ -85,24 +85,24 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     @BodyParser.Of(BodyParser.Json.class)
-    public static Result create() {
+    public static F.Promise<Result> create() {
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
         } catch(JsonHelper.InvalidJSONException ex) {
             play.Logger.debug(ex.getMessage(), ex);
-            return badRequest(ex.getMessage());
+            return F.Promise.pure(badRequest(ex.getMessage()));
         }
         Form<Drone> form = Form.form(Drone.class).bind(strippedBody);
 
         if (form.hasErrors())
-            return badRequest(form.errorsAsJson());
+            return F.Promise.pure(badRequest(form.errorsAsJson()));
 
         Drone drone = form.get();
         drone.save();
 
-        return created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class));
+        return F.Promise.wrap(Fleet.getFleet().createCommanderForDrone(drone)).map(v -> created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -141,7 +141,7 @@ public class DroneController {
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
-            Location l = new Location(v.getLongitude(),v.getLatitude(), altitude);
+            Location l = new Location(v.getLatitude(),v.getLongitude(), altitude);
             JsonNode node = JsonHelper.addRootElement(Json.toJson(l), Location.class);
             return ok(JsonHelper.addRootElement(node, Drone.class));
         }));

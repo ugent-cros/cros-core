@@ -8,6 +8,12 @@ import akka.event.japi.LookupEventBus;
  */
 public class DroneEventBus extends LookupEventBus<DroneEventMessage, ActorRef, Class> {
 
+    private final ActorRef publisher;
+
+    public DroneEventBus(final ActorRef publisher){
+        this.publisher = publisher;
+    }
+
     private boolean publishDisabled = false;
 
     @Override
@@ -29,7 +35,7 @@ public class DroneEventBus extends LookupEventBus<DroneEventMessage, ActorRef, C
     public void publish(DroneEventMessage event, ActorRef subscriber) {
         if(!publishDisabled) {
             if (event.getInnerMsg() != null) {
-                subscriber.tell(event.getInnerMsg(), ActorRef.noSender());
+                subscriber.tell(event.getInnerMsg(), publisher);
             }
         }
     }
