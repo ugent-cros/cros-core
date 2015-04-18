@@ -5,6 +5,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.FlightControlExceptionMessage;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -22,7 +23,8 @@ public abstract class ControlTower extends FlightControl{
         return ReceiveBuilder.
                 match(DroneArrivalMessage.class, s -> droneArrivalMessage(s)).
                 match(AddDroneMessage.class, s -> addDroneMessage(s)).
-                match(RemoveDroneMessage.class, s -> removeDroneMessage(s));
+                match(RemoveDroneMessage.class, s -> removeDroneMessage(s)).
+                match(FlightControlExceptionMessage.class, s -> flightControlExceptionMessage(s));
     }
 
     protected abstract void droneArrivalMessage(DroneArrivalMessage m);
@@ -30,4 +32,6 @@ public abstract class ControlTower extends FlightControl{
     protected abstract void addDroneMessage(AddDroneMessage m);
 
     protected abstract void removeDroneMessage(RemoveDroneMessage m);
+
+    protected abstract void flightControlExceptionMessage(FlightControlExceptionMessage m);
 }

@@ -7,5 +7,13 @@ package drones.models.flightcontrol.messages;
  */
 public class EmergencyLandingMessage {
 
+    private Long droneId;
 
+    public EmergencyLandingMessage(Long droneId) {
+        this.droneId = droneId;
+    }
+
+    public Long getDroneId() {
+        return droneId;
+    }
 }

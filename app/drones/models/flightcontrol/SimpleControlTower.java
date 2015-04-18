@@ -10,6 +10,7 @@ import drones.models.scheduler.DroneArrivalMessage;
 import drones.models.scheduler.FlightControlExceptionMessage;
 import models.Drone;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -121,7 +122,8 @@ public class SimpleControlTower extends ControlTower{
         }
     }
 
-    private void flightControlExceptionMessage(FlightControlExceptionMessage m){
+    @Override
+    protected void flightControlExceptionMessage(FlightControlExceptionMessage m){
         log.error("Error in SimplePilot: " + m.getMessage());
         reporterRef.tell(m,self());
     }
@@ -134,16 +136,36 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void removeDroneMessage(RemoveDroneMessage m) {
-
+        ActorRef drone = findActorRefForDroneId(m.getDroneId());
+        if(drone != null){
+            drone.tell(m,sender());
+        }
     }
 
     @Override
     protected void emergencyLandingMessage(EmergencyLandingMessage m) {
-
+        for (int i = 0; i < maxNumberOfDrones; i++) {
+            if(!usedAltitudes[i]){
+                pilots[i].tell(m,sender());
+            }
+        }
     }
 
     @Override
     protected void cancelControlMessage(CancelControlMessage m) {
-
+        ActorRef drone = findActorRefForDroneId(m.getDroneId());
+        if(drone != null){
+            drone.tell(m,sender());
+        }
+    }
+    
+    private ActorRef findActorRefForDroneId(Long id) {
+        int index = Arrays.asList(drones).indexOf(id);
+        if(index < 0){
+            reporterRef.tell(new FlightControlExceptionMessage("Cannot find drone with id: " + id),self());
+            return null;
+        } else {
+            return pilots[index];
+        }
     }
 }
