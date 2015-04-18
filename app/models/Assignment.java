@@ -1,6 +1,5 @@
 package models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -25,13 +24,8 @@ public class Assignment extends Model {
     @Id
     private Long id;
 
-    @Version
-    @JsonIgnore
-    public Long version;
-
     @Constraints.Required
     @OneToMany(cascade = CascadeType.ALL)
-    @OrderColumn
     private List<Checkpoint> route;
 
     @Constraints.Required
@@ -68,7 +62,9 @@ public class Assignment extends Model {
         this.id = id;
     }
 
-    public List<Checkpoint> getRoute() { return route; }
+    public List<Checkpoint> getRoute() {
+        return route;
+    }
 
     public void setRoute(List<Checkpoint> route) {
         this.route = route;
@@ -146,4 +142,5 @@ public class Assignment extends Model {
         result = 31 * result + (assignedDrone != null ? assignedDrone.hashCode() : 0);
         return result;
     }
+
 }

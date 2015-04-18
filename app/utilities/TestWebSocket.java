@@ -1,4 +1,4 @@
-package utilities.frontendSimulator;
+package utilities;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;

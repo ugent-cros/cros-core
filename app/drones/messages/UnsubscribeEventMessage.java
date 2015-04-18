@@ -12,8 +12,6 @@ public class UnsubscribeEventMessage implements Serializable {
         this.subscribedClass = subscribedClass;
     }
 
-    public UnsubscribeEventMessage(){}
-
     public Class getSubscribedClass() {
         return subscribedClass;
     }
