@@ -8,6 +8,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.scheduler.messages.from.SchedulerEvent;
+import drones.models.scheduler.messages.from.SchedulerReplyMessage;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Drone;
@@ -155,12 +156,21 @@ public abstract class Scheduler extends AbstractActor {
 
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder
+                .match(SchedulerRequestMessage.class, m -> reply(m.getRequestId()))
                 .match(ScheduleMessage.class, m -> schedule(m))
                 .match(DroneArrivalMessage.class, m -> droneArrived(m.getDroneId()))
                 .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m))
                 .match(SubscribeMessage.class, m -> eventBus.subscribe(sender(), m.getEventType()))
                 .match(UnsubscribeMessage.class, m -> eventBus.unsubscribe(sender(), m.getEventType()))
                 .match(StopSchedulerMessage.class, m -> stop(m));
+    }
+
+    /**
+     * Reply to a request message by publishing a reply message with the same request id.
+     * @param requestId
+     */
+    private void reply(long requestId){
+        eventBus.publish(new SchedulerReplyMessage(requestId));
     }
 
     /**

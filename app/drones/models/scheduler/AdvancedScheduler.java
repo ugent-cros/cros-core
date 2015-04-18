@@ -451,7 +451,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         eventBus.publish(new SchedulerCanceledMessage(assignmentId));
     }
 
-    protected Basestation closestBaseStation(Location location) {
+    public static Basestation closestBaseStation(Location location) {
         List<Basestation> stations = Basestation.FIND.all();
         double minDist = Double.MAX_VALUE;
         Basestation closest = null;
