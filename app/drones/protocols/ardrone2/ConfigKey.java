@@ -3,7 +3,7 @@ package drones.protocols.ardrone2;
 /**
  * Created by brecht on 4/6/15.
  */
-public enum ConfigKeys {
+public enum ConfigKey {
     // "general" configs
     GEN_NUM_VERSION_CONFIG("num_version_config"),
     GEN_NUM_VERSION_MB("num_version_mb"),
@@ -94,7 +94,7 @@ public enum ConfigKeys {
     private String configClass;
     private String key;
 
-    private ConfigKeys(String key) {
+    private ConfigKey(String key) {
         this.key = key;
     }
 
