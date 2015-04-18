@@ -1,4 +1,4 @@
-package drones.models.scheduler.messages;
+package drones.models.scheduler.messages.to;
 
 import models.Drone;
 import drones.models.DroneCommander;
@@ -23,6 +23,7 @@ public class DroneArrivalMessage implements Serializable{
         return droneId;
     }
 
+    // TODO: remove location
     public Location getLocation() {
         return location;
     }

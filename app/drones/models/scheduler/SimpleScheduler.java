@@ -9,10 +9,7 @@ import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
-import drones.models.scheduler.messages.AssignmentMessage;
-import drones.models.scheduler.messages.DroneArrivalMessage;
-import drones.models.scheduler.messages.DroneBatteryMessage;
-import drones.models.scheduler.messages.ScheduleMessage;
+import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
@@ -63,16 +60,16 @@ public class SimpleScheduler extends Scheduler {
     }
 
     @Override
-    protected void receiveDroneArrivalMessage(DroneArrivalMessage message) {
+    protected void droneArrived(long droneId) {
         // Terminate SimplePilot
         ActorRef pilot = sender();
         getContext().stop(pilot);
         // Drone that arrived
-        Drone drone = Drone.FIND.byId(message.getDroneId());
+        Drone drone = Drone.FIND.byId(droneId);
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
-        relieve(drone, assignment);
+        unassign(drone, assignment);
 
         // Start scheduling again
         schedule(null);
@@ -94,12 +91,8 @@ public class SimpleScheduler extends Scheduler {
         super.assign(drone, assignment);
         // Get route
         List<Checkpoint> route = assignment.getRoute();
-        // Create SimplePilot
-        ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), drone.getId(), false, route)));
-        // Tell the pilot to start the flight
-        pilot.tell(new StartFlightControlMessage(), self());
+        // Create a new flight.
+        createFlight(drone,assignment);
     }
 
 
@@ -108,6 +101,7 @@ public class SimpleScheduler extends Scheduler {
      * Breaks when there are no more assignments in the queue and database.
      * Breaks when there are no more available drones.
      */
+    @Override
     protected void schedule(ScheduleMessage message) {
         while (true) {
             // Provide assignments
@@ -125,6 +119,29 @@ public class SimpleScheduler extends Scheduler {
     }
 
     /**
+     * Terminates the simple scheduler.
+     * Very unsafe when using real drones!
+     * @param message
+     */
+    @Override
+    protected void stop(StopSchedulerMessage message) {
+        // This is not fully implemented in the SimpleScheduler.
+        log.warning("[SimpleScheduler] Does not care what happens to the drones now.");
+        log.warning("[SimpleScheduler] Use an advanced scheduler to be safe.");
+        // Terminate
+        context().stop(self());
+    }
+
+    protected void createFlight(Drone drone, Assignment assignment){
+        // Create SimplePilot
+        ActorRef pilot = getContext().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(self(), drone.getId(), false, assignment.getRoute())));
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(), self());
+    }
+
+    /**
      * Fetch new assignments from database and add them to the queue
      * No more than MAX_QUEUE_SIZE assignments can be put in the queue
      *
@@ -139,15 +156,15 @@ public class SimpleScheduler extends Scheduler {
         // Fetch 'count' first assignments with progress = 0, ordered by Id
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("progress", 0);
+        query.where().eq("scheduled", false);
         query.orderBy("id");
         List<Assignment> assignments = query.findList();
 
         // Add assignments to the queue and update them
         for (Assignment assignment : assignments) {
             queue.add(assignment);
-            // Progress = 1 means assignment is added to scheduler queue
-            assignment.setProgress(1);
+            // Set scheduled
+            assignment.setScheduled(true);
             assignment.update();
         }
 
