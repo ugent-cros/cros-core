@@ -138,7 +138,8 @@ public class SimpleControlTower extends ControlTower{
     protected void removeDroneMessage(RemoveDroneMessage m) {
         ActorRef drone = findActorRefForDroneId(m.getDroneId());
         if(drone != null){
-            drone.tell(m,sender());
+            //TO DO!!!
+            //drone.tell(m,sender());
         }
     }
 
