@@ -5,9 +5,11 @@ import java.util.List;
 
 import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
+import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
+import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.DroneArrivalMessage;
@@ -74,40 +76,12 @@ public class SimplePilot extends Pilot {
     }
 
     @Override
-    protected void navigateHomeStateChanged(NavigationStateChangedMessage m) {
-        switch (m.getState()) {
-            case AVAILABLE:
-                switch (m.getReason()) {
-                    case ENABLED:
-                        goToNextWaypoint();
-                        break;
-                    case FINISHED:
-                        //TO DO wait at checkpoint
-                        actualWaypoint++;
-                        goToNextWaypoint();
-                        break;
-                    case STOPPED:
-                        //TO DO
-                        break;
-                }
-                break;
-            case UNAVAILABLE:
-                //TO DO
-                break;
-            case IN_PROGRESS:
-                switch (m.getReason()) {
-                    case BATTERY_LOW:
-                        //TO DO
-                        break;
-                    case CONNECTION_LOST:
-                        //TO DO
-                        break;
-                    case REQUESTED:
-                        //TO DO
-                }
-                break;
-            case PENDING:
-                //TO DO ???
+    protected void flyingStateChanged(FlyingStateChangedMessage m) {
+        System.out.println(m.getState());
+        if(m.getState() == FlyingState.HOVERING){
+            //TO DO wait at checkpoint
+            actualWaypoint++;
+            goToNextWaypoint();
         }
     }
 
@@ -225,8 +199,6 @@ public class SimplePilot extends Pilot {
             @Override
             public void onSuccess(Void result) throws Throwable {
                 reporterRef.tell(new TakeOffCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                actualWaypoint = 0;
-                goToNextWaypoint();
             }
         }, getContext().system().dispatcher());
     }
@@ -243,8 +215,6 @@ public class SimplePilot extends Pilot {
             dc.takeOff().onSuccess(new OnSuccess<Void>() {
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    actualWaypoint = 0;
-                    goToNextWaypoint();
                 }
             }, getContext().system().dispatcher());
         }
