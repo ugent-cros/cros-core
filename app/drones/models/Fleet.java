@@ -3,7 +3,6 @@ package drones.models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Mapper;
-import akka.dispatch.OnSuccess;
 import akka.util.Timeout;
 import drones.messages.*;
 import drones.protocols.ICMPPing;
