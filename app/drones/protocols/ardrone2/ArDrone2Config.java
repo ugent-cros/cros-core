@@ -14,6 +14,8 @@ import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by brecht on 4/6/15.
@@ -28,6 +30,9 @@ public class ArDrone2Config extends UntypedActor {
     private final ActorRef tcpManager;
 
     private final InetSocketAddress remote;
+
+    // Starting key-pair value for config file
+    private static final String CONFIG_START_VALUE = "general:num_version_config=1\n";
 
     public ArDrone2Config(DroneConnectionDetails details, final ActorRef listener, final ActorRef parent) {
         // ArDrone 2 Model
@@ -76,39 +81,62 @@ public class ArDrone2Config extends UntypedActor {
         getContext().stop(getSelf());
     }
 
-    private void processData(ByteString byteData) {
-        String data = byteData.decodeString("UTF-8");
-        String[] configValues = data.split("\n");
+    private String data = "";
 
+    private void processData(ByteString byteData) {
+        String newData = byteData.decodeString("UTF-8");
+        if(newData.toLowerCase().contains(CONFIG_START_VALUE)) {
+            data = newData;
+        } else {
+            data += newData;
+        }
+
+        if(data.endsWith("\0")) {
+            parseData(data);
+        }
+    }
+
+    private void parseData(String data) {
         String hardwareVersion = "";
         String softwareVersion = "";
 
-        log.info(data);
-
-        for(String configValue: configValues) {
+        List<String> configs = Arrays.asList(data.split("\n"));
+        for(String configValue : configs) {
             String[] configPair = configValue.replaceAll("\\s+","").split("=");
-
             String key, value;
+
             if(configPair.length == 2) {
                 key = configPair[0];
                 value = configPair[1];
+
+                ConfigKey configKey = getConfigValue(key);
+                if(configKey != null) {
+                    switch (configKey) {
+                        case GEN_NUM_VERSION_SOFT:
+                            softwareVersion = value;
+                            break;
+                        case GEN_NUM_VERSION_MB:
+                            hardwareVersion = value;
+                            break;
+                    }
+                }
             } else {
-                return;
+                log.error("Error in parsing config file");
             }
 
-            if(key.equals(ConfigKeys.GEN_NUM_VERSION_SOFT.getKey())) {
-                log.info("- Software version: {}", value);
-                softwareVersion = value;
-            } else if(key.equals(ConfigKeys.GEN_NUM_VERSION_MB.getKey())) {
-                log.info("- Hardware version: {}", value);
-                hardwareVersion = value;
-                break; // @TODO temp fix
-            }
         }
 
         Object versionMessage = new ProductVersionChangedMessage(softwareVersion, hardwareVersion);
         listener.tell(versionMessage, getSelf());
+    }
 
-        log.info(data);
+    private ConfigKey getConfigValue(String configValue) {
+        for(ConfigKey key : ConfigKey.values()) {
+            if(key.getKey().toLowerCase().equals(configValue.toLowerCase())) {
+                return key;
+            }
+        }
+
+        return null;
     }
 }

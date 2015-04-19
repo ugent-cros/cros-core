@@ -1,6 +1,6 @@
 package drones.commands.ardrone2.atcommand;
 
-import drones.protocols.ardrone2.ConfigKeys;
+import drones.protocols.ardrone2.ConfigKey;
 
 /**
  * The command looks like: AT*CONFIG=<SEQ>,"<KEY>","<VALUE>"\r
@@ -9,7 +9,7 @@ import drones.protocols.ardrone2.ConfigKeys;
  */
 public class ATCommandCONFIG extends ATCommand {
     // The key of the config command
-    private ConfigKeys key;
+    private ConfigKey key;
     // The value of the config command
     private String value;
 
@@ -22,7 +22,7 @@ public class ATCommandCONFIG extends ATCommand {
      * @param key The key of the config command
      * @param value The value of the config command
      */
-    public ATCommandCONFIG(int seq, ConfigKeys key, String value) {
+    public ATCommandCONFIG(int seq, ConfigKey key, String value) {
         super(seq, COMMAND_NAME);
         this.key = key;
         this.value = value;
