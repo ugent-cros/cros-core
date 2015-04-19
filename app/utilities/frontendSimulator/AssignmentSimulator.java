@@ -31,7 +31,8 @@ public class AssignmentSimulator implements Runnable {
             notificationSimulator.sendMessage("droneAssigned", assignment.getId(),
                     new DroneAssignedMessage(drone.getId()));
             Thread.sleep(2000);
-            Checkpoint currentCheckpoint = assignment.getRoute().get(assignment.getProgress());
+            int current = 0;
+            Checkpoint currentCheckpoint = assignment.getRoute().get(current);
             Location currentLocation = currentCheckpoint.getLocation();
             notificationSimulator.sendMessage("locationChanged", drone.getId(),
                     new LocationChangedMessage(currentLocation.getLongitude(),
@@ -47,7 +48,7 @@ public class AssignmentSimulator implements Runnable {
                     // Continue loop
                 }
                 // Move to next location
-                Checkpoint nextCheckpoint = assignment.getRoute().get(assignment.getProgress() + 1);
+                Checkpoint nextCheckpoint = assignment.getRoute().get(current + 1);
                 Location nextLocation = nextCheckpoint.getLocation();
                 simulateMoveToNextLocation(currentLocation, nextLocation);
 
@@ -55,9 +56,10 @@ public class AssignmentSimulator implements Runnable {
                 currentCheckpoint = nextCheckpoint;
                 currentLocation = nextLocation;
                 simulateNextLocationReached(currentLocation);
+                current++;
             }
         } catch(Exception ex) {
-            // An error occured in the assignments thread, most likely due to initDB during execution
+            // An error occured in the assignments thread, most likely due to initDB during execution.
             // Try to make drone available again if possible
             run = false;
             try {
@@ -78,7 +80,7 @@ public class AssignmentSimulator implements Runnable {
                 c.getLocation().getLatitude(), c.getLocation().getAltitude(), c.getWaitingTime())).collect(Collectors.toList());
         Assignment extendedAssignment = new Assignment(route, assignment.getCreator());
         extendedAssignment.setAssignedDrone(assignment.getAssignedDrone());
-        extendedAssignment.setProgress(0);
+        extendedAssignment.setProgress(1);
         extendedAssignment.save();
         assignment.delete();
         return extendedAssignment;
@@ -116,7 +118,7 @@ public class AssignmentSimulator implements Runnable {
         assignment.setProgress(assignment.getProgress() + 1);
         assignment.update();
 
-        if(assignment.getProgress() + 1 == assignment.getRoute().size() && run) {
+        if(assignment.getProgress() == assignment.getRoute().size() && run) {
             notificationSimulator.sendMessage("assignmentCompleted", assignment.getId(),
                     new AssignmentCompletedMessage());
             drone.setStatus(Drone.Status.AVAILABLE);
