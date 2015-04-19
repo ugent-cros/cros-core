@@ -7,6 +7,8 @@ import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.SchedulerAddedDroneMessage;
+import drones.models.scheduler.messages.from.SchedulerAssignedMessage;
+import drones.models.scheduler.messages.from.SchedulerCompletedMessage;
 import drones.models.scheduler.messages.from.SchedulerReplyMessage;
 import drones.models.scheduler.messages.to.SchedulerRequestMessage;
 import drones.simulation.BepopSimulator;
@@ -173,6 +175,33 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 // Send already added drone to add.
                 Scheduler.addDrone(drones.get(0).getId());
                 expectNoMsg(SHORT_TIMEOUT);
+            }
+        };
+    }
+
+    @Test
+    public void schedule_1Assignment10Drones_1Scheduled() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(SchedulerAssignedMessage.class, getRef());
+                Scheduler.subscribe(SchedulerCompletedMessage.class,getRef());
+                // Add the drones
+                List<Drone> drones = Drone.FIND.all();
+                for (Drone drone : drones){
+                    Scheduler.addDrone(drone.getId());
+                }
+                // Add the assignment
+                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
+                assignment.save();
+
+                // Schedule!
+                Scheduler.schedule();
+                SchedulerAssignedMessage message = expectMsgClass(SchedulerAssignedMessage.class);
+                Assert.assertTrue(message.getAssignmentId() == assignment.getId());
+                assignment = Assignment.FIND.byId(message.getAssignmentId());
+                Assert.assertTrue(assignment.isScheduled());
+                Drone drone = Drone.FIND.byId(message.getDroneId());
+                Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);
             }
         };
     }

@@ -121,6 +121,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 unassigned.add(assignment);
             }else{
                 assign(drone,assignment);
+                // Tell everyone
+                eventBus.publish(new SchedulerAssignedMessage(drone.getId(),assignment.getId()));
             }
         }
         // Refill the queue.
