@@ -7,8 +7,10 @@ import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.*;
-import drones.simulation.SimulatorDriver;
-import models.*;
+import models.Assignment;
+import models.Basestation;
+import models.Drone;
+import models.User;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
@@ -57,22 +59,24 @@ public class Application extends Controller {
         User.FIND.all().forEach(d -> d.delete());
         Basestation.FIND.all().forEach(d -> d.delete());
 
-        List<Drone> drones = new ArrayList<>();
-        /*DroneType bepop = new DroneType("ARDrone3", "bepop");*/
-        /*drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
+        /*List<Drone> drones = new ArrayList<>();
+        DroneType bepop = new DroneType("ARDrone3", "bepop");
+        drones.add(new Drone("old drone", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE,  "address1"));
         drones.add(new Drone("fast drone", Drone.Status.AVAILABLE, bepop,  "address1"));
         drones.add(new Drone("strong drone", Drone.Status.AVAILABLE, bepop,  "address2"));
         drones.add(new Drone("cool drone", Drone.Status.AVAILABLE, bepop,  "address3"));
-        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));*/
+        drones.add(new Drone("clever drone", Drone.Status.AVAILABLE, bepop, "address4"));
         drones.add(new Drone("simulated drone", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "address"));
         Ebean.save(drones);
-        Await.ready(Fleet.getFleet().createCommanderForDrone(drones.get(0)), new Timeout(10, TimeUnit.SECONDS).duration());
+        Await.ready(Fleet.getFleet().createCommanderForDrone(drones.get(0)), new Timeout(10, TimeUnit.SECONDS).duration());*/
 
         List<User> users = new ArrayList<>();
-        User user = new User("cros@test.be", "freddy", "cros", "tester");
-        users.add(user);
+        users.add(new User("cros@test.be", "freddy", "cros", "tester"));
         users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.add(new User("teachingstaff@cros.be", "ugent", "teaching", "staff"));
         users.get(0).setRole(User.Role.ADMIN);
+        users.get(1).setRole(User.Role.USER);
+        users.get(2).setRole(User.Role.ADMIN);
 
         Ebean.save(users);
 
