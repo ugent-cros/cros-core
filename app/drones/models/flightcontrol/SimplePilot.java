@@ -77,7 +77,6 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        System.out.println(m.getState());
         if(m.getState() == FlyingState.HOVERING){
             //TO DO wait at checkpoint
             actualWaypoint++;
