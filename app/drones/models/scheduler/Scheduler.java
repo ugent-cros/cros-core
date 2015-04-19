@@ -116,7 +116,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param assignmentId id of the assignment to cancel.
      * @throws SchedulerException
      */
-    public static void cancel(long assignmentId) throws SchedulerException{
+    public static void cancelAssignment(long assignmentId) throws SchedulerException{
         getScheduler().tell(new CancelAssignmentMessage(assignmentId), ActorRef.noSender());
     }
 

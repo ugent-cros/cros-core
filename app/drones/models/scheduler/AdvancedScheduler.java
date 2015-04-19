@@ -11,9 +11,7 @@ import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.flightcontrol.messages.StopFlightControlMessage;
-import drones.models.scheduler.messages.from.SchedulerCanceledMessage;
-import drones.models.scheduler.messages.from.SchedulerCompletedMessage;
-import drones.models.scheduler.messages.from.SchedulerStoppedMessage;
+import drones.models.scheduler.messages.from.*;
 import drones.models.scheduler.messages.to.*;
 import models.*;
 import scala.concurrent.Await;
@@ -40,13 +38,13 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // TODO: add more receivers
         return super.initReceivers().
                 match(CancelAssignmentMessage.class,
-                        m -> cancelAssignment(m.getAssignmentId())
+                        m -> cancelAssignment(m)
                 ).
                 match(AddDroneMessage.class,
-                        m-> addDrone(m.getDroneId())
+                        m -> addDrone(m)
                 ).
                 match(RemoveDroneMessage.class,
-                        m-> removeDrone(m.getDroneId())
+                        m-> removeDrone(m)
                 );
     }
 
@@ -150,23 +148,36 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // Retrieve the drone
         Drone drone = getDrone(flight.getDroneId());
 
-        // Handle the assignment
+        // Handle the drone and assignment
         long assignmentId = flight.getAssignmentId();
+
+        // The drone completed an assignment
         if (assignmentId > Flight.NO_ASSIGNMENT_ID) {
-            // We completed an assignment, yaay!
-            eventBus.publish(new SchedulerCompletedMessage(assignmentId));
             Assignment assignment = getAssignment(assignmentId);
             unassign(drone, assignment);
+            // We completed an assignment, yaay!
+            eventBus.publish(new SchedulerCompletedMessage(assignmentId));
             // Send the drone back to base
             returnHome(drone);
-        } else {
+            return;
+        }
+        // The drone becomes available again.
+        if(drone.getStatus() == Drone.Status.FLYING){
             drone.setStatus(Drone.Status.AVAILABLE);
             drone.update();
+            dronePool.add(drone.getId());
+            // Start scheduling again because there may be assignments waiting.
+            self().tell(new ScheduleMessage(), self());
+            return;
         }
-
-        // Start scheduling again because there may be assignments waiting.
-        // This will be ignored during termination.
-        self().tell(new ScheduleMessage(), self());
+        // The drone was scheduled to be removed.
+        if(drone.getStatus() == Drone.Status.DECOMMISSIONED){
+            dronePool.remove(drone);
+            drone.setStatus(Drone.Status.INACTIVE);
+            drone.update();
+            // Tell the world we successfully removed a drone from the pool.
+            eventBus.publish(new SchedulerRemovedDroneMessage(drone.getId()));
+        }
     }
 
     /**
@@ -199,7 +210,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             }
 
             // Calculate distance to first checkpoint.
-            double distance = Helper.distance(droneLocation,assignmentLocation);
+            double distance = Helper.distance(droneLocation, assignmentLocation);
             if(distance < minDistance){
                 double totalDistance = distance + routeLength;
                 if(hasSufficientBattery(commander,totalDistance)){
@@ -208,6 +219,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 }
             }
 
+        }
+        // Remove fetched drone from the drone pool.
+        if(minDrone != null){
+            dronePool.remove(minDrone.getId());
         }
         return minDrone;
     }
@@ -297,43 +312,43 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-    protected void createFlight(Drone drone, Assignment assignment) {
-        createFlight(drone.getId(), assignment.getId(), assignment.getRoute());
-    }
-
-    protected void createFlight(long droneId, long assignmentId, List<Checkpoint> route) {
-        // TODO: Create a new Flight and add it to flights.
-        // TODO: Tell a controltower to start a new flight.
-        // For now, we still use SimplePilot.
-        // Create SimplePilot
-        ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), droneId, false, route)));
-        // Tell the pilot to start the flight
-        pilot.tell(new StartFlightControlMessage(), self());
-        // Create a new flight for administration
-        Flight flight = new Flight(droneId, assignmentId, pilot);
+    /**
+     * Cancel an assignment, regardless whether it is in progress or not.
+     * @param message containing the assignment id
+     */
+    protected void cancelAssignment(CancelAssignmentMessage message) {
+        Assignment assignment = getAssignment(message.getAssignmentId());
+        // Assigned drone
+        Drone drone = assignment.getAssignedDrone();
+        if (drone != null) {
+            // Cancel flight
+            cancelFlight(drone.getId());
+        }
+        // Tell the world we successfully canceled this assignment.
+        eventBus.publish(new SchedulerCanceledMessage(message.getAssignmentId()));
     }
 
     /**
-     * Add a drone to the drone pool.
-     * @param droneId
+     * Add a new drone to the drone pool.
+     * @param message containing the add-drone request
      */
-    protected void addDrone(Long droneId) {
-        Drone drone = getDrone(droneId);
-        if (drone.getStatus() == Drone.Status.AVAILABLE) {
-            dronePool.add(drone.getId());
-        }
+    protected void addDrone(AddDroneMessage message) {
+        dronePool.add(message.getDroneId());
+        // Let the world know we successfully added a drone to the drone pool
+        eventBus.publish(new SchedulerAddedDroneMessage(message.getDroneId()));
     }
 
     /**
      * Remove a drone from the drone pool or flights in progress.
-     * @param droneId
+     * @param message containing the drone id
      */
-    protected void removeDrone(Long droneId) {
+    protected void removeDrone(RemoveDroneMessage message) {
+        long droneId = message.getDroneId();
         if (dronePool.contains(droneId)) {
             // Drone present in drone pool is safe to remove.
             dronePool.remove(droneId);
+            // Tell the world we successfully removed a drone from the drone pool.
+            eventBus.publish(new SchedulerRemovedDroneMessage(droneId));
             return;
         }
         if (flights.containsKey(droneId)) {
@@ -346,6 +361,35 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             // Send the drone home
             returnHome(drone);
         }
+    }
+
+    /**
+     * Create a flight associated with an assignment.
+     * @param drone
+     * @param assignment
+     */
+    protected void createFlight(Drone drone, Assignment assignment) {
+        createFlight(drone.getId(), assignment.getId(), assignment.getRoute());
+    }
+
+    /**
+     * Create a flight with a drone, an assignment id and the route to fly.
+     * @param droneId
+     * @param assignmentId
+     * @param route
+     */
+    protected void createFlight(long droneId, long assignmentId, List<Checkpoint> route) {
+        // TODO: Create a new Flight and add it to flights.
+        // TODO: Tell a controltower to start a new flight.
+        // For now, we still use SimplePilot.
+        // Create SimplePilot
+        ActorRef pilot = getContext().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(self(), droneId, false, route)));
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(), self());
+        // Create a new flight for administration
+        Flight flight = new Flight(droneId, assignmentId, pilot);
     }
 
     /**
@@ -413,17 +457,5 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         Location location = station.getLocation();
         createFlight(drone.getId(), Flight.RETURN_HOME, Helper.routeTo(location));
-    }
-
-    protected void cancelAssignment(long assignmentId) {
-        Assignment assignment = getAssignment(assignmentId);
-        // Assigned drone
-        Drone drone = assignment.getAssignedDrone();
-        if (drone != null) {
-            // Cancel flight
-            cancelFlight(drone.getId());
-        }
-        // Tell the world we successfully canceled this assignment.
-        eventBus.publish(new SchedulerCanceledMessage(assignmentId));
     }
 }

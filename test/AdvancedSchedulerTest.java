@@ -136,5 +136,5 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    
+
 }
