@@ -176,8 +176,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
      */
     protected Drone fetchAvailableDrone(Assignment assignment) {
         // Distance to complete the assignment route.
-        double routeLength =  getRouteLength(assignment);
-        if(routeLength < 0){
+        double routeLength =  Helper.getRouteLength(assignment);
+        if(Double.isNaN(routeLength)){
             // Encountered invalid assignment.
             log.error("[AdvancedScheduler] Encountered invalid assignment route.");
             return null;
@@ -199,7 +199,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             }
 
             // Calculate distance to first checkpoint.
-            double distance = distance(droneLocation,assignmentLocation);
+            double distance = Helper.distance(droneLocation,assignmentLocation);
             if(distance < minDistance){
                 double totalDistance = distance + routeLength;
                 if(hasSufficientBattery(commander,totalDistance)){
@@ -218,13 +218,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     protected Assignment getAssignment(Long assignmentId) {
         return Assignment.FIND.byId(assignmentId);
-    }
-
-    protected List<Checkpoint> routeTo(Location location) {
-        List<Checkpoint> route = new ArrayList<>();
-        // Create new checkpoint with longitude, latitude, altitude
-        route.add(new Checkpoint(location));
-        return route;
     }
 
     protected Location getDroneLocation(DroneCommander commander){
@@ -302,23 +295,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             log.warning("[AdvancedScheduler] Failed to retrieve battery status.");
             return false;
         }
-    }
-
-    // TODO: Try to have route length as an assignment property
-    protected double getRouteLength(Assignment assignment){
-        List<Checkpoint> route = assignment.getRoute();
-        if(route.isEmpty()){
-            log.error("[AdvancedScheduler] Encountered assignment with empty route.");
-            return -1;
-        }
-        double length = 0;
-        Location from = route.get(0).getLocation();
-        for(int c = 1; c < route.size(); c++){
-            Location to = route.get(c).getLocation();
-            length += distance(from,to);
-            from = to;
-        }
-        return length;
     }
 
     protected void createFlight(Drone drone, Assignment assignment) {
@@ -430,13 +406,13 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             return;
         }
         // Basestation to return to should be the closest one.
-        Basestation station = closestBaseStation(droneLocation);
+        Basestation station = Helper.closestBaseStation(droneLocation);
         if (station == null) {
             log.error("[AdvancedScheduler] Found no basestations.");
             return;
         }
         Location location = station.getLocation();
-        createFlight(drone.getId(), Flight.RETURN_HOME, routeTo(location));
+        createFlight(drone.getId(), Flight.RETURN_HOME, Helper.routeTo(location));
     }
 
     protected void cancelAssignment(long assignmentId) {
@@ -449,19 +425,5 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         // Tell the world we successfully canceled this assignment.
         eventBus.publish(new SchedulerCanceledMessage(assignmentId));
-    }
-
-    public static Basestation closestBaseStation(Location location) {
-        List<Basestation> stations = Basestation.FIND.all();
-        double minDist = Double.MAX_VALUE;
-        Basestation closest = null;
-        for (Basestation station : stations) {
-            double dist = distance(station.getLocation(), location);
-            if (dist < minDist) {
-                minDist = dist;
-                closest = station;
-            }
-        }
-        return closest;
     }
 }

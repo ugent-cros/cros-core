@@ -227,36 +227,4 @@ public abstract class Scheduler extends AbstractActor {
      * @param message
      */
     protected abstract void stop(StopSchedulerMessage message);
-
-    // Radius of the earth in meters
-    public static final int EARTH_RADIUS = 6371000;
-
-    /**
-     * Calculates the distances between two locations using the 'haversine' formula.
-     * Source: http://www.movable-type.co.uk/scripts/latlong.html
-     * Taking into account the latitude and longitude, not the altitude!
-     *
-     * @param loc1 first location
-     * @param loc2 second location
-     * @return the distance between two location in meters.
-     */
-    // TODO: Move to utility class
-    public static double distance(Location loc1, Location loc2) {
-        double lat1 = loc1.getLatitude();
-        double lat2 = loc2.getLatitude();
-        double lon1 = loc1.getLongitude();
-        double lon2 = loc2.getLongitude();
-        // Conversion to radians for Math functions.
-        double phi1 = Math.toRadians(lat1);
-        double phi2 = Math.toRadians(lat2);
-        double dPhi = Math.toRadians(lat2 - lat1);
-        double dLambda = Math.toRadians(lon2 - lon1);
-        // Sin(dPhi/2)^2 + Cos(dPhi/2)^2 + Sin(dLambda/2)^2
-        double c = Math.pow(Math.sin(dPhi / 2), 2)
-                + Math.pow(Math.cos(dPhi / 2), 2)
-                + Math.pow(Math.sin(dLambda / 2), 2);
-        c = 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1 - c));
-        // Final result in meters
-        return EARTH_RADIUS * c;
-    }
 }

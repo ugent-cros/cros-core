@@ -1,3 +1,4 @@
+import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
@@ -55,7 +56,7 @@ public class Global extends GlobalSettings {
     public void onStart(Application application) {
         super.onStart(application);
         try {
-            Scheduler.start(SimpleScheduler.class);
+            Scheduler.start(AdvancedScheduler.class);
         }catch(SchedulerException ex){
             Logger.error(ex.toString());
         }
