@@ -3,6 +3,7 @@ package drones.models.scheduler;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.UnitPFBuilder;
+import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
@@ -188,12 +189,18 @@ public class SimpleScheduler extends Scheduler {
         // FIND OR CREATE COMMANDER
         Fleet fleet = Fleet.getFleet();
         DroneCommander commander = null;
-        try {
-            commander = fleet.getCommanderForDrone(drone);
-        } catch (IllegalArgumentException ex) {
+        if(!fleet.hasCommander(drone)) {
             log.info("[SimpleScheduler] Creating new commander.");
-            commander = fleet.createCommanderForDrone(drone);
+            try {
+                commander = Await.result(fleet.createCommanderForDrone(drone), new Timeout(3, TimeUnit.SECONDS).duration());
+            } catch(Exception ex){
+                log.error(ex, "Failed to initialize drone: {}", drone);
+            }
         }
+        else {
+            commander = fleet.getCommanderForDrone(drone);
+        }
+
         if (commander == null) {
             // Fleet was unable to create a driver
             drone.setStatus(Drone.Status.MISSING_DRIVER);

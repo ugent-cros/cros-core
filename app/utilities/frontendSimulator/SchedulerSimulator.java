@@ -32,8 +32,8 @@ public class SchedulerSimulator implements Runnable {
                 while (found.isEmpty() && run) {
                     found = Assignment.FIND.where().eq("progress", 0).findList();
                 }
-                List<Assignment> all = Assignment.FIND.all();
-                if(found.size() + counter > all.size())
+                int amount = Assignment.FIND.findRowCount();
+                if(found.size() + counter > amount)
                     throw new RuntimeException("InitDB detected");
                 Thread.sleep(5000);
                 for(int i = 0; i < found.size() && run; ++i) {
