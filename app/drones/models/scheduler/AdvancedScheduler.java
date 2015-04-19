@@ -333,9 +333,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
      * @param message containing the add-drone request
      */
     protected void addDrone(AddDroneMessage message) {
-        dronePool.add(message.getDroneId());
-        // Let the world know we successfully added a drone to the drone pool
-        eventBus.publish(new SchedulerAddedDroneMessage(message.getDroneId()));
+        boolean success = dronePool.add(message.getDroneId());
+        if(success) {
+            eventBus.publish(new SchedulerAddedDroneMessage(message.getDroneId()));
+        }
     }
 
     /**

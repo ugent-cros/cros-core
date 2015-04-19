@@ -5,17 +5,23 @@ import com.avaje.ebean.Ebean;
 import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.messages.from.SchedulerAddedDroneMessage;
 import drones.models.scheduler.messages.from.SchedulerReplyMessage;
 import drones.models.scheduler.messages.to.SchedulerRequestMessage;
-import models.Assignment;
-import models.Basestation;
-import models.Checkpoint;
-import models.Location;
+import drones.simulation.BepopSimulator;
+import drones.simulation.SimulatorDriver;
+import models.*;
 import org.junit.*;
 import play.libs.Akka;
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 18/04/2015.
@@ -23,14 +29,15 @@ import java.util.List;
 public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
+    private static final FiniteDuration SHORT_TIMEOUT = Duration.create(2, TimeUnit.SECONDS);
+    private static final FiniteDuration LONG_TIMEOUT = Duration.create(10, TimeUnit.SECONDS);
     // Our location
     private static final double DIST_GHENT_ANTWERP = 51474;
     private static final double DIST_ANTWERP_PARIS = 301065;
     private static final Location GHENT = new Location(3.71667,51.05,0);
     private static final Location ANTWERP = new Location(4.40346,51.21989,0);
     private static final Location PARIS = new Location(2.3488,48.85341,0);
-    // Other basestations
-    private static final List<Basestation> BASESTATIONS = new ArrayList<>();
+    // Base stations
     private static Basestation BRUSSELS;
     private static Basestation DELHI;
     private static Basestation KINSHASA;
@@ -55,17 +62,27 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         SEATTLE = new Basestation("Seattle", new Location(-122.33207,47.60621,0));
         SYDNEY = new Basestation("Sydney", new Location(151.20732,-33.86785,0));
         TOKYO = new Basestation("Tokyo", new Location(139.69171,35.6895,0));
-        BASESTATIONS.add(BRUSSELS);
-        BASESTATIONS.add(DELHI);
-        BASESTATIONS.add(KINSHASA);
-        BASESTATIONS.add(LIMA);
-        BASESTATIONS.add(MOSCOW);
-        BASESTATIONS.add(NEW_YORK);
-        BASESTATIONS.add(ROME);
-        BASESTATIONS.add(SEATTLE);
-        BASESTATIONS.add(SYDNEY);
-        BASESTATIONS.add(TOKYO);
-        Ebean.save(BASESTATIONS);
+        List<Basestation> basestations = new ArrayList<>();
+        basestations.add(BRUSSELS);
+        basestations.add(DELHI);
+        basestations.add(KINSHASA);
+        basestations.add(LIMA);
+        basestations.add(MOSCOW);
+        basestations.add(NEW_YORK);
+        basestations.add(ROME);
+        basestations.add(SEATTLE);
+        basestations.add(SYDNEY);
+        basestations.add(TOKYO);
+        Ebean.save(basestations);
+
+        List<Drone> drones = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            Drone drone = new Drone("Drone" + i, Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"0.0.0." + i);
+            drones.add(drone);
+        }
+        Ebean.save(drones);
+
+        // Create system
         system = ActorSystem.create();
     }
 
@@ -119,19 +136,43 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void subscriberTest_RequestMessage_ReplyMessage(){
+    public void subscriberTest_RequestMessage_ReplyMessage() throws SchedulerException {
         new JavaTestKit(system){
             {
-                try {
-                    Scheduler.subscribe(SchedulerReplyMessage.class, getRef());
-                    ActorRef scheduler = Scheduler.getScheduler();
-                    SchedulerRequestMessage request = new SchedulerRequestMessage();
-                    scheduler.tell(request,getRef());
-                    SchedulerReplyMessage reply = expectMsgClass(SchedulerReplyMessage.class);
-                    Assert.assertTrue(request.getRequestId() == reply.getRequestId());
-                }catch(Exception ex){
-                    Assert.fail(ex.getMessage());
+                Scheduler.subscribe(SchedulerReplyMessage.class, getRef());
+                ActorRef scheduler = Scheduler.getScheduler();
+                SchedulerRequestMessage request = new SchedulerRequestMessage();
+                scheduler.tell(request,getRef());
+                SchedulerReplyMessage reply = expectMsgClass(SchedulerReplyMessage.class);
+                Assert.assertTrue(request.getRequestId() == reply.getRequestId());
+            }
+        };
+    }
+
+    @Test
+    public void addDrone_11Requests_10Added() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(SchedulerAddedDroneMessage.class, getRef());
+
+                // Add the drones
+                List<Drone> drones = Drone.FIND.all();
+                Set<Long> droneIdCheck = new HashSet<>();
+                for (Drone drone : drones){
+                    Scheduler.addDrone(drone.getId());
+                    droneIdCheck.add(drone.getId());
                 }
+                // Expect 10 unique added drones.
+                Object[] messages = receiveN(drones.size());
+                for(Object message : messages){
+                    long droneId = ((SchedulerAddedDroneMessage) message).getDroneId();
+                    Assert.assertTrue(droneIdCheck.remove(droneId));
+                }
+                Assert.assertTrue(droneIdCheck.isEmpty());
+
+                // Send already added drone to add.
+                Scheduler.addDrone(drones.get(0).getId());
+                expectNoMsg(SHORT_TIMEOUT);
             }
         };
     }
