@@ -411,7 +411,7 @@ public class BepopSimulator extends DroneActor {
         if (connectionLost) return;
 
         //  Land
-        p.failure(new Exception("Not implemented yet"));
+        p.failure(new DroneException("action not implemented"));
     }
 
     @Override

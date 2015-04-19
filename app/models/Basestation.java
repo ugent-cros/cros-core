@@ -38,9 +38,8 @@ public class Basestation extends Model {
     @Embedded
     private Location location;
 
-    public Basestation(String name, double longitude, double latitude, double altitude){
-
-        this.setLocation(new Location(longitude, latitude, altitude));
+    public Basestation(String name, double latitude, double longitude, double altitude){
+        this.setLocation(new Location(latitude, longitude, altitude));
         this.name = name;
     }
 

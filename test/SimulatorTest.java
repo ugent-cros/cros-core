@@ -50,7 +50,7 @@ public class SimulatorTest extends TestSuperclass {
     }
 
     protected DroneCommander newCommander() {
-        return new DroneCommander("", driver);
+        return new DroneCommander(newSimulator());
     }
 
     @Test
