@@ -14,7 +14,6 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.commands.MoveCommand;
 import drones.messages.*;
 import drones.util.LocationNavigator;
-import org.springframework.context.annotation.Lazy;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
@@ -52,7 +51,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public DroneActor() {
-        eventBus = new DroneEventBus();
+        eventBus = new DroneEventBus(self());
         navigationLock = new Object();
 
         batteryPercentage = new LazyProperty<>();
@@ -94,7 +93,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
-                match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClass())).
+                match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
                 // Drone -> external
@@ -228,8 +227,10 @@ public abstract class DroneActor extends AbstractActor {
                 });
     }
 
-    private void handleSubscribeMessage(final ActorRef sub, Class cl) {
-        eventBus.subscribe(sub, cl);
+    private void handleSubscribeMessage(final ActorRef sub, Class[] cl) {
+        for(Class c : cl){
+            eventBus.subscribe(sub, c);
+        }
     }
 
     private void handleUnsubscribeMessage(final ActorRef sub, Class cl) {
@@ -397,6 +398,7 @@ public abstract class DroneActor extends AbstractActor {
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
 
+            /*
             synchronized(navigationLock){
                 if(navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
                     v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
@@ -415,9 +417,10 @@ public abstract class DroneActor extends AbstractActor {
                     v.success(null);
                 }
             }
+            */
 
             // Old movetohome code:
-            //moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         }
     }
 

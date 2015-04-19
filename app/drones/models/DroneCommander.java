@@ -27,14 +27,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     private boolean initialized = false;
 
-    public DroneCommander(String droneAddress, DroneDriver driver) {
-
-        // Create DroneActor
-        droneActor = Akka.system().actorOf(
-                Props.create(driver.getActorClass(),
-                        () -> driver.createActor(droneAddress)));
-    }
-
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }
@@ -280,7 +272,16 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param cl  The topic class of the message to subscribe to
      */
     public void subscribeTopic(final ActorRef sub, Class cl) {
-        droneActor.tell(new SubscribeEventMessage(cl), sub);
+        subscribeTopics(sub, new Class[] { cl });
+    }
+
+    /**
+     * Subscribe to message of given topics
+     * @param sub The actor to which the events have to be sent
+     * @param topics The topic class of the message to subscribe to
+     */
+    public void subscribeTopics(final ActorRef sub, Class[] topics){
+        droneActor.tell(new SubscribeEventMessage(topics), sub);
     }
 
     /**
@@ -299,6 +300,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param sub The actor to unsubscribe
      */
     public void unsubscribe(final ActorRef sub) {
-        droneActor.tell(new UnsubscribeEventMessage(null), sub);
+        droneActor.tell(new UnsubscribeEventMessage(), sub);
     }
 }
