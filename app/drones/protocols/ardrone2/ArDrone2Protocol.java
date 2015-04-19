@@ -56,6 +56,7 @@ public class ArDrone2Protocol extends UntypedActor {
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
     private ActorRef ardrone2Config;
+    private ActorRef ardrone2Video;
 
     public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
@@ -199,7 +200,32 @@ public class ArDrone2Protocol extends UntypedActor {
         // max 1m/s vertical speed
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_CONTROL_VZ_MAX,
-               Integer.toString(VZ_MAX))));
+                Integer.toString(VZ_MAX))));
+
+        // Video configs
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_CTRL_MODE,
+                Integer.toString(0))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE,
+                Integer.toString(1000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_MAX,
+                Integer.toString(4000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CODEC,
+                "0x81")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CHANNEL,
+                "0")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -213,6 +239,11 @@ public class ArDrone2Protocol extends UntypedActor {
         // Create config data actor
         ardrone2Config = getContext().actorOf(Props.create(ArDrone2Config.class,
                 () -> new ArDrone2Config(details, listener, getSelf())));
+
+        // Create config data actor
+        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                () -> new ArDrone2Video(details, listener, getSelf())));
+
     }
 
     private void handleFlatTrim() {
@@ -272,6 +303,7 @@ public class ArDrone2Protocol extends UntypedActor {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
         ardrone2Config.tell(new StopMessage(), self());
+        ardrone2Video.tell(new StopMessage(), self());
 
         udpManager.tell(UdpMessage.unbind(), self());
         getContext().stop(self());

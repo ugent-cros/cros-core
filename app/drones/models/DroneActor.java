@@ -38,6 +38,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Boolean> gpsFix;
     protected LazyProperty<Boolean> isOnline;
     protected LazyProperty<Boolean> calibrationRequired;
+    protected LazyProperty<String> image;
 
     protected DroneEventBus eventBus;
 
@@ -68,6 +69,7 @@ public abstract class DroneActor extends AbstractActor {
         gpsFix = new LazyProperty<>(false);
         isOnline = new LazyProperty<>(false);
         calibrationRequired = new LazyProperty<>(false);
+        image = new LazyProperty<>();
 
         navigator = createNavigator(null, null);
 
@@ -107,10 +109,10 @@ public abstract class DroneActor extends AbstractActor {
                     log.info("GPS fix changed: [{}]", s.isFixed());
 
                     // Publish navigation state to event bus
-                    if(s.isFixed() && !gpsFix.getRawValue()) {
+                    if (s.isFixed() && !gpsFix.getRawValue()) {
                         navigationState.setValue(NavigationState.AVAILABLE);
                         eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.ENABLED)));
-                    }else if(!s.isFixed() && gpsFix.getRawValue()) {
+                    } else if (!s.isFixed() && gpsFix.getRawValue()) {
                         navigationState.setValue(NavigationState.UNAVAILABLE);
                         eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
                     }
@@ -148,6 +150,10 @@ public abstract class DroneActor extends AbstractActor {
                 }).
                 match(ProductVersionChangedMessage.class, s -> {
                     version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()));
+                    eventBus.publish(new DroneEventMessage(s));
+                }).
+                match(ImageChangedMessage.class, s -> {
+                    image.setValue(s.getImage());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(NavigationStateChangedMessage.class, s -> {
@@ -281,6 +287,9 @@ public abstract class DroneActor extends AbstractActor {
                 break;
             case CALIBRATION_REQUIRED:
                 handleMessage(calibrationRequired.getValue(), sender(), self());
+                break;
+            case IMAGE:
+                handleMessage(image.getValue(), sender(), self());
                 break;
             default:
                 log.warning("No property handler for: [{}]", msg.getType());

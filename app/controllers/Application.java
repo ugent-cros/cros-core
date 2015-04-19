@@ -178,6 +178,16 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> getImage(long id){
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.getImage()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("image", v);
+            return ok(result);
+        });
+    }
+
     public static F.Promise<Result> setOutdoor(boolean outdoor, long id){
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);

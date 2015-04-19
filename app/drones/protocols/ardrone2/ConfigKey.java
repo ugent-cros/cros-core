@@ -43,11 +43,19 @@ public enum ConfigKey {
     // custom configs
     CUSTOM_APPLICATION_ID("application_id"),
     CUSTOM_PROFILE_ID("profile_id"),
-    CUSTOM_SESSION_ID("session_id");
+    CUSTOM_SESSION_ID("session_id"),
+    // video configs
+    VIDEO_BITRATE("bitrate"),
+    VIDEO_BITRATE_MAX("max_bitrate"),
+    VIDEO_CODEC("video_codec"),
+    VIDEO_CHANNEL("video_channel"),
+    VIDEO_ON_USB("video_on_usb"),
+    VIDEO_BITRATE_CTRL_MODE("bitrate_ctrl_mode");
 
     private static final String GENERAL = "general";
     private static final String CONTROL = "control";
     private static final String CUSTOM = "custom";
+    private static final String VIDEO = "video";
 
     static {
         GEN_NUM_VERSION_CONFIG.configClass = GENERAL;
@@ -89,8 +97,15 @@ public enum ConfigKey {
         CUSTOM_APPLICATION_ID.configClass = CUSTOM;
         CUSTOM_PROFILE_ID.configClass = CUSTOM;
         CUSTOM_SESSION_ID.configClass = CUSTOM;
+        // video configs
+        VIDEO_BITRATE.configClass = VIDEO;
+        VIDEO_BITRATE_MAX.configClass = VIDEO;
+        VIDEO_CODEC.configClass = VIDEO;
+        VIDEO_CHANNEL.configClass = VIDEO;
+        VIDEO_ON_USB.configClass = VIDEO;
+        VIDEO_BITRATE_CTRL_MODE.configClass = VIDEO;
     }
-    
+
     private String configClass;
     private String key;
 

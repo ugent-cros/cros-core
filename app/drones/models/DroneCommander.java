@@ -265,6 +265,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
         }, Akka.system().dispatcher());
     }
 
+    @Override
+    public Future<String> getImage() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.IMAGE), TIMEOUT).map(new Mapper<Object, String>() {
+            public String apply(Object s) {
+                return (String) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
     /**
      * Subscribe to messages of given topic
      *

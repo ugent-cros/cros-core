@@ -103,4 +103,10 @@ public interface DroneControl {
      * @return Promise whether the request was initiated
      */
     Future<Void> setHull(boolean hull);
+
+    /**
+     *
+     * @return An image taken by a camera of the drone encoded in base64
+     */
+    Future<String> getImage();
 }
