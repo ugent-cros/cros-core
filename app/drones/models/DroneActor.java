@@ -69,8 +69,6 @@ public abstract class DroneActor extends AbstractActor {
         isOnline = new LazyProperty<>(false);
         calibrationRequired = new LazyProperty<>(false);
 
-        navigator = createNavigator(null, null);
-
         // TODO: build pipeline that directly forwards to the eventbus
         //TODO: revert quickfix and support null
         UnitPFBuilder<Object> extraListeners = createListeners();
@@ -185,8 +183,8 @@ public abstract class DroneActor extends AbstractActor {
             // When there's no gps fix, continue
             if (!gpsFix.getRawValue()) {
                 // Stop navigator
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
+                getNavigator().setCurrentLocation(null);
+                getNavigator().setGoal(null);
                 return;
             }
 
@@ -195,15 +193,15 @@ public abstract class DroneActor extends AbstractActor {
                 location = new Location(location.getLatitude(), location.getLongitude(), altitude.getRawValue());
             }
 
-            MoveCommand cmd = navigator.update(location);
+            MoveCommand cmd = getNavigator().update(location);
             if(cmd == null){ // arrived
-                log.info("Navigator finished at location [{}] for goal [{}]", location, navigator.getGoal());
+                log.info("Navigator finished at location [{}] for goal [{}]", location, getNavigator().getGoal());
                 navigationState.setValue(NavigationState.AVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
 
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
+                getNavigator().setCurrentLocation(null);
+                getNavigator().setGoal(null);
             } else { // execute the movement command
                 Promise<Void> v = Futures.promise();
                 v.future().onFailure(new OnFailure() {
@@ -379,8 +377,8 @@ public abstract class DroneActor extends AbstractActor {
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
 
-                navigator.setGoal(null);
-                navigator.setCurrentLocation(null);
+                getNavigator().setGoal(null);
+                getNavigator().setCurrentLocation(null);
 
                 v.success(null);
             }
@@ -398,17 +396,16 @@ public abstract class DroneActor extends AbstractActor {
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
 
-            /*
             synchronized(navigationLock){
                 if(navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
-                    v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
+                    v.failure(new DroneException("Already navigating to " + getNavigator().getGoal() + ", abort this first."));
                 } else if(navigationState.getRawValue() == NavigationState.UNAVAILABLE) {
                     v.failure(new DroneException("Unable to navigate to goal"));
                 }else if(!gpsFix.getRawValue()) {
                     v.failure(new DroneException("No GPS fix yet."));
                 } else {
-                    navigator.setCurrentLocation(location.getRawValue());
-                    navigator.setGoal(new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
+                    getNavigator().setCurrentLocation(location.getRawValue());
+                    getNavigator().setGoal(new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
                     // navigator.setNavigationState(NavigationState.IN_PROGRESS);
 
                     navigationState.setValue(NavigationState.IN_PROGRESS);
@@ -417,10 +414,9 @@ public abstract class DroneActor extends AbstractActor {
                     v.success(null);
                 }
             }
-            */
 
             // Old movetohome code:
-            moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
+            //moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         }
     }
 
@@ -478,8 +474,8 @@ public abstract class DroneActor extends AbstractActor {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
 
             // Stop navigating
-            navigator.setGoal(null);
-            navigator.setCurrentLocation(null);
+            getNavigator().setGoal(null);
+            getNavigator().setCurrentLocation(null);
 
             // @TODO
             navigationState.setValue(NavigationState.AVAILABLE);
@@ -543,4 +539,12 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract UnitPFBuilder<Object> createListeners();
 
     protected abstract LocationNavigator createNavigator(Location currentLocation, Location goal);
+
+    private LocationNavigator getNavigator() {
+
+        if(navigator == null) {
+            navigator = createNavigator(null, null);
+        }
+        return navigator;
+    }
 }
