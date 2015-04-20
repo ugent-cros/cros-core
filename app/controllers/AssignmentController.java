@@ -1,12 +1,17 @@
 package controllers;
 
+import akka.actor.ActorRef;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.messages.to.AssignmentMessage;
 import models.Assignment;
 import models.User;
+import play.Logger;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
@@ -92,7 +97,15 @@ public class AssignmentController {
         Assignment assignment = form.get();
         assignment.setCreator(user);
         assignment.save();
-        return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+
+        try {
+            Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
+            return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+        } catch (SchedulerException e) {
+            Logger.error("scheduler error", e);
+            return internalServerError("scheduler could not process new assignment");
+        }
+
     }
 
     @Authentication({User.Role.ADMIN})
@@ -101,8 +114,11 @@ public class AssignmentController {
 
         if(assignment == null)
             return notFound("Requested assignment not found");
+        if(assignment.getAssignedDrone() != null)
+            return forbidden("you cannot delete an assignment which has a drone assigned");
 
         assignment.delete();
+
         return ok();
     }
 

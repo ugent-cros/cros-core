@@ -10,10 +10,13 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -21,6 +24,8 @@ import static org.fest.assertions.Assertions.assertThat;
  * Created by yasser on 7/04/15.
  */
 public class FleetTest extends TestSuperclass {
+
+    private static final Duration TIMEOUT = Duration.create(1, TimeUnit.SECONDS);
 
     private class DummyDriver implements DroneDriver {
 
@@ -190,7 +195,7 @@ public class FleetTest extends TestSuperclass {
     }
 
     @Test
-    public void getCommander_ForRegisteredType_ReturnsCommander() {
+    public void getCommander_ForRegisteredType_ReturnsCommander() throws Exception {
 
         Fleet f = Fleet.getFleet();
 
@@ -198,12 +203,12 @@ public class FleetTest extends TestSuperclass {
         Drone drone = new Drone("FleetTestDrone7", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
         drone.save();
 
-        DroneCommander cmd = f.createCommanderForDrone(drone);
+        DroneCommander cmd = Await.result(f.createCommanderForDrone(drone), TIMEOUT);
         Assert.assertEquals(cmd, f.getCommanderForDrone(drone));
     }
 
     @Test
-    public void getCommander_MultipleTimesForRegisteredType_ReturnsSameCommander() {
+    public void getCommander_MultipleTimesForRegisteredType_ReturnsSameCommander() throws Exception {
 
         Fleet f = Fleet.getFleet();
 
@@ -212,7 +217,7 @@ public class FleetTest extends TestSuperclass {
         drone.save();
 
         // TODO: rethink desired behavior: do we want 2 commanders for the same drone?
-        DroneCommander cmd = f.createCommanderForDrone(drone);
+        DroneCommander cmd = Await.result(f.createCommanderForDrone(drone), TIMEOUT);
         DroneCommander commander1 = f.getCommanderForDrone(drone);
         DroneCommander commander2 = f.getCommanderForDrone(drone);
 

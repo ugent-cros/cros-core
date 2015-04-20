@@ -4,7 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
-import drones.messages.PingMessage;
+import drones.messages.*;
 import drones.protocols.ICMPPing;
 import drones.simulation.SimulatorDriver;
 import models.Drone;
@@ -64,7 +64,7 @@ public class Fleet {
 
     private static final Fleet fleet = new Fleet();
 
-    public static Fleet getFleet(){
+    public static Fleet getFleet() {
         return fleet;
     }
 
@@ -73,15 +73,18 @@ public class Fleet {
 
     private ConcurrentMap<Long, DroneCommander> drones;
 
-    public Fleet(){
+    private ActorRef fleetBus;
+
+    public Fleet() {
         drones = new ConcurrentHashMap<>();
+        fleetBus =  Akka.system().actorOf(Props.create(BroadcastBus.class), "fleetbus");
     }
 
     private ActorRef pinger;
 
-    public Future<PingResult> isReachable(Drone droneEntity){
+    public Future<PingResult> isReachable(Drone droneEntity) {
         // Lazy load the ping class
-        if(pinger == null){
+        if (pinger == null) {
             pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");
         }
 
@@ -89,27 +92,65 @@ public class Fleet {
                 new Timeout(Duration.create(ICMPPing.PING_TIMEOUT + 1000, TimeUnit.MILLISECONDS)))
                 .map(new Mapper<Object, PingResult>() {
                     public PingResult apply(Object s) {
-                        return (PingResult)s;
+                        return (PingResult) s;
                     }
                 }, Akka.system().dispatcher());
     }
 
-    public DroneCommander createCommanderForDrone(Drone droneEntity){
+    private void registerFleetBus(DroneCommander cmd){
+        cmd.subscribeTopics(fleetBus, new Class[] {
+                LocationChangedMessage.class,
+                BatteryPercentageChangedMessage.class,
+                ConnectionStatusChangedMessage.class,
+                FlyingStateChangedMessage.class,
+                NavigationStateChangedMessage.class,
+                AltitudeChangedMessage.class
+        });
+    }
+
+    /**
+     * Subscribe to all messages of the fleet
+     * @param actor The actor to forward all messages to
+     */
+    public void subscribe(final ActorRef actor){
+        fleetBus.tell(new SubscribeEventMessage(), actor);
+    }
+
+    /**
+     * Unsubscribe to all messages of the fleet
+     * @param actor The actor to unsubscribe
+     */
+    public void unsubscribe(final ActorRef actor){
+        fleetBus.tell(new UnsubscribeEventMessage(), actor);
+    }
+
+    public Future<DroneCommander> createCommanderForDrone(Drone droneEntity) {
         DroneDriver driver = getDriver(droneEntity.getDroneType());
         if (driver == null)
             return null;
 
         // Create commander
-        DroneCommander commander = new DroneCommander(droneEntity.getAddress(), driver);
+        ActorRef droneActor = Akka.system().actorOf(
+                Props.create(driver.getActorClass(),
+                        () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
+        DroneCommander commander = new DroneCommander(droneActor);
+        return commander.init().map(new Mapper<Void, DroneCommander>() {
+            public DroneCommander apply(Void s) {
+                registerFleetBus(commander);
+                drones.put(droneEntity.getId(), commander);
+                return commander;
+            }
+        }, Akka.system().dispatcher());
+    }
 
-        drones.put(droneEntity.getId(), commander);
-        return commander;
+    public boolean hasCommander(Drone droneEntity) {
+        return drones.containsKey(droneEntity.getId());
     }
 
     public DroneCommander getCommanderForDrone(Drone droneEntity) {
         DroneCommander commander = drones.get(droneEntity.getId());
         if (commander == null) {
-           throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
+            throw new IllegalArgumentException("Drone is not initialized yet. Use createCommander first.");
         }
         return commander;
     }

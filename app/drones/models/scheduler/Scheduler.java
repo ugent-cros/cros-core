@@ -1,6 +1,7 @@
 package drones.models.scheduler;
 
 import akka.actor.AbstractActor;
+import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -136,6 +137,15 @@ public abstract class Scheduler extends AbstractActor {
      */
     public static void removeDrone(long droneId) throws SchedulerException{
         getScheduler().tell(new RemoveDroneMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
+     * Force the scheduler to publish an event.
+     * @param event
+     * @throws SchedulerException
+     */
+    public static void publishEvent(SchedulerEvent event) throws SchedulerException{
+        getScheduler().tell(new PublishMessage(event), ActorRef.noSender());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

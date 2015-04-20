@@ -5,16 +5,15 @@ import java.io.Serializable;
 /**
  * Created by Ronald on 16/04/2015.
  */
-public class SchedulerAddedDroneMessage implements SchedulerEvent {
+public class DroneRemovedMessage implements SchedulerEvent{
 
     private long droneId;
 
-    public SchedulerAddedDroneMessage(long droneId) {
+    public DroneRemovedMessage(long droneId) {
         this.droneId = droneId;
     }
 
     public long getDroneId() {
         return droneId;
     }
-
 }

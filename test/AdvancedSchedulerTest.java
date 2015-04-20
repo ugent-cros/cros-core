@@ -2,20 +2,17 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
-import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.messages.from.SchedulerAddedDroneMessage;
-import drones.models.scheduler.messages.from.SchedulerAssignedMessage;
-import drones.models.scheduler.messages.from.SchedulerCompletedMessage;
+import drones.models.scheduler.messages.from.DroneAddedMessage;
+import drones.models.scheduler.messages.from.DroneAssignedMessage;
+import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
 import drones.models.scheduler.messages.from.SchedulerReplyMessage;
 import drones.models.scheduler.messages.to.SchedulerRequestMessage;
-import drones.simulation.BepopSimulator;
 import drones.simulation.SimulatorDriver;
 import models.*;
 import org.junit.*;
-import play.libs.Akka;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -155,7 +152,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     public void addDrone_11Requests_10Added() throws SchedulerException{
         new JavaTestKit(system){
             {
-                Scheduler.subscribe(SchedulerAddedDroneMessage.class, getRef());
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
 
                 // Add the drones
                 List<Drone> drones = Drone.FIND.all();
@@ -167,7 +164,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 // Expect 10 unique added drones.
                 Object[] messages = receiveN(drones.size());
                 for(Object message : messages){
-                    long droneId = ((SchedulerAddedDroneMessage) message).getDroneId();
+                    long droneId = ((DroneAddedMessage) message).getDroneId();
                     Assert.assertTrue(droneIdCheck.remove(droneId));
                 }
                 Assert.assertTrue(droneIdCheck.isEmpty());
@@ -183,8 +180,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     public void schedule_1Assignment10Drones_1Scheduled() throws SchedulerException{
         new JavaTestKit(system){
             {
-                Scheduler.subscribe(SchedulerAssignedMessage.class, getRef());
-                Scheduler.subscribe(SchedulerCompletedMessage.class,getRef());
+                Scheduler.subscribe(DroneAssignedMessage.class, getRef());
+                Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
                 // Add the drones
                 List<Drone> drones = Drone.FIND.all();
                 for (Drone drone : drones){
@@ -196,7 +193,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
                 // Schedule!
                 Scheduler.schedule();
-                SchedulerAssignedMessage message = expectMsgClass(SchedulerAssignedMessage.class);
+                DroneAssignedMessage message = expectMsgClass(DroneAssignedMessage.class);
                 Assert.assertTrue(message.getAssignmentId() == assignment.getId());
                 assignment = Assignment.FIND.byId(message.getAssignmentId());
                 Assert.assertTrue(assignment.isScheduled());
