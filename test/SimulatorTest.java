@@ -166,6 +166,11 @@ public class SimulatorTest extends TestSuperclass {
             commander.move3d(vx, vy, 0, 0);
 
             // Check if rotation & speed is updated appropriatly
+            speed = listener.expectMsgClass(SpeedChangedMessage.class);
+            assertThat(speed.getSpeedX()).isEqualTo(0);
+            assertThat(speed.getSpeedY()).isEqualTo(0);
+            assertThat(speed.getSpeedZ()).isEqualTo(0);
+
             rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), AttitudeChangedMessage.class);
             assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI/3);
             assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI/3);
