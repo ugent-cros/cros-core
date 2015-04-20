@@ -73,7 +73,9 @@ public class SimpleControlTower extends ControlTower{
                                     () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), altitude)));
 
                     if(started){
-                        //to do add needed messages
+                        for (Location noFlyPoint: noFlyPoints){
+                            pilots[i].tell(new AddNoFlyPointMessage(noFlyPoint),self());
+                        }
                         pilots[i].tell(new StartFlightControlMessage(), self());
                     }
                 }
