@@ -186,19 +186,17 @@ public class BepopSimulator extends DroneActor {
         if(!flyingToHome) {
 
             // Figure out angle wrt North South Axis
-            double yawInRadians = rotation.getRawValue().getYaw() * Math.PI;
-            double angleWrtNSAxis = initialAngleWithRespectToEquator + yawInRadians;
+            double yawInRadians = rotation.getRawValue().getYaw();
+            double angleWrtEquator = initialAngleWithRespectToEquator + yawInRadians;
 
             // Decompose speed-x vector
-            double p1 = Math.sin(angleWrtNSAxis); // = cos(angle - PI/2) = cos(angleVyWrtNS)
-            double p2 = Math.cos(angleWrtNSAxis); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
+            double p1 = Math.sin(angleWrtEquator); // = cos(angle - PI/2) = cos(angleVyWrtNS)
+            double p2 = Math.cos(angleWrtEquator); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
 
             // Calculate speed along earth axises
             Speed movement = speed.getRawValue();
             double vNS = movement.getVx() * p1;
             double vEquator = movement.getVx() * p2;
-            vNS += -p2 * movement.getVx();
-            vEquator += p1 * movement.getVy();
 
             // Calculate flown distance
             double durationInSec = simulationTimeStep.toUnit(TimeUnit.SECONDS);
@@ -281,12 +279,6 @@ public class BepopSimulator extends DroneActor {
                     Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
                     tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
                 });
-    }
-
-    @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal,
-                2f,  40f, 0.4f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {
@@ -490,7 +482,7 @@ public class BepopSimulator extends DroneActor {
         // Calculate rotation
         double roll = vy * Math.PI/3;   // 1 <-> 60°
         double pitch = vx * Math.PI/3;  // 1 <-> 60°
-        double deltaYaw = vr * Math.PI/6;    // 1 <-> turn of 30°
+        double deltaYaw = -vr * Math.PI/6;    // 1 <-> turn of 30°
         double yaw = rotation.getRawValue().getYaw() + deltaYaw;
 
         // Update rotation: this will also update the speed
@@ -550,6 +542,12 @@ public class BepopSimulator extends DroneActor {
             ));
             p.success(null);
         }
+    }
+
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal, 5f,  30f, 1f); // Bebop parameters
     }
 
     @Override
