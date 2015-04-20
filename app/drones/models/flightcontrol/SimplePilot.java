@@ -6,9 +6,11 @@ import akka.dispatch.OnSuccess;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
+import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.FlyingState;
 import drones.models.Location;
+import drones.models.NavigationState;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.FlightControlExceptionMessage;
 import drones.models.scheduler.messages.DroneArrivalMessage;
@@ -43,7 +45,10 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
+
     private boolean landed = true;
+    boolean waitForTakeOffDone = false;
+
 
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
@@ -88,8 +93,8 @@ public class SimplePilot extends Pilot {
     }
 
     @Override
-    protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        if (m.getState() == FlyingState.HOVERING) {
+    protected void navigationStateChanged(NavigationStateChangedMessage m) {
+        if(m.getState() == NavigationState.AVAILABLE){
             //TO DO wait at checkpoint
             actualWaypoint++;
             goToNextWaypoint();
@@ -245,6 +250,16 @@ public class SimplePilot extends Pilot {
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();
             reporterRef.tell(new FlightControlExceptionMessage("Drone does not react within 120 seconds"), self());
+        }
+        waitForTakeOffDone = true;
+    }
+
+    @Override
+    protected void flyingStateChanged(FlyingStateChangedMessage m) {
+        if(waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
+            waitForTakeOffDone = false;
+            actualWaypoint++;
+            goToNextWaypoint();
         }
     }
 

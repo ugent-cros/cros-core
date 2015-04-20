@@ -3,14 +3,11 @@ import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import drones.messages.*;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
+import drones.models.*;
 import drones.simulation.BepopSimulator;
 import drones.simulation.SimulatorDriver;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -233,7 +230,6 @@ public class SimulatorTest extends TestSuperclass {
         }};
     }
 
-    @Ignore // Test does not succeed when navigator is used
     @Test
     public void moveToLocation_Hovering_MovesTowardsLocation() throws Exception {
 
@@ -264,10 +260,25 @@ public class SimulatorTest extends TestSuperclass {
 
             // Listen for location changes
             JavaTestKit tracker = new JavaTestKit(system);
+            JavaTestKit stateListener = new JavaTestKit(system);
             commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
+            commander.subscribeTopic(stateListener.getRef(), NavigationStateChangedMessage.class);
+            commander.subscribeTopic(stateListener.getRef(), FlyingStateChangedMessage.class);
 
             // Send drone to some location, intial location is sterre
             commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
+
+            // Check navigation/flying state updates
+            NavigationStateChangedMessage navState = stateListener.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.PENDING);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.REQUESTED);
+
+            FlyingStateChangedMessage flyingState = stateListener.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.FLYING);
+
+            navState = stateListener.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.IN_PROGRESS);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.REQUESTED);
 
             // Check if were getting closer
             while(distance > errorRadius) {
@@ -278,6 +289,14 @@ public class SimulatorTest extends TestSuperclass {
                 distance = newDistance;
                 System.out.println("Still " + distance + "m to go.");
             }
+
+            // Check  state updates
+            flyingState = stateListener.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
+
+            navState = stateListener.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.AVAILABLE);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.FINISHED);
         }};
     }
 }
