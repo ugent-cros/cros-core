@@ -1,10 +1,12 @@
 package drones.simulation;
 
 import akka.actor.Cancellable;
+import akka.dispatch.Futures;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.messages.*;
 import drones.models.*;
+import drones.simulation.messages.ResetMovementMessage;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
 import drones.util.LocationNavigator;
@@ -42,7 +44,7 @@ public class BepopSimulator extends DroneActor {
 
     // Private variables needed for simulation
     private Cancellable simulationTick;
-    private Cancellable setDefaultRotation;
+    private Cancellable resetDefaultMovement;
 
     // internal state
     private boolean crashed = false;
@@ -185,6 +187,13 @@ public class BepopSimulator extends DroneActor {
 
         if(!flyingToHome) {
 
+            Speed movement = speed.getRawValue();
+
+            // Simple stuff first: update height
+            double deltaHeight = 1 * movement.getVz();
+            double updatedAltitude = Math.max(0, altitude.getRawValue() + deltaHeight);
+            tellSelf(new AltitudeChangedMessage(updatedAltitude));
+
             // Figure out angle wrt North South Axis
             double yawInRadians = rotation.getRawValue().getYaw();
             double angleWrtEquator = initialAngleWithRespectToEquator + yawInRadians;
@@ -194,7 +203,6 @@ public class BepopSimulator extends DroneActor {
             double p2 = Math.cos(angleWrtEquator); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
 
             // Calculate speed along earth axises
-            Speed movement = speed.getRawValue();
             double vNS = movement.getVx() * p1;
             double vEquator = movement.getVx() * p2;
 
@@ -220,8 +228,7 @@ public class BepopSimulator extends DroneActor {
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
-            Location newLocation = new Location(latitude, longitude, oldLocation.getHeight());
-            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeight()));
+            tellSelf(new LocationChangedMessage(longitude, latitude, updatedAltitude));
         }
     }
 
@@ -272,12 +279,15 @@ public class BepopSimulator extends DroneActor {
                     // Set new rotation
                     Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
                     rotation.setValue(rot);
-                    //processOrientation(rot);
                     eventBus.publish(new DroneEventMessage(s));
 
                     // Process new rotation by: update speed according to rotation
                     Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
                     tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
+                }).
+                match(ResetMovementMessage.class, s -> {
+                    Promise p = Futures.promise();
+                    move3d(p, 0, 0, 0, 0);
                 });
     }
 
@@ -475,9 +485,13 @@ public class BepopSimulator extends DroneActor {
         }
 
         // Cancel setting the rotation back to normal if a new move message arrives
-        if (setDefaultRotation != null) {
-            setDefaultRotation.cancel();
+        if (resetDefaultMovement != null) {
+            resetDefaultMovement.cancel();
         }
+
+        // Update vz
+        Speed rawSpeed = speed.getRawValue();
+        tellSelf(new SpeedChangedMessage(rawSpeed.getVx(), rawSpeed.getVy(), vz));
 
         // Calculate rotation
         double roll = vy * Math.PI/3;   // 1 <-> 60°
@@ -486,17 +500,19 @@ public class BepopSimulator extends DroneActor {
         double yaw = rotation.getRawValue().getYaw() + deltaYaw;
 
         // Update rotation: this will also update the speed
-        // Next simulation step will use the updated speed values
+        // Next simulation step will use the updated speed vx & vy values
         tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
 
+
         // After a 1.5 second: the rotation should be set back to normal
-        setDefaultRotation = Akka.system().scheduler().scheduleOnce(
+        resetDefaultMovement = Akka.system().scheduler().scheduleOnce(
                 Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
                 self(),
-                new AttitudeChangedMessage(0, 0, 0),
+                new ResetMovementMessage(),
                 Akka.system().dispatcher(),
                 self()
         );
+
 
         p.success(null);
     }
@@ -547,7 +563,7 @@ public class BepopSimulator extends DroneActor {
 
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal, 5f,  30f, 1f); // Bebop parameters
+        return new LocationNavigator(currentLocation, goal, (float)topSpeed,  30f, 1f); // Bebop parameters
     }
 
     @Override
