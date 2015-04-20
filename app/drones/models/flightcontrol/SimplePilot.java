@@ -35,7 +35,7 @@ public class SimplePilot extends Pilot {
     //List of points where the drone cannot fly
     private List<Location> noFlyPoints = new ArrayList<>();
     //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a land.
-    private List<LocationMessage> evacuationPoints = new ArrayList<>();
+    private List<RequestMessage> evacuationPoints = new ArrayList<>();
 
     //Range around a no fly point where the drone cannot fly.
     private static final int NO_FY_RANGE = 4;
@@ -134,7 +134,7 @@ public class SimplePilot extends Pilot {
     @Override
     protected void locationChanged(LocationChangedMessage m) {
         actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
-        for (LocationMessage l : evacuationPoints) {
+        for (RequestMessage l : evacuationPoints) {
             //Check if evacuationPoint is evacuated
             if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
                 evacuationPoints.remove(l);
@@ -162,14 +162,14 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
-        switch (m.getType()) {
+        switch (m.getRequestMessage().getType()) {
             case LANDING:
                 dc.land().onSuccess(new OnSuccess<Void>() {
 
                     @Override
                     public void onSuccess(Void result) throws Throwable {
                         landed = true;
-                        reporterRef.tell(new CompletedMessage(m), self());
+                        reporterRef.tell(new CompletedMessage(m.getRequestMessage()), self());
                         reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
                     }
                 }, getContext().system().dispatcher());
@@ -180,14 +180,14 @@ public class SimplePilot extends Pilot {
                     @Override
                     public void onSuccess(Void result) throws Throwable {
                         landed = false;
-                        reporterRef.tell(new CompletedMessage(m), self());
+                        reporterRef.tell(new CompletedMessage(m.getRequestMessage()), self());
                         actualWaypoint = 0;
                         goToNextWaypoint();
                     }
                 }, getContext().system().dispatcher());
                 break;
             default:
-                log.warning("No handler for: [{}]", m.getType());
+                log.warning("No handler for: [{}]", m.getRequestMessage().getType());
         }
     }
 

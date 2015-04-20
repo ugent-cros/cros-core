@@ -6,13 +6,15 @@ import drones.models.Location;
 /**
  * Created by Sander on 23/03/2015.
  */
-public class RequestGrantedMessage extends LocationMessage{
+public class RequestGrantedMessage{
 
-    public RequestGrantedMessage(LocationMessage.RequestType requestType, ActorRef requester, Location location) {
-        super(requester,location, requestType);
+    RequestMessage m;
+
+    public RequestGrantedMessage(RequestMessage m) {
+        this.m = m;
     }
 
-    public RequestGrantedMessage(LocationMessage m) {
-        super(m);
+    public RequestMessage getRequestMessage() {
+        return m;
     }
 }

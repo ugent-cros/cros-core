@@ -11,6 +11,7 @@ import drones.models.scheduler.FlightControlExceptionMessage;
 import models.Drone;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -31,7 +32,12 @@ public class SimpleControlTower extends ControlTower{
     private Long[] drones;
     private ActorRef[] pilots;
     private int numberOfDrones = 0;
+
+
     private List<Location> noFlyPoints;
+    //HashMap to count how many pilots already granted the request
+    private HashMap<RequestMessage,Integer> requestGrantedCount;
+
 
     private boolean started = false;
 
@@ -73,8 +79,13 @@ public class SimpleControlTower extends ControlTower{
                                     () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), altitude)));
 
                     if(started){
+                        // add no fly point to pilot
                         for (Location noFlyPoint: noFlyPoints){
                             pilots[i].tell(new AddNoFlyPointMessage(noFlyPoint),self());
+                        }
+                        // add granted count to waiting requests
+                        for (RequestMessage requestMessage : requestGrantedCount.keySet()){
+                            requestGrantedCount.put(requestMessage, requestGrantedCount.get(requestMessage) + 1);
                         }
                         pilots[i].tell(new StartFlightControlMessage(), self());
                     }
@@ -97,21 +108,32 @@ public class SimpleControlTower extends ControlTower{
     @Override
     protected void requestMessage(RequestMessage m) {
         noFlyPoints.add(m.getLocation());
-        for (int i = 0; i < maxNumberOfDrones; i++) {
-            if(usedAltitudes[i]){
-                if(getAltitudeForIndex(i) < m.getLocation().getHeight() && m.getRequester() != pilots[i]){
-                    pilots[i].tell(m,self());
-                } else {
-                    return;
+        if(numberOfDrones > 1) {
+            requestGrantedCount.put(m, 0);
+            for (int i = 0; i < maxNumberOfDrones; i++) {
+                if (usedAltitudes[i]) {
+                    if (getAltitudeForIndex(i) < m.getLocation().getHeight() && m.getRequester() != pilots[i]) {
+                        pilots[i].tell(m, self());
+                    } else {
+                        return;
+                    }
                 }
             }
+        } else {
+            m.getRequester().tell(new RequestGrantedMessage(m),self());
         }
     }
 
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
-        //TO CHECK IF ALL ARE RECIEVED
-        m.getRequester().tell(m,self());
+        int grantedCount = requestGrantedCount.get(m.getRequestMessage()) + 1;
+        //Check if all drone has granted the request
+        if(grantedCount < numberOfDrones - 1){
+            requestGrantedCount.put(m.getRequestMessage(), grantedCount);
+        } else {
+            requestGrantedCount.remove(m.getRequestMessage());
+            m.getRequestMessage().getRequester().tell(m,self());
+        }
     }
 
     @Override
