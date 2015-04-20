@@ -1,8 +1,5 @@
 package drones.models.flightcontrol;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
@@ -11,10 +8,13 @@ import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.FlyingState;
 import drones.models.Location;
+import drones.models.NavigationState;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Checkpoint;
-import models.Drone;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -38,6 +38,8 @@ public class SimplePilot extends Pilot {
     private static final int NO_FY_RANGE = 4;
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
+
+    boolean waitForTakeOffDone = false;
 
     
     /**
@@ -76,8 +78,8 @@ public class SimplePilot extends Pilot {
     }
 
     @Override
-    protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        if(m.getState() == FlyingState.HOVERING){
+    protected void navigationStateChanged(NavigationStateChangedMessage m) {
+        if(m.getState() == NavigationState.AVAILABLE){
             //TO DO wait at checkpoint
             actualWaypoint++;
             goToNextWaypoint();
@@ -216,6 +218,16 @@ public class SimplePilot extends Pilot {
                 public void onSuccess(Void result) throws Throwable {
                 }
             }, getContext().system().dispatcher());
+        }
+        waitForTakeOffDone = true;
+    }
+
+    @Override
+    protected void flyingStateChanged(FlyingStateChangedMessage m) {
+        if(waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
+            waitForTakeOffDone = false;
+            actualWaypoint++;
+            goToNextWaypoint();
         }
     }
 }
