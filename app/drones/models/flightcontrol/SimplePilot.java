@@ -44,7 +44,8 @@ public class SimplePilot extends Pilot {
 
 
     private boolean landed = true;
-    boolean waitForTakeOffDone = false;
+    private boolean waitForTakeOffDone = false;
+    private boolean waitForCancelLandedCompleted = false;
 
 
     /**
@@ -170,7 +171,11 @@ public class SimplePilot extends Pilot {
                     public void onSuccess(Void result) throws Throwable {
                         landed = true;
                         reporterRef.tell(new CompletedMessage(m.getRequestMessage()), self());
-                        reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                        if(waitForCancelLandedCompleted){
+                            reporterRef.tell(new CancelControlCompletedMessage(droneId), self());
+                        } else {
+                            reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                        }
                     }
                 }, getContext().system().dispatcher());
                 break;
@@ -242,7 +247,7 @@ public class SimplePilot extends Pilot {
         if (landed) {
             self().tell(PoisonPill.getInstance(), sender());
         } else {
-            reporterRef.tell(new FlightControlExceptionMessage("Drone must be landed first."), self());
+            reporterRef.tell(new FlightControlExceptionMessage("Pilot must be canceled first."), self());
         }
     }
 
@@ -268,6 +273,14 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void cancelControlMessage(CancelControlMessage m) {
+        try {
+            Await.ready(dc.cancelMoveToLocation(), MAX_DURATION_MESSAGE);
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+            reporterRef.tell(new FlightControlExceptionMessage("Unable to cancel move to location."), self());
+            return;
+        }
+        waitForCancelLandedCompleted = true;
         land();
     }
 }

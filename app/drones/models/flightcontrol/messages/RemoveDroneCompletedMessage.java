@@ -3,15 +3,13 @@ package drones.models.flightcontrol.messages;
 import java.io.Serializable;
 
 /**
- * Message to cancel a flightcontrol
- *
- * Created by Sander on 16/04/2015.
+ * Created by Sander on 17/04/2015.
  */
-public class CancelControlMessage implements Serializable {
+public class RemoveDroneCompletedMessage implements Serializable {
 
     private Long droneId;
 
-    public CancelControlMessage(Long droneId) {
+    public RemoveDroneCompletedMessage(Long droneId) {
         this.droneId = droneId;
     }
 

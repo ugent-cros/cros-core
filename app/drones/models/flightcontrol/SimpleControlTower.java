@@ -3,12 +3,10 @@ package drones.models.flightcontrol;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.japi.pf.UnitPFBuilder;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.models.scheduler.FlightControlExceptionMessage;
-import models.Drone;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -160,10 +158,10 @@ public class SimpleControlTower extends ControlTower{
 
     @Override
     protected void removeDroneMessage(RemoveDroneMessage m) {
+        //actual remove when cancel is completed
         ActorRef drone = findActorRefForDroneId(m.getDroneId());
         if(drone != null){
-            //TO DO!!!
-            //drone.tell(m,sender());
+            drone.tell(new CancelControlMessage(m.getDroneId()),self());
         }
     }
 
@@ -176,14 +174,6 @@ public class SimpleControlTower extends ControlTower{
         }
     }
 
-    @Override
-    protected void cancelControlMessage(CancelControlMessage m) {
-        ActorRef drone = findActorRefForDroneId(m.getDroneId());
-        if(drone != null){
-            drone.tell(m,sender());
-        }
-    }
-    
     private ActorRef findActorRefForDroneId(Long id) {
         int index = Arrays.asList(drones).indexOf(id);
         if(index < 0){
@@ -192,5 +182,29 @@ public class SimpleControlTower extends ControlTower{
         } else {
             return pilots[index];
         }
+    }
+
+    @Override
+    protected void cancelControlCompleted(CancelControlCompletedMessage m) {
+        int i = Arrays.asList(drones).indexOf(m.getDroneId());
+        numberOfDrones--;
+        usedAltitudes[i] = false;
+        drones[i] = null;
+
+        // adjust granted count to waiting requests
+        for (RequestMessage requestMessage : requestGrantedCount.keySet()){
+            int grantedCount = requestGrantedCount.get(requestMessage) -1;
+
+            //check if this is the last drone which one was waiting
+            if(grantedCount < numberOfDrones - 1){
+                requestGrantedCount.put(requestMessage, grantedCount);
+            } else {
+                requestGrantedCount.remove(requestMessage);
+                requestMessage.getRequester().tell(m,self());
+            }
+        }
+
+        sender().tell(new ShutDownMessage(),self());
+        reporterRef.tell(new RemoveDroneCompletedMessage(m.getDroneId()),self());
     }
 }

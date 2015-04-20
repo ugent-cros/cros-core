@@ -64,7 +64,8 @@ public abstract class Pilot extends FlightControl{
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s)).
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
-                match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s));
+                match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
+                match(CancelControlMessage.class, s -> cancelControlMessage(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
@@ -82,4 +83,6 @@ public abstract class Pilot extends FlightControl{
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);
 
     protected abstract void locationChanged(LocationChangedMessage m);
+
+    protected abstract void cancelControlMessage(CancelControlMessage m);
 }
