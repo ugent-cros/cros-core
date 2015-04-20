@@ -6,6 +6,8 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.flightcontrol.messages.*;
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Created by Sander on 16/03/2015.
@@ -19,6 +21,8 @@ public abstract class FlightControl extends AbstractActor {
     protected static final double DEFAULT_ALTITUDE = 5;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
+    protected static final FiniteDuration MAX_DURATION_MESSAGE = Duration.create(10, "seconds");
 
     public FlightControl(ActorRef reporterRef) {
         this.reporterRef = reporterRef;

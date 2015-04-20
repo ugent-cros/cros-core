@@ -7,9 +7,13 @@ import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
+import drones.models.DroneException;
 import drones.models.Fleet;
 import drones.models.flightcontrol.messages.*;
 import models.Drone;
+import scala.concurrent.Await;
+
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -65,6 +69,12 @@ public abstract class Pilot extends FlightControl{
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
         cruisingAltitude = s.getCruisingAltitude();
+        try {
+            Await.ready(dc.setMaxHeight((float) cruisingAltitude), MAX_DURATION_MESSAGE);
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+            reporterRef.tell(new DroneException("Failed to set max height after SetCruisingAltitudeMessage"),self());
+        }
     }
 
     protected abstract void navigationStateChanged(NavigationStateChangedMessage m);

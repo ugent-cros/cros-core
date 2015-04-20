@@ -7,10 +7,7 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
-import drones.models.NavigationState;
+import drones.models.*;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.FlightControlExceptionMessage;
 import drones.models.scheduler.messages.DroneArrivalMessage;
@@ -88,6 +85,12 @@ public class SimplePilot extends Pilot {
     public void start() {
         if (cruisingAltitude == 0) {
             cruisingAltitude = DEFAULT_ALTITUDE;
+            try {
+                Await.ready(dc.setMaxHeight((float) cruisingAltitude), MAX_DURATION_MESSAGE);
+            } catch (TimeoutException | InterruptedException e) {
+                e.printStackTrace();
+                reporterRef.tell(new DroneException("Failed to set max height before starting"),self());
+            }
         }
         takeOff();
     }
