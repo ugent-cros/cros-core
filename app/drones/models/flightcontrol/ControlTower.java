@@ -4,7 +4,7 @@ import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.models.scheduler.FlightControlExceptionMessage;
 
 /**

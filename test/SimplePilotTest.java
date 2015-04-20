@@ -7,7 +7,7 @@ import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.simulation.BepopSimulator;
 import models.Checkpoint;
 import org.junit.AfterClass;
@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -44,8 +43,8 @@ public class SimplePilotTest extends TestSuperclass {
 
     public SimplePilotTest() {
         wayPoints = new ArrayList<>();
-        wayPoints.add(new Checkpoint(3.72, 51.0226, 0));
-        destination = new Checkpoint(3.73, 51.0226, 0);
+        wayPoints.add(new Checkpoint(51.0226, 3.72, 0));
+        destination = new Checkpoint(51.0226, 3.73, 0);
         wayPoints.add(destination);
     }
 

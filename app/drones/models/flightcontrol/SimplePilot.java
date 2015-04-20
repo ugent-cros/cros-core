@@ -1,28 +1,28 @@
 package drones.models.flightcontrol;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.dispatch.OnSuccess;
 import akka.japi.pf.UnitPFBuilder;
+import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
-import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
+import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
 import drones.models.scheduler.FlightControlExceptionMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Checkpoint;
-import models.Drone;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
 /**
  * Created by Sander on 18/03/2015.
- *
+ * <p>
  * Pilot class to fly with the drone to its destination via the waypoints.
  * He lands on the last item in the list.
  */
@@ -44,13 +44,13 @@ public class SimplePilot extends Pilot {
     private static final int EVACUATION_RANGE = 6;
 
     private boolean landed = true;
-    
+
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
-     * @param droneId                  Drone to control.
+     * @param droneId                Drone to control.
      * @param linkedWithControlTower True if connected to ControlTower
-     * @param waypoints Route to fly, the drone will land on the last item
-     * @param cruisingAltitude Altitude to fly
+     * @param waypoints              Route to fly, the drone will land on the last item
+     * @param cruisingAltitude       Altitude to fly
      */
     public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> waypoints, double cruisingAltitude) {
         this(reporterRef, droneId, linkedWithControlTower, waypoints);
@@ -70,7 +70,7 @@ public class SimplePilot extends Pilot {
     /**
      * Use only for testing!
      */
-    public SimplePilot(ActorRef reporterRef, DroneCommander dc,boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+    public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
         if (waypoints.size() < 1) {
@@ -88,40 +88,11 @@ public class SimplePilot extends Pilot {
     }
 
     @Override
-    protected void navigateHomeStateChanged(NavigationStateChangedMessage m) {
-        switch (m.getState()) {
-            case AVAILABLE:
-                switch (m.getReason()) {
-                    case ENABLED:
-                        goToNextWaypoint();
-                        break;
-                    case FINISHED:
-                        //TO DO wait at checkpoint
-                        actualWaypoint++;
-                        goToNextWaypoint();
-                        break;
-                    case STOPPED:
-                        //TO DO
-                        break;
-                }
-                break;
-            case UNAVAILABLE:
-                //TO DO
-                break;
-            case IN_PROGRESS:
-                switch (m.getReason()) {
-                    case BATTERY_LOW:
-                        //TO DO
-                        break;
-                    case CONNECTION_LOST:
-                        //TO DO
-                        break;
-                    case REQUESTED:
-                        //TO DO
-                }
-                break;
-            case PENDING:
-                //TO DO ???
+    protected void flyingStateChanged(FlyingStateChangedMessage m) {
+        if (m.getState() == FlyingState.HOVERING) {
+            //TO DO wait at checkpoint
+            actualWaypoint++;
+            goToNextWaypoint();
         }
     }
 
@@ -137,9 +108,9 @@ public class SimplePilot extends Pilot {
         }
     }
 
-    private void land(){
-        if(linkedWithControlTower){
-            reporterRef.tell(new RequestMessage(LocationMessage.RequestType.LANDING,self(),actualLocation),self());
+    private void land() {
+        if (linkedWithControlTower) {
+            reporterRef.tell(new RequestMessage(LocationMessage.RequestType.LANDING, self(), actualLocation), self());
         } else {
             dc.land().onSuccess(new OnSuccess<Void>() {
 
@@ -154,13 +125,13 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        actualLocation = new Location(m.getLatitude(),m.getLongitude(),m.getGpsHeigth());
-        for(LocationMessage l : evacuationPoints){
+        actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
+        for (LocationMessage l : evacuationPoints) {
             //Check if evacuationPoint is evacuated
-            if(actualLocation.distance(l.getLocation()) > EVACUATION_RANGE){
+            if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
                 evacuationPoints.remove(l);
                 noFlyPoints.add(l.getLocation());
-                reporterRef.tell(new RequestGrantedMessage(l),self());
+                reporterRef.tell(new RequestGrantedMessage(l), self());
             }
         }
         for (Location l : noFlyPoints) {
@@ -173,11 +144,11 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void requestMessage(RequestMessage m) {
-        if(actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE){
+        if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
             evacuationPoints.add(m);
         } else {
             noFlyPoints.add(m.getLocation());
-            reporterRef.tell(new RequestGrantedMessage(m),self());
+            reporterRef.tell(new RequestGrantedMessage(m), self());
         }
     }
 
@@ -228,9 +199,9 @@ public class SimplePilot extends Pilot {
         dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
     }
 
-    private void takeOff(){
-        if(linkedWithControlTower){
-            reporterRef.tell(new RequestMessage(LocationMessage.RequestType.TAKEOFF,self(),actualLocation),self());
+    private void takeOff() {
+        if (linkedWithControlTower) {
+            reporterRef.tell(new RequestMessage(LocationMessage.RequestType.TAKEOFF, self(), actualLocation), self());
         } else {
             dc.takeOff().onSuccess(new OnSuccess<Void>() {
                 @Override
@@ -243,11 +214,11 @@ public class SimplePilot extends Pilot {
         }
     }
 
-    private void addNoFlyPointMessage(AddNoFlyPointMessage m){
-        if(actualLocation.distance(m.getNoFlyPoint()) < NO_FY_RANGE){
+    private void addNoFlyPointMessage(AddNoFlyPointMessage m) {
+        if (actualLocation.distance(m.getNoFlyPoint()) < NO_FY_RANGE) {
             reporterRef.tell(new FlightControlExceptionMessage("You cannot add a drone within the no-fly-range " +
-                    "of the location where another drone wants to land or to take off"),self());
-        }else{
+                    "of the location where another drone wants to land or to take off"), self());
+        } else {
             noFlyPoints.add(m.getNoFlyPoint());
         }
     }
@@ -260,8 +231,8 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void shutDownMessage(ShutDownMessage m) {
-        if(landed){
-            self().tell(PoisonPill.getInstance(),sender());
+        if (landed) {
+            self().tell(PoisonPill.getInstance(), sender());
         } else {
             reporterRef.tell(new FlightControlExceptionMessage("Drone must be landed first."), self());
         }
@@ -270,7 +241,7 @@ public class SimplePilot extends Pilot {
     @Override
     protected void emergencyLandingMessage(EmergencyLandingMessage m) {
         try {
-            Await.ready(dc.land(), Duration.create(120,"seconds"));
+            Await.ready(dc.land(), Duration.create(120, "seconds"));
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();
             reporterRef.tell(new FlightControlExceptionMessage("Drone does not react within 120 seconds"), self());

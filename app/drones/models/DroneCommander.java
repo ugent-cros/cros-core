@@ -27,14 +27,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     private boolean initialized = false;
 
-    public DroneCommander(String droneAddress, DroneDriver driver) {
-
-        // Create DroneActor
-        droneActor = Akka.system().actorOf(
-                Props.create(driver.getActorClass(),
-                        () -> driver.createActor(droneAddress)));
-    }
-
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
     }
@@ -91,7 +83,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
     public Future<Void> setMaxHeight(float meters) {
         if(meters <= 0.5)
             throw new IllegalArgumentException("Max height cannot be lower than 0.5m");
-        return ask(droneActor, new SetMaxHeigthRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
+        return ask(droneActor, new SetMaxHeightRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
             public Void apply(Object s) {
                 return null;
             }
@@ -264,6 +256,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
         }, Akka.system().dispatcher());
     }
 
+    @Override
+    public Future<Boolean> isCalibrationRequired() {
+        return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
+            public Boolean apply(Object s) {
+                return (Boolean) ((ExecutionResultMessage) s).getValue();
+            }
+        }, Akka.system().dispatcher());
+    }
+
     /**
      * Subscribe to messages of given topic
      *
@@ -271,7 +272,16 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param cl  The topic class of the message to subscribe to
      */
     public void subscribeTopic(final ActorRef sub, Class cl) {
-        droneActor.tell(new SubscribeEventMessage(cl), sub);
+        subscribeTopics(sub, new Class[] { cl });
+    }
+
+    /**
+     * Subscribe to message of given topics
+     * @param sub The actor to which the events have to be sent
+     * @param topics The topic class of the message to subscribe to
+     */
+    public void subscribeTopics(final ActorRef sub, Class[] topics){
+        droneActor.tell(new SubscribeEventMessage(topics), sub);
     }
 
     /**
@@ -290,6 +300,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param sub The actor to unsubscribe
      */
     public void unsubscribe(final ActorRef sub) {
-        droneActor.tell(new UnsubscribeEventMessage(null), sub);
+        droneActor.tell(new UnsubscribeEventMessage(), sub);
     }
 }

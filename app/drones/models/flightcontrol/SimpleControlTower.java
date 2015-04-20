@@ -6,7 +6,7 @@ import akka.actor.Props;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.models.scheduler.FlightControlExceptionMessage;
 import models.Drone;
 
@@ -97,7 +97,7 @@ public class SimpleControlTower extends ControlTower{
         noFlyPoints.add(m.getLocation());
         for (int i = 0; i < maxNumberOfDrones; i++) {
             if(usedAltitudes[i]){
-                if(getAltitudeForIndex(i) < m.getLocation().getHeigth() && m.getRequester() != pilots[i]){
+                if(getAltitudeForIndex(i) < m.getLocation().getHeight() && m.getRequester() != pilots[i]){
                     pilots[i].tell(m,self());
                 } else {
                     return;

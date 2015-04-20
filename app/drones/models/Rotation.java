@@ -12,9 +12,9 @@ public class Rotation implements Serializable{
 
     /***
      * Orientation of drone in a 3D plane
-     * @param roll rotate left/right between [-1;1]
-     * @param pitch rotate forward/backward between [-1;1]
-     * @param yaw rotation wrt start position (along z axis) between [-1;1]
+     * @param roll Angle left/right in radians
+     * @param pitch Angle forward/backward in radians
+     * @param yaw Rotation relative to takeoff orientation in radians
      */
 
     public Rotation(double roll, double pitch, double yaw) {

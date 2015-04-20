@@ -1,12 +1,17 @@
 package controllers;
 
+import akka.actor.ActorRef;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.messages.AssignmentMessage;
 import models.Assignment;
 import models.User;
+import play.Logger;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Result;
@@ -32,12 +37,12 @@ public class AssignmentController {
         ExpressionList<Assignment> exp = QueryHelper.buildQuery(Assignment.class, Assignment.FIND.where());
 
         List<JsonHelper.Tuple> tuples = exp.findList().stream().map(assignment -> new JsonHelper.Tuple(assignment, new ControllerHelper.Link("self",
-                controllers.routes.AssignmentController.get(assignment.getId()).url()))).collect(Collectors.toList());
+                controllers.routes.AssignmentController.get(assignment.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().url()));
-        links.add(new ControllerHelper.Link("total", controllers.routes.AssignmentController.getTotal().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.AssignmentController.getTotal().absoluteURL(request())));
 
         try {
             JsonNode result = JsonHelper.createJsonNode(tuples, links, Assignment.class);
@@ -92,7 +97,15 @@ public class AssignmentController {
         Assignment assignment = form.get();
         assignment.setCreator(user);
         assignment.save();
-        return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+
+        try {
+            Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
+            return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
+        } catch (SchedulerException e) {
+            Logger.error("scheduler error", e);
+            return internalServerError("scheduler could not process new assignment");
+        }
+
     }
 
     @Authentication({User.Role.ADMIN})
@@ -101,14 +114,17 @@ public class AssignmentController {
 
         if(assignment == null)
             return notFound("Requested assignment not found");
+        if(assignment.getAssignedDrone() != null)
+            return forbidden("you cannot delete an assignment which has a drone assigned");
 
         assignment.delete();
+
         return ok();
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.AssignmentController.get(id).absoluteURL(request())));
         return links;
     }
 }

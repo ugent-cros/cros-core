@@ -1,6 +1,7 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import drones.models.BepopDriver;
+import drones.simulation.SimulatorDriver;
 import models.Drone;
 import controllers.routes;
 import org.junit.AfterClass;
@@ -88,7 +89,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void create_AuthorizedRequest_DroneCreated() {
-        Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE, "ipAddress");
+        Drone droneToBeAdded = new Drone("newDrone", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "ipAddress");
         JsonNode node = JsonHelper.createJsonNode(droneToBeAdded, Drone.class);
 
         Result result = callAction(routes.ref.DroneController.create(),
@@ -140,6 +141,19 @@ public class DroneControllerTest extends TestSuperclass {
 
         long amount = Drone.FIND.all().stream().filter(d -> d.getId().equals(droneToBeRemoved.getId())).count();
         assertThat(amount).isEqualTo(0);
+    }
+
+    @Test
+    public void total_DronesInDatabase_TotalIsCorrect() {
+        int correctTotal = Drone.FIND.all().size();
+        Result r = callAction(routes.ref.DroneController.getTotal(), authorizeRequest(fakeRequest(), getAdmin()));
+        try {
+            JsonNode responseNode = JsonHelper.removeRootElement(contentAsString(r), Drone.class, false);
+            assertThat(correctTotal).isEqualTo(responseNode.get("total").asInt());
+        } catch (JsonHelper.InvalidJSONException e) {
+            e.printStackTrace();
+            Assert.fail("Invalid json exception" + e.getMessage());
+        }
     }
 
 }

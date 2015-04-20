@@ -31,12 +31,12 @@ public class BasestationController {
         ExpressionList<Basestation> exp = QueryHelper.buildQuery(Basestation.class, Basestation.FIND.where());
 
         List<JsonHelper.Tuple> tuples = exp.findList().stream().map(basestation -> new JsonHelper.Tuple(basestation, new ControllerHelper.Link("self",
-                controllers.routes.BasestationController.get(basestation.getId()).url()))).collect(Collectors.toList());
+                controllers.routes.BasestationController.get(basestation.getId()).absoluteURL(request())))).collect(Collectors.toList());
 
         // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().url()));
-        links.add(new ControllerHelper.Link("total", controllers.routes.BasestationController.getTotal().url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.getAll().absoluteURL(request())));
+        links.add(new ControllerHelper.Link("total", controllers.routes.BasestationController.getTotal().absoluteURL(request())));
 
         try {
             JsonNode result = JsonHelper.createJsonNode(tuples, links, Basestation.class);
@@ -127,7 +127,7 @@ public class BasestationController {
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
         List<ControllerHelper.Link> links = new ArrayList<>();
-        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(id).url()));
+        links.add(new ControllerHelper.Link("self", controllers.routes.BasestationController.get(id).absoluteURL(request())));
         return links;
     }
 }

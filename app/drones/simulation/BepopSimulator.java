@@ -7,11 +7,11 @@ import drones.messages.*;
 import drones.models.*;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -34,13 +34,15 @@ public class BepopSimulator extends DroneActor {
     // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
-    protected Cancellable simulationTick;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
     protected double initialAngleWithRespectToEquator; // in radians, facing East is 0
 
+    // Private variables needed for simulation
+    private Cancellable simulationTick;
+    private Cancellable setDefaultRotation;
 
     // internal state
     private boolean crashed = false;
@@ -148,26 +150,27 @@ public class BepopSimulator extends DroneActor {
             double timeStep = timeFlown.toUnit(TimeUnit.SECONDS);
             if (timeTillArrival > timeStep) {
                 // Not there yet
-                double deltaLongtitude = homeLocation.getLongtitude() - currentLocation.getLongtitude();
+                double deltaLongitude = homeLocation.getLongitude() - currentLocation.getLongitude();
                 double deltaLatitude = homeLocation.getLatitude() - currentLocation.getLatitude();
-                double deltaAltitude = homeLocation.getHeigth() - currentLocation.getHeigth();
+                double deltaAltitude = homeLocation.getHeight() - currentLocation.getHeight();
 
                 double fraction = timeStep/timeTillArrival;
-                double newLongtitude = currentLocation.getLongtitude() + deltaLongtitude * fraction;
+                double newLongitude = currentLocation.getLongitude() + deltaLongitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
-                double newHeight = currentLocation.getHeigth() + deltaAltitude * fraction;
+                double newHeight = currentLocation.getHeight() + deltaAltitude * fraction;
                 tellSelf(new LocationChangedMessage(
-                        newLongtitude,
+                        newLongitude,
                         newLatitude,
                         newHeight));
             } else {
                 // We have arrived
                 flyingToHome = false;
                 tellSelf(new LocationChangedMessage(
-                        homeLocation.getLongtitude(),
+                        homeLocation.getLongitude(),
                         homeLocation.getLatitude(),
-                        homeLocation.getHeigth()
+                        homeLocation.getHeight()
                 ));
+                tellSelf(new SpeedChangedMessage(0, 0, 0));
                 tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
                 tellSelf(new NavigationStateChangedMessage(
                         NavigationState.AVAILABLE,
@@ -203,7 +206,7 @@ public class BepopSimulator extends DroneActor {
             double dEquator = vEquator * durationInSec;
 
             // Calculate delta in radians
-            double radius = Location.EARTH_RADIUS + location.getRawValue().getHeigth();
+            double radius = Location.EARTH_RADIUS + location.getRawValue().getHeight();
             double deltaLatitude = dNS/radius  * 180/Math.PI;          // in degrees
             double deltaLongitude = dEquator/radius  * 180/Math.PI;    // in degrees
 
@@ -213,12 +216,14 @@ public class BepopSimulator extends DroneActor {
             if (latitude > 90) latitude = 180 -latitude;
             if (latitude < -90) latitude = Math.abs(latitude) -180;
 
-            double longitude = (oldLocation.getLongtitude() + deltaLongitude);    // in degrees
+
+            double longitude = (oldLocation.getLongitude() + deltaLongitude);    // in degrees
+
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
-            Location newLocation = new Location(latitude, longitude, oldLocation.getHeigth());
-            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeigth()));
+            Location newLocation = new Location(latitude, longitude, oldLocation.getHeight());
+            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeight()));
         }
     }
 
@@ -263,7 +268,25 @@ public class BepopSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
+                // Intercept attitude change message
+                match(AttitudeChangedMessage.class, s -> {
+                    // Set new rotation
+                    Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
+                    rotation.setValue(rot);
+                    //processOrientation(rot);
+                    eventBus.publish(new DroneEventMessage(s));
+
+                    // Process new rotation by: update speed according to rotation
+                    Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
+                    tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
+                });
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f,  40f, 0.4f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {
@@ -388,7 +411,7 @@ public class BepopSimulator extends DroneActor {
         if (connectionLost) return;
 
         //  Land
-        p.failure(new NotImplementedException());
+        p.failure(new DroneException("action not implemented"));
     }
 
     @Override
@@ -459,15 +482,31 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
         }
 
-        // 1: update rotation
-        tellSelf(new AttitudeChangedMessage(vy, vx, vr));
-        // 2: calculate speed resulting from the rotation
-        Speed newSpeed = calculateSpeed(new Rotation(vy, vx, vr), vz);
-        // 3: update the speed
-        tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
-        // After processing these messages, simulateMove will have the correct behaviour
+        // Cancel setting the rotation back to normal if a new move message arrives
+        if (setDefaultRotation != null) {
+            setDefaultRotation.cancel();
+        }
 
-        p.failure(new NotImplementedException());
+        // Calculate rotation
+        double roll = vy * Math.PI/3;   // 1 <-> 60°
+        double pitch = vx * Math.PI/3;  // 1 <-> 60°
+        double deltaYaw = vr * Math.PI/6;    // 1 <-> turn of 30°
+        double yaw = rotation.getRawValue().getYaw() + deltaYaw;
+
+        // Update rotation: this will also update the speed
+        // Next simulation step will use the updated speed values
+        tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
+
+        // After a 1.5 second: the rotation should be set back to normal
+        setDefaultRotation = Akka.system().scheduler().scheduleOnce(
+                Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
+                self(),
+                new AttitudeChangedMessage(0, 0, 0),
+                Akka.system().dispatcher(),
+                self()
+        );
+
+        p.success(null);
     }
 
     @Override

@@ -5,10 +5,10 @@ import java.io.Serializable;
 /**
  * Created by Cedric on 3/17/2015.
  */
-public class SetMaxHeigthRequestMessage implements Serializable {
+public class SetMaxHeightRequestMessage implements Serializable {
     private float meters;
 
-    public SetMaxHeigthRequestMessage(float meters) {
+    public SetMaxHeightRequestMessage(float meters) {
         this.meters = meters;
     }
 
