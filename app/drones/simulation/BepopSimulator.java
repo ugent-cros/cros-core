@@ -496,6 +496,7 @@ public class BepopSimulator extends NavigatedDroneActor {
         p.success(null);
     }
 
+    /*
     @Override
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
 
@@ -535,6 +536,7 @@ public class BepopSimulator extends NavigatedDroneActor {
             p.success(null);
         }
     }
+    */
 
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {

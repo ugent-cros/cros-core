@@ -89,13 +89,13 @@ public abstract class NavigatedDroneActor extends DroneActor {
     }
 
     @Override
-    protected void cancelMoveToLocation(Promise<Void> p) {
+    final protected void cancelMoveToLocation(Promise<Void> p) {
         cancelInternal();
         p.success(null);
     }
 
     @Override
-    protected void moveToLocation(Promise<Void> v, double latitude, double longitude, double altitude) {
+    final protected void moveToLocation(Promise<Void> v, double latitude, double longitude, double altitude) {
         synchronized (navigationLock) {
             if (navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
                 v.failure(new DroneException("Already navigating to " + getNavigator().getGoal() + ", abort this first."));
