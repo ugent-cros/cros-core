@@ -390,7 +390,8 @@ public class ArDrone3 extends UntypedActor {
                     .match(RequestStatusCommand.class, s -> requestStatus())
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
-                    .match(MoveCommand.class, s -> handleMove(s))
+                    .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVz()))
+                    .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
                     .match(SetTimeCommand.class, s -> setTime(s.getTime()))
                     .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
@@ -414,11 +415,15 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
-    private void handleMove(MoveCommand cmd) {
-        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
-        boolean useRoll = (Math.abs(cmd.getVx()) > 0.0 || Math.abs(cmd.getVy()) > 0.0); // flag 1 if not hovering
+    private void handleFlip(FlipType flip){
+        sendDataAck(PacketCreator.createFlipPacket(flip));
+    }
 
-        double[] vars = new double[]{cmd.getVy(), cmd.getVx(), cmd.getVr(), cmd.getVz()};
+    private void handleMove(double vx, double vy, double vz, double vr) {
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", vx, vy,vz, vr);
+        boolean useRoll = (Math.abs(vx) > 0.0 || Math.abs(vy) > 0.0); // flag 1 if not hovering
+
+        double[] vars = new double[]{vy, vx, vr, vz};
         for (int i = 0; i < 4; i++) {
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 

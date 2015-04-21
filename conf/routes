@@ -21,6 +21,7 @@ GET            /calibrate                            controllers.Application.cal
 GET            /moveTo                               controllers.Application.moveToLocation(lat: Double, lon: Double, alt: Double, id: Long)
 GET            /move                                 controllers.Application.moveVector(vx: Double, vy: Double, vz: Double, vr: Double, id: Long)
 GET            /setMaxHeight                         controllers.Application.setMaxHeight(meters: Float, id: Long)
+GET             /flip                               controllers.Application.flip(id: Long, flip: String)
 
 GET            /takeoff                              controllers.Application.takeOff(id: Long)
 GET            /land                                 controllers.Application.land(id: Long)

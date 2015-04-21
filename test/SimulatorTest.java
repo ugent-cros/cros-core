@@ -154,11 +154,11 @@ public class SimulatorTest extends TestSuperclass {
             // Setup listener
             JavaTestKit listener = new JavaTestKit(system);
             JavaTestKit tracker = new JavaTestKit(system);
-            commander.subscribeTopic(listener.getRef(), AttitudeChangedMessage.class);
+            commander.subscribeTopic(listener.getRef(), RotationChangedMessage.class);
             commander.subscribeTopic(listener.getRef(), SpeedChangedMessage.class);
             commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
 
-            AttitudeChangedMessage rotation = null;
+            RotationChangedMessage rotation = null;
             SpeedChangedMessage speed = null;
             LocationChangedMessage initialLocation = tracker.expectMsgClass(LocationChangedMessage.class);
 
@@ -166,7 +166,7 @@ public class SimulatorTest extends TestSuperclass {
             commander.move3d(vx, vy, 0, 0);
 
             // Check if rotation & speed is updated appropriatly
-            rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), AttitudeChangedMessage.class);
+            rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), RotationChangedMessage.class);
             assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI/3);
             assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI/3);
 
@@ -219,7 +219,7 @@ public class SimulatorTest extends TestSuperclass {
             };
 
             // Check if rotation and speed go back to hovering by default
-            rotation = listener.expectMsgClass(AttitudeChangedMessage.class);
+            rotation = listener.expectMsgClass(RotationChangedMessage.class);
             assertThat(rotation.getRoll()).isEqualTo(0);
             assertThat(rotation.getYaw()).isEqualTo(0);
 
