@@ -4,11 +4,12 @@ import akka.actor.Cancellable;
 import akka.dispatch.Futures;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.messages.*;
+import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.*;
 import drones.simulation.messages.ResetMovementMessage;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by yasser on 25/03/15.
  */
-public class BepopSimulator extends DroneActor {
+public class BepopSimulator extends NavigatedDroneActor {
 
     private static class StepSimulationMessage implements Serializable {
         private FiniteDuration timeStep;
@@ -535,12 +536,11 @@ public class BepopSimulator extends DroneActor {
         }
     }
 
-    /*
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal, (float)topSpeed,  30f, 1f); // Bebop parameters
     }
-    */
+
 
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
