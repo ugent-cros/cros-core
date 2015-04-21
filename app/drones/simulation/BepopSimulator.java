@@ -275,7 +275,7 @@ public class BepopSimulator extends DroneActor {
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
                 match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
                 // Intercept attitude change message
-                match(AttitudeChangedMessage.class, s -> {
+                match(RotationChangedMessage.class, s -> {
                     // Set new rotation
                     Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
                     rotation.setValue(rot);
@@ -408,6 +408,11 @@ public class BepopSimulator extends DroneActor {
     }
 
     @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
 
         if (connectionLost) return;
@@ -500,8 +505,8 @@ public class BepopSimulator extends DroneActor {
         double yaw = rotation.getRawValue().getYaw() + deltaYaw;
 
         // Update rotation: this will also update the speed
-        // Next simulation step will use the updated speed vx & vy values
-        tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
+        // Next simulation step will use the updated speed values
+        tellSelf(new RotationChangedMessage(roll, pitch, yaw));
 
 
         // After a 1.5 second: the rotation should be set back to normal
@@ -560,11 +565,12 @@ public class BepopSimulator extends DroneActor {
         }
     }
 
-
+    /*
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal, (float)topSpeed,  30f, 1f); // Bebop parameters
     }
+    */
 
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {

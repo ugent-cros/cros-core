@@ -10,7 +10,6 @@ import drones.simulation.BepopSimulator;
 import drones.simulation.SimulatorDriver;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -154,11 +153,11 @@ public class SimulatorTest extends TestSuperclass {
             // Setup listener
             JavaTestKit listener = new JavaTestKit(system);
             JavaTestKit tracker = new JavaTestKit(system);
-            commander.subscribeTopic(listener.getRef(), AttitudeChangedMessage.class);
+            commander.subscribeTopic(listener.getRef(), RotationChangedMessage.class);
             commander.subscribeTopic(listener.getRef(), SpeedChangedMessage.class);
             commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
 
-            AttitudeChangedMessage rotation = null;
+            RotationChangedMessage rotation = null;
             SpeedChangedMessage speed = null;
             LocationChangedMessage initialLocation = tracker.expectMsgClass(LocationChangedMessage.class);
 
@@ -171,7 +170,7 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(speed.getSpeedY()).isEqualTo(0);
             assertThat(speed.getSpeedZ()).isEqualTo(0);
 
-            rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), AttitudeChangedMessage.class);
+            rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), RotationChangedMessage.class);
             assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI/3);
             assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI/3);
 
@@ -228,7 +227,7 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(speed.getSpeedZ()).isEqualTo(0);
 
             // Check if rotation and speed go back to hovering by default
-            rotation = listener.expectMsgClass(AttitudeChangedMessage.class);
+            rotation = listener.expectMsgClass(RotationChangedMessage.class);
             assertThat(rotation.getRoll()).isEqualTo(0);
             assertThat(rotation.getYaw()).isEqualTo(0);
 
@@ -243,7 +242,6 @@ public class SimulatorTest extends TestSuperclass {
         }};
     }
 
-    @Ignore // Test does not succeed when navigator is used
     @Test
     public void moveToLocation_Hovering_MovesTowardsLocation() throws Exception {
 
