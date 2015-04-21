@@ -184,12 +184,16 @@ public class BepopSimulator extends NavigatedDroneActor {
             double angleWrtEquator = initialAngleWithRespectToEquator + yawInRadians;
 
             // Decompose speed-x vector
-            double p1 = Math.sin(angleWrtEquator); // = cos(angle - PI/2) = cos(angleVyWrtNS)
-            double p2 = Math.cos(angleWrtEquator); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
+            double p1 = Math.sin(angleWrtEquator); // = cos(angle - PI/2) = cos(angleVyWrtEquator)
+            double p2 = Math.cos(angleWrtEquator); // = -sin(angle - PI/2) = -sin(angleVyWrtEquator);
 
             // Calculate speed along earth axises
             double vNS = movement.getVx() * p1;
             double vEquator = movement.getVx() * p2;
+
+            // Add speed-y vector
+            vNS += movement.getVy() * -p2;
+            vEquator += movement.getVy() * p1;
 
             // Calculate flown distance
             double durationInSec = simulationTimeStep.toUnit(TimeUnit.SECONDS);
