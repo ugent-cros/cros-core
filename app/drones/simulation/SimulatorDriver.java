@@ -19,10 +19,10 @@ public class SimulatorDriver implements DroneDriver {
 
     // These properties can be changed any time
     // When the driver creates a simulator, these properties will be used in the simulator
-    public Location startLocation = STERRE;
-    public double maxHeight = 0;
-    public double angleWrtEquator = Math.PI/2;  // Facing north by default
-    public double topSpeed = 10;     // m/s
+    private Location startLocation = STERRE;
+    private double maxHeight = 0;
+    private double angleWrtEquator = Math.PI/2;  // Facing north by default
+    private double topSpeed = 10;     // m/s
 
     @Override
     public Set<DroneType> supportedTypes() {
@@ -39,5 +39,37 @@ public class SimulatorDriver implements DroneDriver {
     @Override
     public <T extends DroneActor> T createActor(String droneAddress) {
         return (T) new BepopSimulator(startLocation, maxHeight, angleWrtEquator, topSpeed);
+    }
+
+    public Location getStartLocation() {
+        return startLocation;
+    }
+
+    public void setStartLocation(Location startLocation) {
+        this.startLocation = startLocation;
+    }
+
+    public double getMaxHeight() {
+        return maxHeight;
+    }
+
+    public void setMaxHeight(double maxHeight) {
+        this.maxHeight = maxHeight;
+    }
+
+    public double getAngleWrtEquator() {
+        return angleWrtEquator;
+    }
+
+    public void setAngleWrtEquator(double angleWrtEquator) {
+        this.angleWrtEquator = angleWrtEquator;
+    }
+
+    public double getTopSpeed() {
+        return topSpeed;
+    }
+
+    public void setTopSpeed(double topSpeed) {
+        this.topSpeed = topSpeed;
     }
 }

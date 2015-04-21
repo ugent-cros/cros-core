@@ -2,6 +2,7 @@ package drones.models;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
@@ -83,6 +84,15 @@ public class Fleet {
     private ActorRef pinger;
 
     public Future<PingResult> isReachable(Drone droneEntity) {
+        // If the entity has no commander, fail immediately
+        if(!hasCommander(droneEntity)){
+            return Futures.failed(new IllegalArgumentException("Drone is not initialized yet."));
+        }
+        // If the drone is simulated, pretend to succeed immediately
+        if(SimulatorDriver.SIMULATOR_TYPE.equals(droneEntity.getDroneType())){
+            return Futures.successful(PingResult.OK);
+        }
+
         // Lazy load the ping class
         if (pinger == null) {
             pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");

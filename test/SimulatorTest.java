@@ -30,7 +30,7 @@ public class SimulatorTest extends TestSuperclass {
 
     @BeforeClass
     public static void setup() {
-        driver.topSpeed = 500; //10m/s
+        driver.setTopSpeed(500); // 500 m/s
         startFakeApplication();
         system = ActorSystem.create();
     }

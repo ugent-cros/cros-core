@@ -2,13 +2,13 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
+import drones.models.BepopDriver;
+import drones.models.Fleet;
+import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.messages.from.DroneAddedMessage;
-import drones.models.scheduler.messages.from.DroneAssignedMessage;
-import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
-import drones.models.scheduler.messages.from.SchedulerReplyMessage;
+import drones.models.scheduler.messages.from.*;
 import drones.models.scheduler.messages.to.SchedulerRequestMessage;
 import drones.simulation.SimulatorDriver;
 import models.*;
@@ -33,9 +33,12 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     // Our location
     private static final double DIST_GHENT_ANTWERP = 51474;
     private static final double DIST_ANTWERP_PARIS = 301065;
-    private static final Location GHENT = new Location(3.71667,51.05,0);
-    private static final Location ANTWERP = new Location(4.40346,51.21989,0);
-    private static final Location PARIS = new Location(2.3488,48.85341,0);
+    private static final Location GHENT = new Location(51.05,3.71667,0);
+    private static final Location ANTWERP = new Location(51.21989,4.40346,0);
+    private static final Location PARIS = new Location(48.85341,2.3488,0);
+    private static final Location BERLIN = new Location(52.52437,13.41053,0);
+    private static final Location LONDON = new Location(51.50853,-0.12574,0);
+
     // Base stations
     private static Basestation BRUSSELS;
     private static Basestation DELHI;
@@ -47,39 +50,37 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     private static Basestation SEATTLE;
     private static Basestation SYDNEY;
     private static Basestation TOKYO;
+    // List of these base stations
+    private static final List<Basestation> BASESTATIONS = new ArrayList<>();
+    // Simulator driver
+    private static final SimulatorDriver driver = new SimulatorDriver();
 
     @BeforeClass
     public static void setup(){
+        // Configure the simulator
+        driver.setStartLocation(Helper.entityToDroneLocation(GHENT));
+        // Start application
         startFakeApplication();
-        BRUSSELS = new Basestation("Brussels", new Location(4.34878,50.85045,0));
-        DELHI = new Basestation("Delhi", new Location(77.22897,28.65381,0));
-        KINSHASA = new Basestation("Kinshasa", new Location(15.31357,-4.32758,0));
-        LIMA = new Basestation("Lima", new Location(-77.02824,-12.04318,0));
-        MOSCOW = new Basestation("Moscow", new Location(37.61556,55.75222,0));
-        NEW_YORK = new Basestation("New York", new Location(-74.00597,40.71427,0));
-        ROME = new Basestation("Rome", new Location(12.51133,41.89193,0));
-        SEATTLE = new Basestation("Seattle", new Location(-122.33207,47.60621,0));
-        SYDNEY = new Basestation("Sydney", new Location(151.20732,-33.86785,0));
-        TOKYO = new Basestation("Tokyo", new Location(139.69171,35.6895,0));
-        List<Basestation> basestations = new ArrayList<>();
-        basestations.add(BRUSSELS);
-        basestations.add(DELHI);
-        basestations.add(KINSHASA);
-        basestations.add(LIMA);
-        basestations.add(MOSCOW);
-        basestations.add(NEW_YORK);
-        basestations.add(ROME);
-        basestations.add(SEATTLE);
-        basestations.add(SYDNEY);
-        basestations.add(TOKYO);
-        Ebean.save(basestations);
-
-        List<Drone> drones = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
-            Drone drone = new Drone("Drone" + i, Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"0.0.0." + i);
-            drones.add(drone);
-        }
-        Ebean.save(drones);
+        BRUSSELS = new Basestation("Brussels", new Location(50.85045,4.34878,0));
+        DELHI = new Basestation("Delhi", new Location(28.65381,77.22897,0));
+        KINSHASA = new Basestation("Kinshasa", new Location(-4.32758,15.31357,0));
+        LIMA = new Basestation("Lima", new Location(-12.04318,-77.02824,0));
+        MOSCOW = new Basestation("Moscow", new Location(55.75222,37.61556,0));
+        NEW_YORK = new Basestation("New York", new Location(40.71427,-74.00597,0));
+        ROME = new Basestation("Rome", new Location(41.89193,12.51133,0));
+        SEATTLE = new Basestation("Seattle", new Location(47.60621,-122.33207,0));
+        SYDNEY = new Basestation("Sydney", new Location(-33.86785,151.20732,0));
+        TOKYO = new Basestation("Tokyo", new Location(35.6895,139.69171,0));
+        BASESTATIONS.add(BRUSSELS);
+        BASESTATIONS.add(DELHI);
+        BASESTATIONS.add(KINSHASA);
+        BASESTATIONS.add(LIMA);
+        BASESTATIONS.add(MOSCOW);
+        BASESTATIONS.add(NEW_YORK);
+        BASESTATIONS.add(ROME);
+        BASESTATIONS.add(SEATTLE);
+        BASESTATIONS.add(SYDNEY);
+        BASESTATIONS.add(TOKYO);
 
         // Create system
         system = ActorSystem.create();
@@ -92,6 +93,29 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         stopFakeApplication();
     }
 
+    private Drone createTestDrone(Location location){
+        driver.setStartLocation(Helper.entityToDroneLocation(location));
+        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, driver);
+        Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
+        drone.save();
+        return drone;
+    }
+
+    private Drone createUnreachableDrone(Location location){
+        Drone drone = new Drone("UnreachableDrone", Drone.Status.UNKNOWN, BepopDriver.BEPOP_TYPE,"0.0.0.0");
+        drone.save();
+        return drone;
+    }
+
+    private List<Drone> createTestDrones(int number){
+        List<Drone> drones = new ArrayList<>();
+        for(int i = 0; i < number; i++){
+            drones.add(new Drone("TestDrone" + i, Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0"));
+        }
+        Ebean.save(drones);
+        return drones;
+    }
+
     @Test
     public void distance_GhentAntwerp_100MeterAccuracy(){
         double distance = Helper.distance(GHENT,ANTWERP);
@@ -101,8 +125,12 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @Test
     public void closestBaseStation_Ghent_Brussels(){
+        // Add stations
+        Ebean.save(BASESTATIONS);
         Basestation closest = Helper.closestBaseStation(GHENT);
         Assert.assertTrue(closest.equals(BRUSSELS));
+        // Remove stations
+        Ebean.delete(BASESTATIONS);
     }
 
     @Test
@@ -149,59 +177,290 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void addDrone_11Requests_10Added() throws SchedulerException{
+    public void addDrones_FilledDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class, getRef());
 
-                // Add the drones
-                List<Drone> drones = Drone.FIND.all();
-                Set<Long> droneIdCheck = new HashSet<>();
-                for (Drone drone : drones){
-                    Scheduler.addDrone(drone.getId());
-                    droneIdCheck.add(drone.getId());
-                }
-                // Expect 10 unique added drones.
-                Object[] messages = receiveN(drones.size());
-                for(Object message : messages){
-                    long droneId = ((DroneAddedMessage) message).getDroneId();
-                    Assert.assertTrue(droneIdCheck.remove(droneId));
-                }
-                Assert.assertTrue(droneIdCheck.isEmpty());
+                // Add drones to the database.
+                List<Drone> drones = createTestDrones(10);
 
-                // Send already added drone to add.
-                Scheduler.addDrone(drones.get(0).getId());
-                expectNoMsg(SHORT_TIMEOUT);
+                Scheduler.addDrones();
+                for(int i = 0; i < drones.size(); i++){
+                    DroneAddedMessage message = expectMsgClass(DroneAddedMessage.class);
+                    Assert.assertTrue("Drone added successfully",message.isSuccess());
+                }
+
+                // Check drones
+                drones = Drone.FIND.all();
+                for(Drone drone : drones){
+                    Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
+                    Scheduler.removeDrone(drone.getId());
+                }
+                // Removed drone messages
+                receiveN(drones.size());
+
+                // Delete drones
+                Ebean.delete(Drone.FIND.all());
             }
         };
     }
 
     @Test
-    public void schedule_1Assignment10Drones_1Scheduled() throws SchedulerException{
+    public void droneAddRemove_EmptyDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
             {
-                Scheduler.subscribe(DroneAssignedMessage.class, getRef());
-                Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class, getRef());
                 // Add the drones
-                List<Drone> drones = Drone.FIND.all();
-                for (Drone drone : drones){
-                    Scheduler.addDrone(drone.getId());
+                List<Drone> drones = createTestDrones(10);
+                Set<Long> droneIdCheck = new HashSet<>();
+                Drone drone = null;
+                for (Drone d : drones){
+                    Scheduler.addDrone(d.getId());
+                    droneIdCheck.add(d.getId());
                 }
-                // Add the assignment
-                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
-                assignment.save();
+                // Expect 10 unique added drones.
+                Object[] messages = receiveN(drones.size());
+                for(Object message : messages){
+                    DroneAddedMessage addedMessage = ((DroneAddedMessage) message);
+                    long droneId = addedMessage.getDroneId();
+                    Assert.assertTrue("Drone added successful",addedMessage.isSuccess());
+                    Assert.assertTrue("Unique drone added",droneIdCheck.remove(droneId));
+                    drone = Drone.FIND.byId(droneId);
+                    Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
+                }
+                Assert.assertTrue("All drones added",droneIdCheck.isEmpty());
 
-                // Schedule!
-                Scheduler.schedule();
-                DroneAssignedMessage message = expectMsgClass(DroneAssignedMessage.class);
-                Assert.assertTrue(message.getAssignmentId() == assignment.getId());
-                assignment = Assignment.FIND.byId(message.getAssignmentId());
-                Assert.assertTrue(assignment.isScheduled());
-                Drone drone = Drone.FIND.byId(message.getDroneId());
-                Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);
+                // Send already added drone to add.
+                Scheduler.addDrone(drones.get(0).getId());
+                expectNoMsg(SHORT_TIMEOUT);
+
+                // Removed drones
+                for(Drone d : drones){
+                    Scheduler.removeDrone(d.getId());
+                    droneIdCheck.add(d.getId());
+                }
+                // Expect 10 unique removed drones.
+                messages = receiveN(drones.size());
+                for(Object message : messages){
+                    long droneId = ((DroneRemovedMessage) message).getDroneId();
+                    drone = Drone.FIND.byId(droneId);
+                    Assert.assertTrue("Unique drone removed",droneIdCheck.remove(droneId));
+                    Assert.assertTrue("Drone status INACTIVE",drone.getStatus() == Drone.Status.INACTIVE);
+                }
+                Assert.assertTrue("All drones removed",droneIdCheck.isEmpty());
+
+                // Send already removed drone to remove.
+                Scheduler.removeDrone(drones.get(0).getId());
+                expectNoMsg(SHORT_TIMEOUT);
+
+                // Delete drones from db
+                Ebean.delete(Drone.FIND.all());
             }
         };
     }
 
+    @Test
+    public void schedule_1Assignment7Drones_ScheduledClosest() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class, getRef());
+                Scheduler.subscribe(DroneAssignedMessage.class, getRef());
+                Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
+                Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
+                Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
 
+                // The drone that should be chosen
+                Drone correctDrone = createTestDrone(ANTWERP);
+                // Add all the drones
+                List<Drone> drones = new ArrayList<>();
+                drones.add(correctDrone);
+                drones.add(createTestDrone(PARIS));
+                drones.add(createTestDrone(PARIS));
+                drones.add(createTestDrone(BERLIN));
+                drones.add(createTestDrone(BERLIN));
+                drones.add(createTestDrone(LONDON));
+                drones.add(createTestDrone(LONDON));
+                for (Drone drone : drones){
+                    Scheduler.addDrone(drone.getId());
+                }
+                receiveN(drones.size());
+
+                // Add the assignment
+                Assignment assignment = new Assignment(Helper.routeTo(GHENT),getUser());
+                assignment.save();
+
+                // Schedule!
+                Scheduler.schedule();
+                DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
+                Assert.assertTrue("Correct assignment",assignedMessage.getAssignmentId() == assignment.getId());
+                assignment.refresh();
+                Assert.assertTrue("Assignment is scheduled", assignment.isScheduled());
+                Assert.assertTrue("Closest drone", assignedMessage.getDroneId() == correctDrone.getId());
+                Assert.assertTrue("Consistent database", assignment.getAssignedDrone().getId() == correctDrone.getId());
+
+                // Assignment started
+                AssignmentStartedMessage startedMessage = expectMsgClass(AssignmentStartedMessage.class);
+                Assert.assertTrue("Assignment has started",assignment.getId() == assignedMessage.getAssignmentId());
+                correctDrone.refresh();
+                Assert.assertTrue("Drone status FLYING",correctDrone.getStatus() == Drone.Status.FLYING);
+
+                // Create temp station for a quick return.
+                Basestation tempStation = new Basestation("Ghent",GHENT);
+                tempStation.save();
+
+                // Cancel assignment
+                Scheduler.cancelAssignment(assignment.getId());
+                AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
+                assignment.refresh();
+                Assert.assertTrue("Assignment unassigned",assignment.getAssignedDrone() == null);
+                Assert.assertTrue("Assignment unscheduled",!assignment.isScheduled());
+                assignment.delete();
+
+                // Remove test drones
+                for(Drone drone : drones){
+                    Scheduler.removeDrone(drone.getId());
+                }
+                receiveN(drones.size());
+
+                // Delete station
+                tempStation.delete();
+
+                // Delete drones from database
+                Ebean.delete(Drone.FIND.all());
+            }
+        };
+    }
+
+    @Test
+    public void removeDrone_NotAssigned_Succeeds() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class,getRef());
+                // Add test drone
+                Drone drone = createTestDrone(GHENT);
+                Scheduler.addDrone(drone.getId());
+                DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
+                Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.AVAILABLE);
+                // Remove test drone
+                Scheduler.removeDrone(drone.getId());
+                DroneRemovedMessage removedMessage = expectMsgClass(DroneRemovedMessage.class);
+                Assert.assertTrue(removedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.INACTIVE);
+                drone.delete();
+            }
+        };
+    }
+
+    @Ignore
+    @Test
+    public void removeDrone_Assigned_Succeeds() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class,getRef());
+                Scheduler.subscribe(DroneAssignedMessage.class,getRef());
+                Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
+                Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
+
+                // Add test drone
+                Drone drone = createTestDrone(GHENT);
+                Scheduler.addDrone(drone.getId());
+                DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
+                Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.AVAILABLE);
+
+                // Add assignment
+                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
+                assignment.save();
+                Scheduler.schedule();
+                DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
+                assignment.refresh();
+                Assert.assertTrue(assignedMessage.getAssignmentId() == assignment.getId());
+                Assert.assertTrue(assignedMessage.getDroneId() == drone.getId());
+                Assert.assertTrue(assignment.isScheduled());
+
+                // Remove test drone
+                Basestation tempStation = new Basestation("Ghent",GHENT);
+                tempStation.save();
+                Scheduler.removeDrone(drone.getId());
+                DroneRemovedMessage removedMessage = expectMsgClass(DroneRemovedMessage.class);
+                Assert.assertTrue(removedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                assignment.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.INACTIVE);
+                Assert.assertTrue(assignment.getAssignedDrone() != drone);
+                tempStation.delete();
+
+                // Cancel assignment
+                Scheduler.cancelAssignment(assignment.getId());
+                AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
+                assignment.refresh();
+                Assert.assertTrue(assignment.getAssignedDrone() == null);
+                Assert.assertTrue(!assignment.isScheduled());
+                assignment.delete();
+            }
+        };
+    }
+
+    @Ignore
+    @Test
+    public void cancelAssignment_Assigned_Succeeds() throws SchedulerException{
+        new JavaTestKit(system){
+            {
+                Scheduler.subscribe(DroneAddedMessage.class, getRef());
+                Scheduler.subscribe(DroneRemovedMessage.class,getRef());
+                Scheduler.subscribe(DroneAssignedMessage.class,getRef());
+                Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
+                Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
+
+                // Add test drone
+                Drone drone = createTestDrone(GHENT);
+                Scheduler.addDrone(drone.getId());
+                DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
+                Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.AVAILABLE);
+
+                // Add assignment
+                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
+                assignment.save();
+                Scheduler.schedule();
+                DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
+                assignment.refresh();
+                Assert.assertTrue(assignedMessage.getAssignmentId() == assignment.getId());
+                Assert.assertTrue(assignedMessage.getDroneId() == drone.getId());
+                Assert.assertTrue(assignment.isScheduled());
+
+                // Cancel assignment
+                Basestation tempStation = new Basestation("Ghent",GHENT);
+                tempStation.save();
+                Scheduler.cancelAssignment(assignment.getId());
+                AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
+                assignment.refresh();
+                Assert.assertTrue(assignment.getAssignedDrone() == null);
+                Assert.assertTrue(!assignment.isScheduled());
+                assignment.delete();
+
+                // Remove test drone
+                Scheduler.removeDrone(drone.getId());
+                DroneRemovedMessage removedMessage = expectMsgClass(DroneRemovedMessage.class);
+                Assert.assertTrue(removedMessage.getDroneId() == drone.getId());
+                drone.refresh();
+                Assert.assertTrue(drone.getStatus() == Drone.Status.INACTIVE);
+                drone.delete();
+
+                // Delete temp station
+                tempStation.delete();
+            }
+        };
+    }
 }

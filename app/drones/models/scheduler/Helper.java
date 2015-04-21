@@ -94,4 +94,22 @@ public class Helper {
         route.add(new Checkpoint(location));
         return route;
     }
+
+    /**
+     * Convert an entity location to a drone location.
+     * @param location
+     * @return a drone location
+     */
+    public static drones.models.Location entityToDroneLocation(Location location){
+        return new drones.models.Location(location.getLatitude(),location.getLongitude(),location.getAltitude());
+    }
+
+    /**
+     * Convert a drone location to an entity location.
+     * @param location
+     * @return an entity location
+     */
+    public static Location droneToEntityLocation(drones.models.Location location){
+        return new Location(location.getLatitude(),location.getLongitude(),location.getHeight());
+    }
 }

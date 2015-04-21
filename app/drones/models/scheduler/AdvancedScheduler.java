@@ -64,7 +64,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-
     @Override
     protected void stop(StopSchedulerMessage message) {
         // Hotswap new receive behaviour
@@ -74,7 +73,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 .matchAny(m -> log.warning("[AdvancedScheduler] Termination ignored message: [{}]", m.getClass().getName())
                 ).build());
 
-        // Deschedule all assignments in the queue
+        // Unschedule all assignments in the queue
         for (Assignment assignment : queue) {
             assignment.setScheduled(false);
         }
@@ -88,6 +87,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         } else {
             // Cancellation
             for (Flight flight : flights.values()) {
+                // Unschedule all the assignments in progress
+                Assignment assignment = Assignment.FIND.byId(flight.getAssignmentId());
+                assignment.setScheduled(false);
+                assignment.update();
                 cancelFlight(flight);
             }
         }
@@ -327,6 +330,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
      */
     protected void cancelAssignment(CancelAssignmentMessage message) {
         Assignment assignment = getAssignment(message.getAssignmentId());
+        // Unschedule the assignment first
+        assignment.setScheduled(false);
+        assignment.update();
         // Assigned drone
         Drone drone = assignment.getAssignedDrone();
         if (drone != null) {
@@ -353,6 +359,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             public void onComplete(Throwable failure, PingResult result) throws Throwable {
                 boolean success = (failure == null) && (result == PingResult.OK);
                 if(success){
+                    // Change drone state
+                    drone.setStatus(Drone.Status.AVAILABLE);
+                    drone.update();
                     // Add drone to the pool
                     dronePool.add(message.getDroneId());
                 }
@@ -389,6 +398,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         if (dronePool.contains(droneId)) {
             // Drone present in drone pool is safe to remove.
             dronePool.remove(droneId);
+            // Update drone status
+            Drone drone = getDrone(droneId);
+            drone.setStatus(Drone.Status.INACTIVE);
+            drone.update();
             // Tell the world we successfully removed a drone from the drone pool.
             eventBus.publish(new DroneRemovedMessage(droneId));
             return;
@@ -435,6 +448,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         pilot.tell(new StartFlightControlMessage(), self());
         // Create a new flight for administration
         Flight flight = new Flight(droneId, assignmentId, pilot);
+        flights.put(droneId,flight);
     }
 
     /**

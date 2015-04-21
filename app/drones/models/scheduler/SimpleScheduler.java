@@ -90,12 +90,9 @@ public class SimpleScheduler extends Scheduler {
     protected void assign(Drone drone, Assignment assignment) {
         // Store in database
         super.assign(drone, assignment);
-        // Get route
-        List<Checkpoint> route = assignment.getRoute();
         // Create a new flight.
         createFlight(drone,assignment);
     }
-
 
     /**
      * Simple Schedule loop.

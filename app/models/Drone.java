@@ -51,7 +51,7 @@ public class Drone extends Model {
 
     // setting default values
     public Drone() {
-        status = Status.AVAILABLE;
+        status = Status.UNKNOWN;
     }
 
     public Drone(String name, Status status, DroneType droneType, String address) {

@@ -16,6 +16,8 @@ import models.Drone;
 import models.Location;
 import play.libs.Akka;
 
+import java.util.List;
+
 /**
  * Created by Ronald on 16/03/2015.
  */
@@ -52,7 +54,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param type  the type of scheduler to be used, has to be a subclass of Scheduler
      * @throws SchedulerException
      */
-    public static void start(Class<? extends Scheduler> type) throws SchedulerException {
+    public static void start(Class<? extends Scheduler> type) throws SchedulerException{
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
                 scheduler = Akka.system().actorOf(Props.create(type));
@@ -128,6 +130,18 @@ public abstract class Scheduler extends AbstractActor {
      */
     public static void addDrone(long droneId) throws SchedulerException{
         getScheduler().tell(new AddDroneMessage(droneId),ActorRef.noSender());
+    }
+
+    /**
+     * Tell the scheduler to try adding all the drones from the database.
+     * @throws SchedulerException
+     */
+    public static void addDrones() throws SchedulerException{
+        ActorRef scheduler = getScheduler();
+        List<Drone> drones = Drone.FIND.all();
+        for (Drone drone : drones){
+            scheduler.tell(new AddDroneMessage(drone.getId()),ActorRef.noSender());
+        }
     }
 
     /**
