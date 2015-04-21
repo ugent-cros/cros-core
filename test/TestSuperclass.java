@@ -1,4 +1,6 @@
 import controllers.SecurityController;
+import drones.models.Fleet;
+import drones.simulation.SimulatorDriver;
 import models.User;
 
 import play.test.*;
@@ -22,6 +24,9 @@ public class TestSuperclass {
     public static User getUser() { return user; }
 
     public static void startFakeApplication() {
+        // Make sure the correct simulator driver is registered always.
+        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
+
         application = fakeApplication(inMemoryDatabase());
         start(application);
 

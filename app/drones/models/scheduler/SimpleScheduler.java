@@ -10,16 +10,14 @@ import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
+import drones.models.scheduler.messages.from.DroneAssignedMessage;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
-import models.Checkpoint;
 import models.Drone;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -82,7 +80,7 @@ public class SimpleScheduler extends Scheduler {
         // There is not much this scheduler can do about this right now
         // Except updating the database.
         Drone drone = Drone.FIND.byId(message.getDroneId());
-        drone.setStatus(Drone.Status.EMERGENCY_LANDED);
+        drone.setStatus(Drone.Status.EMERGENCY);
         drone.update();
     }
 
@@ -90,8 +88,15 @@ public class SimpleScheduler extends Scheduler {
     protected void assign(Drone drone, Assignment assignment) {
         // Store in database
         super.assign(drone, assignment);
+        // Tell everyone we assigned
+        eventBus.publish(new DroneAssignedMessage(assignment.getId(),drone.getId()));
         // Create a new flight.
         createFlight(drone,assignment);
+    }
+
+    @Override
+    protected void emergency(EmergencyMessage message) {
+        log.error("[SimpleScheduler] Emergency not implemented yet!");
     }
 
     /**

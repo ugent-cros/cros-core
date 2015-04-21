@@ -84,8 +84,10 @@ public class SchedulerTest extends TestSuperclass {
         Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), null);
         Thread.sleep(3000);
         drone = Drone.FIND.byId(drone.getId());
-        assignment = Assignment.FIND.byId(assignment.getId());
-        Assert.assertTrue(assignment.getAssignedDrone().getId() == drone.getId());
+        assignment.refresh();
+        Assert.assertTrue("Drone assigned",assignment.getAssignedDrone() != null);
+        Drone assignedDrone = assignment.getAssignedDrone();
+        Assert.assertTrue("Correct drone assigned", assignedDrone.getId() == drone.getId());
         Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);
 
     }

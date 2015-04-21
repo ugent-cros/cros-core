@@ -29,7 +29,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
     private static final FiniteDuration SHORT_TIMEOUT = Duration.create(2, TimeUnit.SECONDS);
-    private static final FiniteDuration LONG_TIMEOUT = Duration.create(10, TimeUnit.SECONDS);
+    private static final FiniteDuration LONG_TIMEOUT = Duration.create(5, TimeUnit.SECONDS);
     // Our location
     private static final double DIST_GHENT_ANTWERP = 51474;
     private static final double DIST_ANTWERP_PARIS = 301065;
@@ -61,6 +61,13 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         driver.setStartLocation(Helper.entityToDroneLocation(GHENT));
         // Start application
         startFakeApplication();
+        // Make sure we are using the Advanced Scheduler!
+        try {
+            Scheduler.stop();
+            Scheduler.start(AdvancedScheduler.class);
+        }catch(SchedulerException ex){
+            throw new RuntimeException("Failed to start Advanced Scheduler.");
+        }
         BRUSSELS = new Basestation("Brussels", new Location(50.85045,4.34878,0));
         DELHI = new Basestation("Delhi", new Location(28.65381,77.22897,0));
         KINSHASA = new Basestation("Kinshasa", new Location(-4.32758,15.31357,0));
@@ -88,6 +95,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @AfterClass
     public static void tearDown(){
+        // Restore original simulator driver
+        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,new SimulatorDriver());
         JavaTestKit.shutdownActorSystem(system);
         system = null;
         stopFakeApplication();
@@ -361,105 +370,60 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @Ignore
     @Test
-    public void removeDrone_Assigned_Succeeds() throws SchedulerException{
+    public void assignmentCompleted_1Assignment_DroneReturns() throws SchedulerException{
+        // TODO: waiting for SimplePilot to complete this test
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
                 Scheduler.subscribe(DroneRemovedMessage.class,getRef());
                 Scheduler.subscribe(DroneAssignedMessage.class,getRef());
                 Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
-                Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
+                Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
 
-                // Add test drone
+                // Add test drone in Ghent
                 Drone drone = createTestDrone(GHENT);
                 Scheduler.addDrone(drone.getId());
                 DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
-                Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
                 drone.refresh();
-                Assert.assertTrue(drone.getStatus() == Drone.Status.AVAILABLE);
+                Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
 
-                // Add assignment
-                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
+                // Add base station in Paris
+                Basestation parisStation = new Basestation("Paris",PARIS);
+                parisStation.save();
+
+                // Add assignment in Ghent
+                Assignment assignment = new Assignment(Helper.routeTo(GHENT),getUser());
                 assignment.save();
+
+                // Schedule the assignment and expect the usual messages.
                 Scheduler.schedule();
-                DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
+                expectMsgClass(DroneAssignedMessage.class);
+                expectMsgClass(AssignmentStartedMessage.class);
+                // Assignment should complete immediately
+                expectMsgClass(AssignmentCompletedMessage.class);
                 assignment.refresh();
-                Assert.assertTrue(assignedMessage.getAssignmentId() == assignment.getId());
-                Assert.assertTrue(assignedMessage.getDroneId() == drone.getId());
-                Assert.assertTrue(assignment.isScheduled());
-
-                // Remove test drone
-                Basestation tempStation = new Basestation("Ghent",GHENT);
-                tempStation.save();
-                Scheduler.removeDrone(drone.getId());
-                DroneRemovedMessage removedMessage = expectMsgClass(DroneRemovedMessage.class);
-                Assert.assertTrue(removedMessage.getDroneId() == drone.getId());
-                drone.refresh();
-                assignment.refresh();
-                Assert.assertTrue(drone.getStatus() == Drone.Status.INACTIVE);
-                Assert.assertTrue(assignment.getAssignedDrone() != drone);
-                tempStation.delete();
-
-                // Cancel assignment
-                Scheduler.cancelAssignment(assignment.getId());
-                AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
-                assignment.refresh();
-                Assert.assertTrue(assignment.getAssignedDrone() == null);
-                Assert.assertTrue(!assignment.isScheduled());
-                assignment.delete();
-            }
-        };
-    }
-
-    @Ignore
-    @Test
-    public void cancelAssignment_Assigned_Succeeds() throws SchedulerException{
-        new JavaTestKit(system){
-            {
-                Scheduler.subscribe(DroneAddedMessage.class, getRef());
-                Scheduler.subscribe(DroneRemovedMessage.class,getRef());
-                Scheduler.subscribe(DroneAssignedMessage.class,getRef());
-                Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
-                Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
-
-                // Add test drone
-                Drone drone = createTestDrone(GHENT);
-                Scheduler.addDrone(drone.getId());
-                DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
-                Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
-                drone.refresh();
-                Assert.assertTrue(drone.getStatus() == Drone.Status.AVAILABLE);
-
-                // Add assignment
-                Assignment assignment = new Assignment(Helper.routeTo(PARIS),getUser());
-                assignment.save();
-                Scheduler.schedule();
-                DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
-                assignment.refresh();
-                Assert.assertTrue(assignedMessage.getAssignmentId() == assignment.getId());
-                Assert.assertTrue(assignedMessage.getDroneId() == drone.getId());
-                Assert.assertTrue(assignment.isScheduled());
-
-                // Cancel assignment
-                Basestation tempStation = new Basestation("Ghent",GHENT);
-                tempStation.save();
-                Scheduler.cancelAssignment(assignment.getId());
-                AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
-                assignment.refresh();
-                Assert.assertTrue(assignment.getAssignedDrone() == null);
-                Assert.assertTrue(!assignment.isScheduled());
+                Assert.assertTrue("Assignment unassigned",assignment.getAssignedDrone() == null);
                 assignment.delete();
 
-                // Remove test drone
-                Scheduler.removeDrone(drone.getId());
-                DroneRemovedMessage removedMessage = expectMsgClass(DroneRemovedMessage.class);
-                Assert.assertTrue(removedMessage.getDroneId() == drone.getId());
+                // See if the drone is still returning to the Sydney base station
+                expectNoMsg(SHORT_TIMEOUT);
                 drone.refresh();
-                Assert.assertTrue(drone.getStatus() == Drone.Status.INACTIVE);
+                Assert.assertTrue("Drone status FLYING",drone.getStatus() == Drone.Status.FLYING);
+
+                // Delete Paris station, add Ghent station and removed drone.
+                parisStation.delete();
+                Basestation ghentStation = new Basestation("Ghent",GHENT);
+                ghentStation.save();
+
+                // Remove test drone with longer delay
+                Scheduler.removeDrone(drone.getId());
+                DroneRemovedMessage removedMessage = expectMsgClass(LONG_TIMEOUT,DroneRemovedMessage.class);
+                drone.refresh();
+                Assert.assertTrue("Drone status INACTIVE", drone.getStatus() == Drone.Status.INACTIVE);
                 drone.delete();
 
-                // Delete temp station
-                tempStation.delete();
+                // Remove Ghent station
+                ghentStation.delete();
             }
         };
     }

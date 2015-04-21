@@ -41,6 +41,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected UnitPFBuilder<Object> initReceivers() {
         // TODO: add more receivers
         return super.initReceivers().
+                match(FlightCanceledMessage.class,
+                        m -> flightCanceled(m)
+                ).
                 match(CancelAssignmentMessage.class,
                         m -> cancelAssignment(m)
                 ).
@@ -68,7 +71,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected void stop(StopSchedulerMessage message) {
         // Hotswap new receive behaviour
         context().become(ReceiveBuilder
-                .match(FlightCanceledMessage.class, m -> returnHome(m.getDroneId()))
+                .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
+                .match(FlightCanceledMessage.class, m -> flightCanceled(m))
                 .match(DroneArrivalMessage.class, m -> termination(m.getDroneId()))
                 .matchAny(m -> log.warning("[AdvancedScheduler] Termination ignored message: [{}]", m.getClass().getName())
                 ).build());
@@ -87,11 +91,12 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         } else {
             // Cancellation
             for (Flight flight : flights.values()) {
-                // Unschedule all the assignments in progress
-                Assignment assignment = Assignment.FIND.byId(flight.getAssignmentId());
-                assignment.setScheduled(false);
-                assignment.update();
-                cancelFlight(flight);
+                if(flight.getAssignmentId() > Flight.NO_ASSIGNMENT_ID){
+                    self().tell(new CancelAssignmentMessage(flight.getAssignmentId()),self());
+                }
+                if(flight.getAssignmentId() != Flight.RETURN_HOME) {
+                    cancelFlight(flight);
+                }
             }
         }
     }
@@ -121,6 +126,16 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     @Override
+    protected void emergency(EmergencyMessage message) {
+        long droneId = message.getDroneId();
+        if(flights.containsKey(droneId)){
+            Drone drone = getDrone(droneId);
+            drone.setStatus(Drone.Status.EMERGENCY);
+            cancelFlight(flights.get(droneId));
+        }
+    }
+
+    @Override
     protected void schedule(ScheduleMessage message) {
         // Create second queue for assignments that can't be assigned right now.
         Queue<Assignment> unassigned = new PriorityQueue<>(MAX_QUEUE_SIZE,this);
@@ -139,8 +154,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 unassigned.add(assignment);
             }else{
                 assign(drone,assignment);
-                // Tell everyone
-                eventBus.publish(new DroneAssignedMessage(drone.getId(),assignment.getId()));
             }
         }
         // Refill the queue.
@@ -482,7 +495,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // Handle flightControl
         // TODO: Change this to work with controltower
         flight.getFlightControl().tell(new StopFlightControlMessage(),self());
-
     }
 
     /**
@@ -516,5 +528,26 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         Location location = station.getLocation();
         createFlight(drone.getId(), Flight.RETURN_HOME, Helper.routeTo(location));
+    }
+
+    protected void flightCanceled(FlightCanceledMessage message){
+        // Retrieve associated flight
+        Flight flight = flights.remove(message.getDroneId());
+        if (flight == null) {
+            log.warning("[AdvancedScheduler] Received cancellation from nonexistent flight.");
+            return;
+        }
+
+        Drone drone = getDrone(message.getDroneId());
+        if(drone.getStatus() == Drone.Status.EMERGENCY){
+            // Flight was canceled due to emergency
+            eventBus.publish(new DroneFailedMessage(drone.getId()));
+            return;
+        }
+
+        if(flight.getAssignmentId() != Flight.RETURN_HOME){
+            // Flight was canceled for other less important reasons
+            returnHome(drone);
+        }
     }
 }

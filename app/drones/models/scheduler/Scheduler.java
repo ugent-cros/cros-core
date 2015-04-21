@@ -154,6 +154,15 @@ public abstract class Scheduler extends AbstractActor {
     }
 
     /**
+     * Tell the scheduler to land a drone immediately.
+     * @param droneId
+     * @throws SchedulerException
+     */
+    public static void emergency(long droneId) throws SchedulerException{
+        getScheduler().tell(new EmergencyMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
      * Force the scheduler to publish an event.
      * @param event
      * @throws SchedulerException
@@ -181,6 +190,7 @@ public abstract class Scheduler extends AbstractActor {
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder
                 .match(SchedulerRequestMessage.class, m -> reply(m.getRequestId()))
+                .match(EmergencyMessage.class, m -> emergency(m))
                 .match(ScheduleMessage.class, m -> schedule(m))
                 .match(DroneArrivalMessage.class, m -> droneArrived(m.getDroneId()))
                 .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m))
@@ -227,6 +237,12 @@ public abstract class Scheduler extends AbstractActor {
         assignment.setAssignedDrone(null);
         assignment.update();
     }
+
+    /**
+     * Handle an emergency message
+     * @param message
+     */
+    protected abstract void emergency(EmergencyMessage message);
 
     /**
      * Force the scheduler to execute schedule procedure.
