@@ -93,6 +93,13 @@ public class SimpleScheduler extends Scheduler {
             }
         },getContext().dispatcher());
 
+        // Handle assignment
+        Assignment assignment = findAssignmentByDrone(drone);
+        assignment.setAssignedDrone(null);
+        // All assignment progress is lost
+        assignment.setProgress(0);
+        assignment.update();
+
     }
 
     @Override
@@ -108,7 +115,6 @@ public class SimpleScheduler extends Scheduler {
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
         relieve(drone, assignment);
-
         // Start scheduling again
         schedule(null);
     }

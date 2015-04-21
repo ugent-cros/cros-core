@@ -114,6 +114,9 @@ public class SchedulerTest extends TestSuperclass {
         Thread.sleep(1000);
         drone.refresh();
         Assert.assertTrue("Drone status EMERGENCY_LANDED",drone.getStatus() == Drone.Status.EMERGENCY_LANDED);
+        assignment.refresh();
+        Assert.assertTrue("Assignment not scheduled",assignment.getAssignedDrone() == null);
+        Assert.assertTrue("Assignment has no progress",assignment.getProgress() == 0);
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         FlyingState state = Await.result(commander.getFlyingState(), Duration.create(10, TimeUnit.SECONDS));
         Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
