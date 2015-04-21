@@ -1,6 +1,5 @@
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.japi.pf.UnitPFBuilder;
 import akka.pattern.Patterns;
 import drones.messages.*;
 import drones.models.*;
@@ -8,7 +7,6 @@ import org.junit.*;
 import play.libs.Akka;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
-import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
@@ -77,7 +75,7 @@ public class DroneActorTest extends TestSuperclass{
 
     @Test
     public void attitude_Arrives() throws Exception {
-        droneActor.tell(new AttitudeChangedMessage(1, 2, 42), null);
+        droneActor.tell(new RotationChangedMessage(1, 2, 42), null);
         Rotation res = Await.result(commander.getRotation(), TIMEOUT);
         Assert.assertEquals(res.getRoll(), 1, 0);
         Assert.assertEquals(res.getPitch(), 2, 0);

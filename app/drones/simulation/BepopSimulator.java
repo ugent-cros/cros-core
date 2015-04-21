@@ -270,7 +270,7 @@ public class BepopSimulator extends DroneActor {
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
                 match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
                 // Intercept attitude change message
-                match(AttitudeChangedMessage.class, s -> {
+                match(RotationChangedMessage.class, s -> {
                     // Set new rotation
                     Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
                     rotation.setValue(rot);
@@ -281,12 +281,6 @@ public class BepopSimulator extends DroneActor {
                     Speed newSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
                     tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
                 });
-    }
-
-    @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal,
-                2f,  40f, 0.4f); // Bebop parameters
     }
 
     protected void processBatteryLevel(byte percentage) {
@@ -495,13 +489,13 @@ public class BepopSimulator extends DroneActor {
 
         // Update rotation: this will also update the speed
         // Next simulation step will use the updated speed values
-        tellSelf(new AttitudeChangedMessage(roll, pitch, yaw));
+        tellSelf(new RotationChangedMessage(roll, pitch, yaw));
 
         // After a 1.5 second: the rotation should be set back to normal
         setDefaultRotation = Akka.system().scheduler().scheduleOnce(
                 Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
                 self(),
-                new AttitudeChangedMessage(0, 0, 0),
+                new RotationChangedMessage(0, 0, 0),
                 Akka.system().dispatcher(),
                 self()
         );

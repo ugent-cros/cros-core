@@ -5,12 +5,12 @@ import java.io.Serializable;
 /**
  * Created by Cedric on 3/8/2015.
  */
-public class AttitudeChangedMessage implements Serializable{
+public class RotationChangedMessage implements Serializable{
     private double roll;
     private double pitch;
     private double yaw;
 
-    public AttitudeChangedMessage(double roll, double pitch, double yaw) {
+    public RotationChangedMessage(double roll, double pitch, double yaw) {
         this.roll = roll;
         this.pitch = pitch;
         this.yaw = yaw;
