@@ -86,7 +86,7 @@ public abstract class NavigatedDroneActor extends DroneActor {
         synchronized (navigationLock) {
             navigator.setGoal(null);
             navigator.setCurrentLocation(null);
-            setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.FINISHED);
+            setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
         }
     }
 
