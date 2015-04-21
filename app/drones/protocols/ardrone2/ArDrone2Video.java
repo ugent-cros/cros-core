@@ -5,7 +5,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.xuggle.xuggler.*;
-import drones.messages.ImageChangedMessage;
+import drones.messages.JPEGFrameMessage;
 import drones.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;
@@ -29,9 +29,11 @@ public class ArDrone2Video extends UntypedActor {
         this.listener = listener;
         this.parent = parent;
 
-        log.info("[ARDRONE2VIDEO] Starting ARDrone 2.0 Video");
-
-        // @TODO change
+        /***************************************************************************************************************
+         * Following code is not the best use case for Akka. At the moment we haven't found a workaround to remove the *
+         * used inputstream (Xuggler seems only to work well this way). Other h264 decoders aren't able to do what we  *
+         * want.                                                                                                       *
+         **************************************************************************************************************/
         try (Socket skt = new Socket(details.getIp(), DefaultPorts.VIDEO_DATA.getPort())) {
             InputStream is = skt.getInputStream();
             decode(is);
@@ -40,8 +42,19 @@ public class ArDrone2Video extends UntypedActor {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+
+        log.info("[ARDRONE2VIDEO] Starting ARDrone 2.0 Video");
     }
 
+    @Override
+    public void onReceive(Object msg) throws Exception {
+        log.error("[ARDRONE2VIDEO] Error");
+    }
+
+    /**
+     * See: https://github.com/MahatmaX/YADrone/blob/master/YADrone/src/de/yadrone/base/video/xuggler/XugglerDecoder.java
+     * @param is
+     */
     public void decode(InputStream is) {
         if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION)) {
             throw new RuntimeException("you must install the GPL version of Xuggler (with IVideoResampler support) for this to work");
@@ -114,12 +127,12 @@ public class ArDrone2Video extends UntypedActor {
 
                             // http://stackoverflow.com/questions/7178937/java-bufferedimage-to-png-format-base64-string
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            ImageIO.write(Utils.videoPictureToImage(newPic), "png", Base64.getEncoder().wrap(bos));
+                            ImageIO.write(Utils.videoPictureToImage(newPic), "JPEG", Base64.getEncoder().wrap(bos));
                             String ImageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
 
-                            Object imageMessage = new ImageChangedMessage(ImageB64);
+                            Object imageMessage = new JPEGFrameMessage(ImageB64);
                             listener.tell(imageMessage, getSelf());
                         }
                     }
@@ -147,11 +160,5 @@ public class ArDrone2Video extends UntypedActor {
         log.info("[ARDRONE2VIDEO] stopped");
         // Stop the actor
         getContext().stop(self());
-    }
-
-    @Override
-    public void onReceive(Object msg) {
-        log.error("Unknown message received");
-        unhandled(msg);
     }
 }

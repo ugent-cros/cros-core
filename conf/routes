@@ -29,6 +29,7 @@ GET            /subscribe                            controllers.Application.sub
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
 GET            /socket                               controllers.Application.socket()
+GET            /videosocket                          controllers.Application.videoSocket(id: Long)
 
 
 # Drone REST calls

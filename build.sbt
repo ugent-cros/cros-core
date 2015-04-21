@@ -14,7 +14,8 @@ libraryDependencies ++= Seq(
   "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
   "com.typesafe.akka" % "akka-testkit_2.11" % "2.3.9",
   "commons-codec" % "commons-codec" % "1.10",
-  "org.slf4j" % "slf4j-api" % "1.7.12"
+  "org.slf4j" % "slf4j-api" % "1.7.12",
+  "com.typesafe.akka" % "akka-stream-experimental_2.11" % "1.0-M5"
 )
 
 // Code coverage

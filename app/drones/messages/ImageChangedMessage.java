@@ -14,6 +14,10 @@ public class ImageChangedMessage implements Serializable {
         this.image = image;
     }
 
+    /**
+     *
+     * @return The image in base 64 encoding
+     */
     public String getImage() {
         return image;
     }

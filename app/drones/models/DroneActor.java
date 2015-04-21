@@ -152,8 +152,8 @@ public abstract class DroneActor extends AbstractActor {
                     version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()));
                     eventBus.publish(new DroneEventMessage(s));
                 }).
-                match(ImageChangedMessage.class, s -> {
-                    image.setValue(s.getImage());
+                match(JPEGFrameMessage.class, s -> {
+                    image.setValue(s.getImageData());
                     eventBus.publish(new DroneEventMessage(s));
                 }).
                 match(NavigationStateChangedMessage.class, s -> {

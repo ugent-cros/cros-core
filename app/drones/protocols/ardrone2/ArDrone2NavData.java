@@ -107,6 +107,7 @@ public class ArDrone2NavData extends UntypedActor {
 
     private void processData(byte[] navdata) {
         if(navdata.length >= MIN_SIZE) { // Otherwise this will crash
+            //boolean gpsAvailable = false;
             int offset = 0;
 
             int header = PacketHelper.getInt(navdata, offset);
@@ -141,6 +142,8 @@ public class ArDrone2NavData extends UntypedActor {
 
             }
 
+            //Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+            //listener.tell(gpsFixMessage, getSelf());
         } else {
             log.info("Packet doesn't contain data");
             parent.tell(new InitNavDataMessage(), getSelf());
@@ -159,23 +162,23 @@ public class ArDrone2NavData extends UntypedActor {
     // @TODO to be tested when GPS module arrives
     private void parseGPSData(byte[] navdata, int offset) {
         int offsetTemp = offset;
-        boolean gpsAvailable =PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
 
+        double latitude = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 8;
+        double longitude = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 8;
+        double elevation = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 16; // Elevation and hdop
+        int dataAvailable = PacketHelper.getInt(navdata, offsetTemp);
+
+        boolean gpsAvailable = dataAvailable == 1 ? true : false;
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
         listener.tell(gpsFixMessage, getSelf());
+        log.info("GPS Available: {}", Boolean.toString(gpsAvailable));
 
-        if(gpsAvailable) {
-            double latitude = PacketHelper.getDouble(navdata, offsetTemp);
-            offsetTemp += 8;
-            double longitude = PacketHelper.getDouble(navdata, offsetTemp);
-            offsetTemp += 8;
-            double elevation = PacketHelper.getDouble(navdata, offsetTemp);
-            //offsetTemp += 8;
-
-            log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}]", latitude, longitude, elevation);
-            Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
-            listener.tell(locationMessage, getSelf());
-        }
+        log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}]", latitude, longitude, elevation);
+        Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
+        listener.tell(locationMessage, getSelf());
     }
 
     private void attitudeChanged(byte[] navdata) {

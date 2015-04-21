@@ -18,6 +18,7 @@ import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
+import utilities.VideoWebSocket;
 import utilities.frontendSimulator.NotificationSimulator;
 
 import java.util.ArrayList;
@@ -144,6 +145,20 @@ public class Application extends Controller {
         User u = models.User.findByAuthToken(tokens[0]);
         if (u != null) {
             return WebSocket.withActor(MessageWebSocket::props);
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
+    }
+
+    public static WebSocket<String> videoSocket(long id) {
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(VideoWebSocket::props);
         } else {
             return WebSocket.reject(unauthorized());
         }
