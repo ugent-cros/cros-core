@@ -8,9 +8,7 @@ import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
+import drones.models.*;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Checkpoint;
@@ -38,6 +36,8 @@ public class SimplePilot extends Pilot {
     private static final int NO_FY_RANGE = 4;
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
+
+    boolean waitForTakeOffDone = false;
 
     
     /**
@@ -73,15 +73,6 @@ public class SimplePilot extends Pilot {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
         takeOff();
-    }
-
-    @Override
-    protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        if(m.getState() == FlyingState.HOVERING){
-            //TO DO wait at checkpoint
-            actualWaypoint++;
-            goToNextWaypoint();
-        }
     }
 
     protected void goToNextWaypoint() {
@@ -216,6 +207,26 @@ public class SimplePilot extends Pilot {
                 public void onSuccess(Void result) throws Throwable {
                 }
             }, getContext().system().dispatcher());
+        }
+
+        waitForTakeOffDone = true;
+    }
+
+    @Override
+    protected void flyingStateChanged(FlyingStateChangedMessage m) {
+        if(waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
+            waitForTakeOffDone = false;
+            actualWaypoint++;
+            goToNextWaypoint();
+        }
+    }
+
+    @Override
+    protected void navigationStateChanged(NavigationStateChangedMessage m) {
+        if(m.getState() == NavigationState.AVAILABLE && m.getReason() == NavigationStateReason.FINISHED){
+            //TO DO wait at checkpoint
+            actualWaypoint++;
+            goToNextWaypoint();
         }
     }
 }
