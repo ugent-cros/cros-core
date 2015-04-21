@@ -1,18 +1,25 @@
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
+import drones.models.DroneCommander;
 import drones.models.DroneException;
+import drones.models.Fleet;
+import drones.models.FlyingState;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
 import drones.models.scheduler.messages.AssignmentMessage;
+import drones.models.scheduler.messages.EmergencyMessage;
 import drones.simulation.SimulatorDriver;
 import models.Assignment;
+import models.Checkpoint;
 import models.Drone;
 import models.DroneType;
 import org.junit.*;
 
+import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,6 +91,11 @@ public class SchedulerTest extends TestSuperclass {
         Assignment assignment = new Assignment();
         assignment.setId(13l);
         assignment.setProgress(0);
+        List<Checkpoint> route = new ArrayList<>();
+        route.add(new Checkpoint(51.0226, 3.72, 0));
+        route.add(new Checkpoint(51.0226, 3.73, 0));
+        route.add(new Checkpoint(51.0226, 3.74, 0));
+        assignment.setRoute(route);
         assignment.save();
 
         Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
@@ -97,5 +109,13 @@ public class SchedulerTest extends TestSuperclass {
         Assert.assertTrue(assignment.getAssignedDrone().getId() == drone.getId());
         Assert.assertTrue(drone.getStatus() == Drone.Status.UNAVAILABLE);
 
+        // [QUICK FIX] Test emergency
+        Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+        Thread.sleep(1000);
+        drone.refresh();
+        Assert.assertTrue("Drone status EMERGENCY_LANDED",drone.getStatus() == Drone.Status.EMERGENCY_LANDED);
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        FlyingState state = Await.result(commander.getFlyingState(), Duration.create(10, TimeUnit.SECONDS));
+        Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
     }
 }

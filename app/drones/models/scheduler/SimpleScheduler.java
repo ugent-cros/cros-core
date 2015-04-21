@@ -2,27 +2,24 @@ package drones.models.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.OnComplete;
 import akka.japi.pf.UnitPFBuilder;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
+import drones.models.flightcontrol.FlightControl;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
-import drones.models.scheduler.messages.AssignmentMessage;
-import drones.models.scheduler.messages.DroneArrivalMessage;
-import drones.models.scheduler.messages.DroneBatteryMessage;
-import drones.models.scheduler.messages.ScheduleMessage;
+import drones.models.scheduler.messages.*;
 import models.Assignment;
 import models.Checkpoint;
 import models.Drone;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,6 +42,8 @@ public class SimpleScheduler extends Scheduler {
     // Limited queue size to prevent to many assignments in memory
     protected static final int MAX_QUEUE_SIZE = 100;
     protected Queue<Assignment> queue;
+    // [QUICK FIX]
+    protected Map<Long,ActorRef> flights = new HashMap<>();
 
     public SimpleScheduler() {
         this.queue = new PriorityQueue<>((a1, a2) -> Long.compare(a1.getId(), a2.getId()));
@@ -53,6 +52,10 @@ public class SimpleScheduler extends Scheduler {
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
         return super.initReceivers().
+                // [QUICK FIX]
+                        match(EmergencyMessage.class,
+                        message -> receiveEmergencyMessage(message)
+                ).
                 match(AssignmentMessage.class,
                         message -> receiveAssignmentMessage(message)
                 );
@@ -63,11 +66,42 @@ public class SimpleScheduler extends Scheduler {
         schedule(null);
     }
 
+    /**
+     * [QUICK FIX] Handle an emergency
+     * @param message
+     */
+    protected void receiveEmergencyMessage(EmergencyMessage message){
+        long droneId = message.getDroneId();
+        if(!flights.containsKey(droneId)){
+            // False emergency
+            return;
+        }
+
+        ActorRef pilot = flights.get(droneId);
+        // Force pilot to stop immediately
+        getContext().stop(pilot);
+        // Cancel all movement
+        Drone drone = Drone.FIND.byId(droneId);
+        drone.setStatus(Drone.Status.EMERGENCY_LANDED);
+        drone.update();
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        commander.cancelMoveToLocation().onComplete(new OnComplete<Void>(){
+            @Override
+            public void onComplete(Throwable failure, Void success) throws Throwable {
+                // Land
+                commander.land();
+            }
+        },getContext().dispatcher());
+
+    }
+
     @Override
     protected void receiveDroneArrivalMessage(DroneArrivalMessage message) {
         // Terminate SimplePilot
         ActorRef pilot = sender();
         getContext().stop(pilot);
+        // [QUICK FIX] We can delete the flight entry
+        flights.remove(message.getDroneId());
         // Drone that arrived
         Drone drone = Drone.FIND.byId(message.getDroneId());
         // Assignment that has been completed
@@ -99,6 +133,10 @@ public class SimpleScheduler extends Scheduler {
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
                         () -> new SimplePilot(self(), drone.getId(), false, route)));
+
+        // [QUICK FIX] Remember the pilot in case of emergency.
+        flights.put(drone.getId(),pilot);
+
         // Tell the pilot to start the flight
         pilot.tell(new StartFlightControlMessage(), self());
     }
