@@ -9,7 +9,6 @@ import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.flightcontrol.FlightControl;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.messages.*;
@@ -70,36 +69,39 @@ public class SimpleScheduler extends Scheduler {
      * [QUICK FIX] Handle an emergency
      * @param message
      */
-    protected void receiveEmergencyMessage(EmergencyMessage message){
+    protected void receiveEmergencyMessage(EmergencyMessage message) {
         long droneId = message.getDroneId();
-        if(!flights.containsKey(droneId)){
-            // False emergency
-            return;
+        ActorRef pilot = flights.remove(droneId);
+        if (pilot != null) {
+            // Force pilot to stop immediately
+            getContext().stop(pilot);
         }
 
-        ActorRef pilot = flights.get(droneId);
-        // Force pilot to stop immediately
-        getContext().stop(pilot);
-        // Cancel all movement
+        // Find drone commander
         Drone drone = Drone.FIND.byId(droneId);
+        Fleet fleet = Fleet.getFleet();
+        if (fleet.hasCommander(drone)) {
+            // Cancel all movement... and land.
+            DroneCommander commander = fleet.getCommanderForDrone(drone);
+            commander.cancelMoveToLocation().onComplete(new OnComplete<Void>() {
+                @Override
+                public void onComplete(Throwable failure, Void success) throws Throwable {
+                    commander.land();
+                }
+            }, getContext().dispatcher());
+        }
+
+        // Update drone
         drone.setStatus(Drone.Status.EMERGENCY_LANDED);
         drone.update();
-        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
-        commander.cancelMoveToLocation().onComplete(new OnComplete<Void>(){
-            @Override
-            public void onComplete(Throwable failure, Void success) throws Throwable {
-                // Land
-                commander.land();
-            }
-        },getContext().dispatcher());
-
-        // Handle assignment
-        Assignment assignment = findAssignmentByDrone(drone);
-        assignment.setAssignedDrone(null);
-        // All assignment progress is lost
-        assignment.setProgress(0);
-        assignment.update();
-
+        // Update assignment
+        if (pilot != null) {
+            Assignment assignment = findAssignmentByDrone(drone);
+            assignment.setAssignedDrone(null);
+            // All assignment progress is lost
+            assignment.setProgress(0);
+            assignment.update();
+        }
     }
 
     @Override

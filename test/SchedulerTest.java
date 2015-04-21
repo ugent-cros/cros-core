@@ -20,6 +20,7 @@ import models.DroneType;
 import org.junit.*;
 
 import scala.concurrent.Await;
+import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class SchedulerTest extends TestSuperclass {
 
-    static ActorSystem system;
+    private static ActorSystem system;
+    private static final Duration timeout = Duration.create(3000,TimeUnit.MILLISECONDS);
 
     @BeforeClass
     public static void createSystem() {
@@ -118,7 +120,32 @@ public class SchedulerTest extends TestSuperclass {
         Assert.assertTrue("Assignment not scheduled",assignment.getAssignedDrone() == null);
         Assert.assertTrue("Assignment has no progress",assignment.getProgress() == 0);
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
-        FlyingState state = Await.result(commander.getFlyingState(), Duration.create(10, TimeUnit.SECONDS));
+        FlyingState state = Await.result(commander.getFlyingState(), timeout);
+        Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
+    }
+
+    @Test
+    public void testEmergency_notAssigned_lands() throws Exception{
+        Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
+        drone.save();
+        Future<DroneCommander> future = Fleet.getFleet().createCommanderForDrone(drone);
+        DroneCommander commander = Await.result(future,timeout);
+
+        // Drone is hovering!
+        Await.result(commander.takeOff(),timeout);
+        FlyingState state = Await.result(commander.getFlyingState(),timeout);
+        Assert.assertTrue("Drone hovering", state == FlyingState.HOVERING);
+        drone.refresh();
+        Assert.assertTrue("Drone status AVAILABLE", drone.getStatus() == Drone.Status.AVAILABLE);
+        // Start moving
+        commander.moveToLocation(0,0,100);
+
+        // Send emergency
+        Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+        Thread.sleep(1000);
+        drone.refresh();
+        Assert.assertTrue("Drone status EMERGENCY_LANDED",drone.getStatus() == Drone.Status.EMERGENCY_LANDED);
+        state = Await.result(commander.getFlyingState(), timeout);
         Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
     }
 }
