@@ -112,6 +112,7 @@ public class SimpleScheduler extends Scheduler {
                 if (!fetchAssignments()) return; // No more assignments
             }
             // Pick drone
+            System.out.println("Schedules");
             Drone drone = fetchAvailableDrone();
             if (drone == null) return; // No more drones available
 

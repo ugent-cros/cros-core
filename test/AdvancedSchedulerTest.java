@@ -71,7 +71,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         BRUSSELS = new Basestation("Brussels", new Location(50.85045,4.34878,0));
         DELHI = new Basestation("Delhi", new Location(28.65381,77.22897,0));
         KINSHASA = new Basestation("Kinshasa", new Location(-4.32758,15.31357,0));
-        LIMA = new Basestation("Lima", new Location(-12.04318,-77.02824,0));
+        LIMA = new Basestation("Li" +
+                "ma", new Location(-12.04318,-77.02824,0));
         MOSCOW = new Basestation("Moscow", new Location(55.75222,37.61556,0));
         NEW_YORK = new Basestation("New York", new Location(40.71427,-74.00597,0));
         ROME = new Basestation("Rome", new Location(41.89193,12.51133,0));
@@ -95,11 +96,16 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @AfterClass
     public static void tearDown(){
-        // Restore original simulator driver
-        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,new SimulatorDriver());
         JavaTestKit.shutdownActorSystem(system);
         system = null;
         stopFakeApplication();
+    }
+
+    @After
+    public void resetSimulatorDriver(){
+        // TODO: There should be better ways to do this
+        // Restore original simulator driver
+        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,new SimulatorDriver());
     }
 
     private Drone createTestDrone(Location location){
