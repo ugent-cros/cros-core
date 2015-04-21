@@ -38,6 +38,7 @@ public class SimplePilot extends Pilot {
     private static final int EVACUATION_RANGE = 6;
 
     boolean waitForTakeOffDone = false;
+    boolean start = false;
 
     
     /**
@@ -72,6 +73,7 @@ public class SimplePilot extends Pilot {
         if (cruisingAltitude == 0) {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
+        start = true;
         takeOff();
     }
 
@@ -95,6 +97,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
+                    start = false;
                     reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
                 }
             }, getContext().system().dispatcher());
@@ -103,31 +106,34 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
-        for (LocationMessage l : evacuationPoints) {
-            if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
+        if(start){
+            actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
+            for (LocationMessage l : evacuationPoints) {
+                if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
 
-                evacuationPoints.remove(l);
-                noFlyPoints.add(l.getLocation());
-                switch (l.getType()) {
-                    case LANDING:
-                        reporterRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(), l.getLocation()), self());
-                        break;
-                    case TAKEOFF:
-                        reporterRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(), l.getLocation()), self());
-                        break;
-                    default:
-                        log.debug("Unsupported type");
+                    evacuationPoints.remove(l);
+                    noFlyPoints.add(l.getLocation());
+                    switch (l.getType()) {
+                        case LANDING:
+                            reporterRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(), l.getLocation()), self());
+                            break;
+                        case TAKEOFF:
+                            reporterRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(), l.getLocation()), self());
+                            break;
+                        default:
+                            log.debug("Unsupported type");
+                    }
+
                 }
+            }
+            for (Location l : noFlyPoints) {
+                if (actualLocation.distance(l) < NO_FY_RANGE) {
+                    //stop with flying
+                    dc.cancelMoveToLocation();
+                }
+            }
+        }
 
-            }
-        }
-        for (Location l : noFlyPoints) {
-            if (actualLocation.distance(l) < NO_FY_RANGE) {
-                //stop with flying
-                dc.cancelMoveToLocation();
-            }
-        }
     }
 
     @Override
@@ -146,6 +152,7 @@ public class SimplePilot extends Pilot {
 
             @Override
             public void onSuccess(Void result) throws Throwable {
+                start = false;
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
                 reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
             }
@@ -214,7 +221,7 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        if(waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
+        if(start && waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
             waitForTakeOffDone = false;
             actualWaypoint++;
             goToNextWaypoint();
@@ -223,7 +230,7 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void navigationStateChanged(NavigationStateChangedMessage m) {
-        if(m.getState() == NavigationState.AVAILABLE && m.getReason() == NavigationStateReason.FINISHED){
+        if(start && m.getState() == NavigationState.AVAILABLE && m.getReason() == NavigationStateReason.FINISHED){
             //TO DO wait at checkpoint
             actualWaypoint++;
             goToNextWaypoint();
