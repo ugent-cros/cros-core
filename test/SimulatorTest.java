@@ -3,9 +3,7 @@ import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import drones.messages.*;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
+import drones.models.*;
 import drones.simulation.BepopSimulator;
 import drones.simulation.SimulatorDriver;
 import org.junit.AfterClass;
@@ -272,10 +270,24 @@ public class SimulatorTest extends TestSuperclass {
 
             // Listen for location changes
             JavaTestKit tracker = new JavaTestKit(system);
+            JavaTestKit stateTracker = new JavaTestKit(system);
             commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
+            commander.subscribeTopic(stateTracker.getRef(), NavigationStateChangedMessage.class);
 
             // Send drone to some location, intial location is sterre
             commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
+
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    NavigationStateChangedMessage navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+                    return navState.getState() == NavigationState.IN_PROGRESS
+                            && navState.getReason() == NavigationStateReason.REQUESTED;
+                }
+            };
+
+            FlyingState flyingState = Await.result(commander.getFlyingState(), Duration.create(2, TimeUnit.SECONDS));
+            assertThat(flyingState).isEqualTo(FlyingState.FLYING);
 
             // Check if were getting closer
             while(distance > errorRadius) {
@@ -286,6 +298,19 @@ public class SimulatorTest extends TestSuperclass {
                 distance = newDistance;
                 System.out.println("Still " + distance + "m to go.");
             }
+
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    NavigationStateChangedMessage navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+                    return navState.getState() == NavigationState.AVAILABLE
+                            && navState.getReason() == NavigationStateReason.FINISHED;
+                }
+            };
+
+            flyingState = Await.result(commander.getFlyingState(), Duration.create(2, TimeUnit.SECONDS));
+            assertThat(flyingState).isEqualTo(FlyingState.HOVERING);
+
         }};
     }
 }
