@@ -138,12 +138,12 @@ public class SimulatorTest extends TestSuperclass {
 
         // Move forward
         assertMovement(commander, 1, 0);
-        // Move backward
+        /*// Move backward
         assertMovement(commander, -1, 0);
         // Move left
         assertMovement(commander, 0, 1);
         // Move right
-        assertMovement(commander, 0, -1);
+        assertMovement(commander, 0, -1);*/
 
     }
 
@@ -223,6 +223,10 @@ public class SimulatorTest extends TestSuperclass {
                 }
             };
 
+            // First speed update
+            speed = listener.expectMsgClass(SpeedChangedMessage.class);
+            assertThat(speed.getSpeedZ()).isEqualTo(0);
+
             // Check if rotation and speed go back to hovering by default
             rotation = listener.expectMsgClass(AttitudeChangedMessage.class);
             assertThat(rotation.getRoll()).isEqualTo(0);
@@ -231,6 +235,7 @@ public class SimulatorTest extends TestSuperclass {
             speed = listener.expectMsgClass(SpeedChangedMessage.class);
             assertThat(speed.getSpeedX()).isEqualTo(0);
             assertThat(speed.getSpeedY()).isEqualTo(0);
+            assertThat(speed.getSpeedZ()).isEqualTo(0);
 
             // Unsubscribe
             commander.unsubscribe(listener.getRef());
