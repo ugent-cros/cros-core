@@ -86,6 +86,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
+                match(FlipRequestMessage.class, s -> flipInternal(sender(), self(), s.getFlip())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
@@ -438,6 +439,17 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    private void flipInternal(final ActorRef sender, final ActorRef self, FlipType type){
+        if (!loaded || state.getRawValue() == FlyingState.LANDED) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot flip when on ground / not initialized.")), self);
+        } else {
+            log.debug("Attempting flip.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            flip(v, type);
+        }
+    }
+
     protected abstract void init(Promise<Void> p);
 
     protected abstract void takeOff(Promise<Void> p);
@@ -463,6 +475,8 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void flatTrim(Promise<Void> p);
 
     protected abstract void reset(Promise<Void> p);
+
+    protected abstract void flip(Promise<Void> p, FlipType type);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

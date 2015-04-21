@@ -200,6 +200,15 @@ public class Bepop extends NavigatedDroneActor {
     }
 
     @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        if(sendMessage(new FlipCommand(type))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
         land(p);
     }

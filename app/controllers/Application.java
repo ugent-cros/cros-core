@@ -182,6 +182,19 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> flip(long id, String flip){
+        Drone drone = Drone.FIND.byId(id);
+        if(drone != null) {
+            FlipType flipe = Enum.valueOf(FlipType.class, flip);
+            DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+            return F.Promise.wrap(d.flip(flipe)).map(v -> {
+                ObjectNode result = Json.newObject();
+                result.put("flip", flipe.toString());
+                return ok(result);
+            });
+        } else return F.Promise.pure(notFound());
+    }
+
     public static F.Promise<Result> setOutdoor(boolean outdoor, long id){
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);

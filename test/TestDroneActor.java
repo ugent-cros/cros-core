@@ -1,5 +1,7 @@
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.DroneActor;
+import drones.models.DroneException;
+import drones.models.FlipType;
 import drones.models.Location;
 import drones.util.LocationNavigator;
 import scala.concurrent.Promise;
@@ -75,16 +77,16 @@ public class TestDroneActor extends DroneActor {
 
     @Override
     protected void reset(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
 
+    @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
     }
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return null;
-    }
-
-    @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal, 2, 40, 1);
     }
 }

@@ -400,6 +400,11 @@ public class BepopSimulator extends DroneActor {
     }
 
     @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
 
         if (connectionLost) return;

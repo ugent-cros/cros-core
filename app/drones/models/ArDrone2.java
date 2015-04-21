@@ -121,6 +121,11 @@ public class ArDrone2 extends NavigatedDroneActor {
         sendCommand(p, new ResetCommand());
     }
 
+    @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
     private void sendCommand(Promise<Void> p, Serializable command) {
         if (sendMessage(command)) {
             p.success(null);
