@@ -268,6 +268,20 @@ public class BepopSimulator extends NavigatedDroneActor {
         setSpeed(updatedSpeed);
     }
 
+    @Override
+    public void setSpeed(Speed speed) {
+        super.setSpeed(speed);
+
+        if (state.getRawValue() == FlyingState.FLYING
+                && Math.abs(speed.getVx()) + Math.abs(speed.getVy()) + Math.abs(speed.getVz()) == 0) {
+            setFlyingState(FlyingState.HOVERING);
+        }
+        else if (state.getRawValue() == FlyingState.HOVERING
+                && Math.abs(speed.getVx()) + Math.abs(speed.getVy()) + Math.abs(speed.getVz()) > 0) {
+            setFlyingState(FlyingState.FLYING);
+        }
+    }
+
     protected void processBatteryLevel(byte percentage) {
 
         if(percentage < batteryLowLevel) {
@@ -292,7 +306,7 @@ public class BepopSimulator extends NavigatedDroneActor {
             else {
                 // Return to home on low battery
                 setAlertState(AlertState.BATTERY_LOW);
-                returnToHome(NavigationStateReason.BATTERY_LOW);
+                //returnToHome(NavigationStateReason.BATTERY_LOW);
             }
         }
     }
@@ -322,7 +336,7 @@ public class BepopSimulator extends NavigatedDroneActor {
         if(connectionLost) {
 
             // Should start navigation to home
-            returnToHome(NavigationStateReason.CONNECTION_LOST);
+            // returnToHome(NavigationStateReason.CONNECTION_LOST);
             setAlertState(AlertState.CUT_OUT);
         }
         else {
