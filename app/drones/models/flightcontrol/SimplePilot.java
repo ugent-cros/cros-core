@@ -2,8 +2,10 @@ package drones.models.flightcontrol;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
@@ -13,7 +15,10 @@ import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import models.Checkpoint;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -216,5 +221,19 @@ public class SimplePilot extends Pilot {
                 }
             }, getContext().system().dispatcher());
         }
+    }
+
+    @Override
+    protected void stopFlightControlMessage(StopFlightControlMessage m) {
+        try {
+            Await.ready(dc.land(), Duration.create(120,"seconds"));
+        } catch (InterruptedException| TimeoutException e) {
+            e.printStackTrace();
+            //TO DO add exception
+        }
+        reporterRef.tell(new FlightCanceledMessage(droneId),self());
+
+        //stop
+        self().tell(PoisonPill.getInstance(),self());
     }
 }
