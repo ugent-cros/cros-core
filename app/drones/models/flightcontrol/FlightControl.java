@@ -16,7 +16,7 @@ public abstract class FlightControl extends AbstractActor {
 
     protected ActorRef reporterRef;
 
-    protected static final double DEFAULT_ALTITUDE = 5;
+    protected static final double DEFAULT_ALTITUDE = 2;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 

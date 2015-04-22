@@ -1,5 +1,6 @@
 package controllers;
 
+import akka.actor.ActorRef;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,10 +8,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.messages.to.EmergencyMessage;
 import models.Drone;
 import models.DroneType;
 import models.Location;
 import models.User;
+import play.Logger;
 import play.data.Form;
 import play.libs.F;
 import play.libs.Json;
@@ -231,9 +236,15 @@ public class DroneController {
         if (drone == null)
             return F.Promise.pure(notFound());
 
-        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
-        F.Promise.wrap(commander.land()).get(500); // TODO: resend command if land has not responded
-        return F.Promise.pure(ok());
+        // [QUICK FIX] Send emergency via Scheduler
+        try {
+            // TODO: Use advanced scheduler in the future for more reliable emergency.
+            Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+            return F.Promise.pure(ok());
+        }catch(SchedulerException ex){
+            Logger.error("Scheduler error", ex);
+            return F.Promise.pure(internalServerError("Scheduler could not process emergency."));
+        }
     }
 
     @Authentication({User.Role.ADMIN})
@@ -266,5 +277,4 @@ public class DroneController {
         links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).absoluteURL(request())));
         return links;
     }
-
 }

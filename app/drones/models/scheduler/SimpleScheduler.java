@@ -3,15 +3,16 @@ package drones.models.scheduler;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.UnitPFBuilder;
+import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
-import drones.models.scheduler.messages.from.DroneAssignedMessage;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
+import models.Checkpoint;
 import models.Drone;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
@@ -39,6 +40,8 @@ public class SimpleScheduler extends Scheduler {
     // Limited queue size to prevent to many assignments in memory
     protected static final int MAX_QUEUE_SIZE = 100;
     protected Queue<Assignment> queue;
+    // [QUICK FIX]
+    protected Map<Long,ActorRef> flights = new HashMap<>();
 
     public SimpleScheduler() {
         this.queue = new PriorityQueue<>((a1, a2) -> Long.compare(a1.getId(), a2.getId()));
@@ -46,10 +49,7 @@ public class SimpleScheduler extends Scheduler {
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
-        return super.initReceivers()
-                .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m))
-                .match(FlightCompletedMessage.class, m -> droneArrived(m))
-                .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m));
+        return super.initReceivers().match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
     }
 
     protected void receiveAssignmentMessage(AssignmentMessage message) {
@@ -57,56 +57,51 @@ public class SimpleScheduler extends Scheduler {
         schedule(null);
     }
 
-    /**
-     * Handle a drone arrival.
-     * @param message
-     */
-    protected void droneArrived(FlightCompletedMessage message) {
+    @Override
+    protected void emergency(EmergencyMessage message) {
+        long droneId = message.getDroneId();
+        ActorRef pilot = flights.remove(droneId);
+        if (pilot != null) {
+            // Force pilot to stop immediately
+            getContext().stop(pilot);
+        }
+
+        // Find drone commander
+        Drone drone = Drone.FIND.byId(droneId);
+        Fleet fleet = Fleet.getFleet();
+        if (fleet.hasCommander(drone)) {
+            // Land immediately
+            DroneCommander commander = fleet.getCommanderForDrone(drone);
+            commander.land();
+        }
+
+        // Update drone
+        drone.setStatus(Drone.Status.EMERGENCY);
+        drone.update();
+        // Update assignment
+        if (pilot != null) {
+            Assignment assignment = findAssignmentByDrone(drone);
+            assignment.setAssignedDrone(null);
+            // All assignment progress is lost
+            assignment.setProgress(0);
+            assignment.update();
+        }
+    }
+
+    protected void receiveFlightCompletedMessage(FlightCompletedMessage message) {
         // Terminate SimplePilot
         ActorRef pilot = sender();
         getContext().stop(pilot);
+        // [QUICK FIX] We can delete the flight entry
+        flights.remove(message.getDroneId());
         // Drone that arrived
         Drone drone = Drone.FIND.byId(message.getDroneId());
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
         unassign(drone, assignment);
-
         // Start scheduling again
         schedule(null);
-    }
-
-    /**
-     * Handle situation when a drone runs out of battery power.
-     * TODO: Replace with FlightFailedMessage
-     * @param message
-     */
-    protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
-        // Well, this is just a simple scheduler.
-        // There is not much this scheduler can do about this right now
-        // Except updating the database.
-        Drone drone = Drone.FIND.byId(message.getDroneId());
-        drone.setStatus(Drone.Status.EMERGENCY);
-        drone.update();
-    }
-
-    /**
-     * Updates the scheduled assignment and drone in the database.
-     * Publishes an DroneAssignedMessage and creates a flight.
-     * @param drone
-     * @param assignment
-     */
-    protected void assign(Drone drone, Assignment assignment) {
-        // Update drone
-        drone.setStatus(Drone.Status.FLYING);
-        drone.update();
-        // Update assignment
-        assignment.setAssignedDrone(drone);
-        assignment.update();
-        // Tell everyone we assigned
-        eventBus.publish(new DroneAssignedMessage(assignment.getId(),drone.getId()));
-        // Create a new flight.
-        createFlight(drone, assignment);
     }
 
     /**
@@ -126,17 +121,42 @@ public class SimpleScheduler extends Scheduler {
         assignment.update();
     }
 
-    @Override
-    protected void emergency(EmergencyMessage message) {
-        log.error("[SimpleScheduler] Emergency not implemented yet!");
+    protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
+        // Well, this is just a simple scheduler.
+        // There is not much this scheduler can do about this right now
+        // Except updating the database.
+        Drone drone = getDrone(message.getDroneId());
+        drone.setStatus(Drone.Status.EMERGENCY);
+        drone.update();
     }
+
+    protected void assign(Drone drone, Assignment assignment) {
+        // Update drone
+        drone.setStatus(Drone.Status.FLYING);
+        drone.update();
+        // Update assignment
+        assignment.setAssignedDrone(drone);
+        assignment.update();
+        // Get route
+        List<Checkpoint> route = assignment.getRoute();
+        // Create SimplePilot
+        ActorRef pilot = getContext().actorOf(
+                Props.create(SimplePilot.class,
+                        () -> new SimplePilot(self(), drone.getId(), false, route)));
+
+        // [QUICK FIX] Remember the pilot in case of emergency.
+        flights.put(drone.getId(),pilot);
+
+        // Tell the pilot to start the flight
+        pilot.tell(new StartFlightControlMessage(), self());
+    }
+
 
     /**
      * Simple Schedule loop.
      * Breaks when there are no more assignments in the queue and database.
      * Breaks when there are no more available drones.
      */
-    @Override
     protected void schedule(ScheduleMessage message) {
         while (true) {
             // Provide assignments
@@ -154,29 +174,6 @@ public class SimpleScheduler extends Scheduler {
     }
 
     /**
-     * Terminates the simple scheduler.
-     * Very unsafe when using real drones!
-     * @param message
-     */
-    @Override
-    protected void stop(StopSchedulerMessage message) {
-        // This is not fully implemented in the SimpleScheduler.
-        log.warning("[SimpleScheduler] Does not care what happens to the drones now.");
-        log.warning("[SimpleScheduler] Use an advanced scheduler to be safe.");
-        // Terminate
-        context().stop(self());
-    }
-
-    protected void createFlight(Drone drone, Assignment assignment){
-        // Create SimplePilot
-        ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), drone.getId(), false, assignment.getRoute())));
-        // Tell the pilot to start the flight
-        pilot.tell(new StartFlightControlMessage(), self());
-    }
-
-    /**
      * Fetch new assignments from database and add them to the queue
      * No more than MAX_QUEUE_SIZE assignments can be put in the queue
      *
@@ -191,15 +188,15 @@ public class SimpleScheduler extends Scheduler {
         // Fetch 'count' first assignments with progress = 0, ordered by Id
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("scheduled", false);
+        query.where().eq("progress", 0);
         query.orderBy("id");
         List<Assignment> assignments = query.findList();
 
         // Add assignments to the queue and update them
         for (Assignment assignment : assignments) {
             queue.add(assignment);
-            // Set scheduled
-            assignment.setScheduled(true);
+            // Progress = 1 means assignment is added to scheduler queue
+            assignment.setProgress(1);
             assignment.update();
         }
 
@@ -218,6 +215,7 @@ public class SimpleScheduler extends Scheduler {
         Query<Drone> query = Ebean.createQuery(Drone.class);
         query.where().eq("status", Drone.Status.AVAILABLE);
         List<Drone> drones = query.findList();
+
         // Choose a valid drone
         for (Drone drone : drones) {
             if (isValidDrone(drone)) {
@@ -236,20 +234,42 @@ public class SimpleScheduler extends Scheduler {
      * @return true if the drone is fitted for assignment
      */
     protected boolean isValidDrone(Drone drone) {
-        // Find or create commander
+        // FIND OR CREATE COMMANDER
         Fleet fleet = Fleet.getFleet();
+        DroneCommander commander = null;
         if(!fleet.hasCommander(drone)) {
             log.info("[SimpleScheduler] Creating new commander.");
             try {
-                Await.result(fleet.createCommanderForDrone(drone), TIMEOUT);
-            } catch (Exception ex) {
+                commander = Await.result(fleet.createCommanderForDrone(drone), new Timeout(3, TimeUnit.SECONDS).duration());
+            } catch(Exception ex){
                 log.error(ex, "Failed to initialize drone: {}", drone);
             }
         }
-        DroneCommander commander = fleet.getCommanderForDrone(drone);
+        else {
+            commander = fleet.getCommanderForDrone(drone);
+        }
+
+        if (commander == null) {
+            // Fleet was unable to create a driver
+            drone.setStatus(Drone.Status.MISSING_DRIVER);
+            drone.update();
+            return false;
+        }
+
+        // INITIALIZE COMMANDER
+        // TODO: Move the commander init to somewhere else
+        if (!commander.isInitialized()) {
+            try {
+                Await.result(commander.init(), TIMEOUT);
+            } catch (Exception ex) {
+                log.warning("[SimpleScheduler] Failed to initialize commander.");
+                drone.setStatus(Drone.Status.UNREACHABLE);
+                drone.update();
+                return false;
+            }
+        }
 
         // BATTERY CHECK
-        // TODO: More efficiently
         try {
             int battery = Await.result(commander.getBatteryPercentage(), TIMEOUT);
             // SimpleScheduler will only look at a static battery threshold
@@ -275,6 +295,12 @@ public class SimpleScheduler extends Scheduler {
         query.where().eq("assignedDrone", drone);
         // Find and return unique assignment
         return query.findUnique();
+    }
+
+    @Override
+    protected void stop(StopSchedulerMessage message) {
+        log.warning("[SimpleScheduler] Does not care about his anything when stopped.");
+        getContext().stop(self());
     }
 
     @Override

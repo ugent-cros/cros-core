@@ -1,25 +1,38 @@
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
+import com.avaje.ebean.Ebean;
+import drones.models.DroneCommander;
+import drones.models.DroneException;
 import drones.models.Fleet;
-import drones.models.scheduler.Helper;
+import drones.models.FlyingState;
+import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
 import drones.models.scheduler.messages.to.AssignmentMessage;
+import drones.models.scheduler.messages.to.EmergencyMessage;
 import drones.simulation.SimulatorDriver;
 import models.Assignment;
+import models.Checkpoint;
 import models.Drone;
-import models.Location;
+import models.DroneType;
 import org.junit.*;
+
+import scala.concurrent.Await;
+import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Ronald on 6/04/2015.
  */
 public class SchedulerTest extends TestSuperclass {
 
-    private static final Location ANTWERP = new Location(51.21989,4.40346,0);
-    static ActorSystem system;
+    private static ActorSystem system;
+    private static final Duration timeout = Duration.create(3000,TimeUnit.MILLISECONDS);
 
     @BeforeClass
     public static void createSystem() {
@@ -32,10 +45,9 @@ public class SchedulerTest extends TestSuperclass {
         system = null;
     }
 
-    @Override
-    public void before() {
+    @Before
+    public void setup() {
         startFakeApplication();
-        super.before();
     }
 
     @After
@@ -78,20 +90,62 @@ public class SchedulerTest extends TestSuperclass {
 
     @Test
     public void scheduleAssignment_Succeeds() throws Exception {
-        Assignment assignment = new Assignment(Helper.routeTo(ANTWERP),getUser());
+        Assignment assignment = new Assignment();
+        assignment.setId(13l);
+        assignment.setProgress(0);
+        List<Checkpoint> route = new ArrayList<>();
+        route.add(new Checkpoint(51.0226, 3.72, 0));
+        route.add(new Checkpoint(51.0226, 3.73, 0));
+        route.add(new Checkpoint(51.0226, 3.74, 0));
+        assignment.setRoute(route);
         assignment.save();
 
         Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
+        drone.setId(14l);
         drone.save();
 
-        Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
+        Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), null);
         Thread.sleep(3000);
-        drone.refresh();
-        assignment.refresh();
-        Assert.assertTrue("Drone assigned", assignment.getAssignedDrone() != null);
-        Drone assignedDrone = assignment.getAssignedDrone();
-        Assert.assertTrue("Correct drone assigned", assignedDrone.getId() == drone.getId());
+        drone = Drone.FIND.byId(drone.getId());
+        assignment = Assignment.FIND.byId(assignment.getId());
+        Assert.assertTrue(assignment.getAssignedDrone().getId() == drone.getId());
         Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);
 
+        // [QUICK FIX] Test emergency
+        Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+        Thread.sleep(1000);
+        drone.refresh();
+        Assert.assertTrue("Drone status EMERGENCY_LANDED",drone.getStatus() == Drone.Status.EMERGENCY);
+        assignment.refresh();
+        Assert.assertTrue("Assignment not scheduled",assignment.getAssignedDrone() == null);
+        Assert.assertTrue("Assignment has no progress",assignment.getProgress() == 0);
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        FlyingState state = Await.result(commander.getFlyingState(), timeout);
+        Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
+    }
+
+    @Test
+    public void testEmergency_notAssigned_lands() throws Exception{
+        Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
+        drone.save();
+        Future<DroneCommander> future = Fleet.getFleet().createCommanderForDrone(drone);
+        DroneCommander commander = Await.result(future,timeout);
+
+        // Drone is hovering!
+        Await.result(commander.takeOff(),timeout);
+        FlyingState state = Await.result(commander.getFlyingState(),timeout);
+        Assert.assertTrue("Drone hovering", state == FlyingState.HOVERING);
+        drone.refresh();
+        Assert.assertTrue("Drone status AVAILABLE", drone.getStatus() == Drone.Status.AVAILABLE);
+        // Start moving
+        commander.moveToLocation(0,0,100);
+
+        // Send emergency
+        Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+        Thread.sleep(1000);
+        drone.refresh();
+        Assert.assertTrue("Drone status EMERGENCY_LANDED",drone.getStatus() == Drone.Status.EMERGENCY);
+        state = Await.result(commander.getFlyingState(), timeout);
+        Assert.assertTrue("Drone landed",state == FlyingState.LANDED);
     }
 }

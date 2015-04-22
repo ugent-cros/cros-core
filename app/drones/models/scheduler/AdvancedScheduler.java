@@ -149,7 +149,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-    @Override
     protected void droneArrived(FlightCompletedMessage message) {
         // Retrieve flight
         Flight flight = flights.remove(message.getDroneId());
