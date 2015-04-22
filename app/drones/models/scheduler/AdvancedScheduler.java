@@ -29,6 +29,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class AdvancedScheduler extends SimpleScheduler implements Comparator<Assignment>{
 
+    // Temporary metric in battery percentage per meter.
+    // Every meter, this drone uses 0.01% of his total power, so he can fly 10km.
+    public static final float BATTERY_PERCENTAGE_PER_METER = 0.01f;
     protected static final Timeout STOP_TIMEOUT = new Timeout(Duration.create(10, TimeUnit.SECONDS));
     protected Set<Long> dronePool = new HashSet<>();
     protected Map<Long, Flight> flights = new HashMap<>();
@@ -226,9 +229,15 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             log.error("[AdvancedScheduler] Encountered invalid assignment route.");
             return null;
         }
-        Location assignmentLocation = assignment.getRoute().get(0).getLocation();
 
-        // Find the closest drone to this assignment location
+        // Distance to return to base station after assignment completion
+        int routeSize = assignment.getRoute().size();
+        Location stopLocation = assignment.getRoute().get(routeSize-1).getLocation();
+        Basestation station = Helper.closestBaseStation(stopLocation);
+        routeLength += Helper.distance(stopLocation,station.getLocation());
+
+        // Find the closest drone to this assignment start location
+        Location startLocation = assignment.getRoute().get(0).getLocation();
         double minDistance = Double.MAX_VALUE;
         Drone minDrone = null;
         // Consider all drones
@@ -246,7 +255,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             }
 
             // Calculate distance to first checkpoint.
-            double distance = Helper.distance(droneLocation, assignmentLocation);
+            double distance = Helper.distance(droneLocation, startLocation);
             if(distance < minDistance){
                 double totalDistance = distance + routeLength;
                 if(hasSufficientBattery(commander,totalDistance)){
@@ -308,11 +317,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-
-    // Temporary metric in battery usage per meter.
-    // Every meter, this drone uses 0.01% of his total power, so he can fly 10km.
-    private static final float batteryUsage = 0.01f;
-
     /**
      * Decides if a drone has enough battery power left to fly a certain distance.
      * @param commander of the drone
@@ -321,7 +325,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
      * @throws Exception if we failed to retrieve battery status
      */
     protected boolean hasSufficientBattery(DroneCommander commander, double distance){
-        // TODO: have some kind of approximation meter/batteryLevel for every Dronetype.
+        // TODO: Have a battery usage approximation for every Dronetype.
         // TODO: Take into account static battery loss and estimated travel time
         if(commander == null){
             log.warning("[AdvancedScheduler] Can't retrieve battery status without commander.");
@@ -329,7 +333,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         try {
             int battery = Await.result(commander.getBatteryPercentage(), TIMEOUT);
-            return battery > distance * batteryUsage;
+            return battery > distance * BATTERY_PERCENTAGE_PER_METER;
         }catch(Exception ex){
             log.warning("[AdvancedScheduler] Failed to retrieve battery status.");
             return false;
