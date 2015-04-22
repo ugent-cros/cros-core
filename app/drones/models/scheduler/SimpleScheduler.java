@@ -112,7 +112,6 @@ public class SimpleScheduler extends Scheduler {
                 if (!fetchAssignments()) return; // No more assignments
             }
             // Pick drone
-            System.out.println("Schedules");
             Drone drone = fetchAvailableDrone();
             if (drone == null) return; // No more drones available
 
@@ -187,7 +186,6 @@ public class SimpleScheduler extends Scheduler {
         Query<Drone> query = Ebean.createQuery(Drone.class);
         query.where().eq("status", Drone.Status.AVAILABLE);
         List<Drone> drones = query.findList();
-
         // Choose a valid drone
         for (Drone drone : drones) {
             if (isValidDrone(drone)) {
@@ -206,42 +204,20 @@ public class SimpleScheduler extends Scheduler {
      * @return true if the drone is fitted for assignment
      */
     protected boolean isValidDrone(Drone drone) {
-        // FIND OR CREATE COMMANDER
+        // Find or create commander
         Fleet fleet = Fleet.getFleet();
-        DroneCommander commander = null;
         if(!fleet.hasCommander(drone)) {
             log.info("[SimpleScheduler] Creating new commander.");
             try {
-                commander = Await.result(fleet.createCommanderForDrone(drone), new Timeout(3, TimeUnit.SECONDS).duration());
-            } catch(Exception ex){
+                Await.result(fleet.createCommanderForDrone(drone), TIMEOUT);
+            } catch (Exception ex) {
                 log.error(ex, "Failed to initialize drone: {}", drone);
             }
         }
-        else {
-            commander = fleet.getCommanderForDrone(drone);
-        }
-
-        if (commander == null) {
-            // Fleet was unable to create a driver
-            drone.setStatus(Drone.Status.MISSING_DRIVER);
-            drone.update();
-            return false;
-        }
-
-        // INITIALIZE COMMANDER
-        // TODO: Move the commander init to somewhere else
-        if (!commander.isInitialized()) {
-            try {
-                Await.result(commander.init(), TIMEOUT);
-            } catch (Exception ex) {
-                log.warning("[SimpleScheduler] Failed to initialize commander.");
-                drone.setStatus(Drone.Status.UNREACHABLE);
-                drone.update();
-                return false;
-            }
-        }
+        DroneCommander commander = fleet.getCommanderForDrone(drone);
 
         // BATTERY CHECK
+        // TODO: More efficiently
         try {
             int battery = Await.result(commander.getBatteryPercentage(), TIMEOUT);
             // SimpleScheduler will only look at a static battery threshold

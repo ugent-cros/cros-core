@@ -1,5 +1,8 @@
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
+import drones.models.Fleet;
+import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
@@ -7,6 +10,7 @@ import drones.models.scheduler.messages.to.AssignmentMessage;
 import drones.simulation.SimulatorDriver;
 import models.Assignment;
 import models.Drone;
+import models.Location;
 import org.junit.*;
 
 /**
@@ -14,6 +18,7 @@ import org.junit.*;
  */
 public class SchedulerTest extends TestSuperclass {
 
+    private static final Location ANTWERP = new Location(51.21989,4.40346,0);
     static ActorSystem system;
 
     @BeforeClass
@@ -27,9 +32,10 @@ public class SchedulerTest extends TestSuperclass {
         system = null;
     }
 
-    @Before
-    public void setup() {
+    @Override
+    public void before() {
         startFakeApplication();
+        super.before();
     }
 
     @After
@@ -72,20 +78,17 @@ public class SchedulerTest extends TestSuperclass {
 
     @Test
     public void scheduleAssignment_Succeeds() throws Exception {
-        Assignment assignment = new Assignment();
-        assignment.setId(13l);
-        assignment.setProgress(0);
+        Assignment assignment = new Assignment(Helper.routeTo(ANTWERP),getUser());
         assignment.save();
 
         Drone drone = new Drone("Simulator", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE,"x.x.x.x");
-        drone.setId(14l);
         drone.save();
 
-        Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), null);
+        Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
         Thread.sleep(3000);
-        drone = Drone.FIND.byId(drone.getId());
+        drone.refresh();
         assignment.refresh();
-        Assert.assertTrue("Drone assigned",assignment.getAssignedDrone() != null);
+        Assert.assertTrue("Drone assigned", assignment.getAssignedDrone() != null);
         Drone assignedDrone = assignment.getAssignedDrone();
         Assert.assertTrue("Correct drone assigned", assignedDrone.getId() == drone.getId());
         Assert.assertTrue(drone.getStatus() == Drone.Status.FLYING);

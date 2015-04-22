@@ -3,7 +3,6 @@ import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
 import drones.models.BepopDriver;
-import drones.models.Fleet;
 import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
@@ -38,6 +37,12 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     private static final Location PARIS = new Location(48.85341,2.3488,0);
     private static final Location BERLIN = new Location(52.52437,13.41053,0);
     private static final Location LONDON = new Location(51.50853,-0.12574,0);
+    private static final Location CITADELPARK = new Location(51.037824,3.720594,0);
+    private static final Location IKEAGENT = new Location(51.022466, 3.687980,0);
+    private static final Location GRAVENSTEEN = new Location(51.057481, 3.720773,0);
+    private static final Location ZUIDERPOORT = new Location(51.036169, 3.735918,0);
+    private static final Location VOORUIT = new Location(51.047884, 3.727434,0);
+    private static final Location STERRE = new Location(51.026201, 3.710812, 0);
 
     // Base stations
     private static Basestation BRUSSELS;
@@ -52,13 +57,9 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     private static Basestation TOKYO;
     // List of these base stations
     private static final List<Basestation> BASESTATIONS = new ArrayList<>();
-    // Simulator driver
-    private static final SimulatorDriver driver = new SimulatorDriver();
 
     @BeforeClass
     public static void setup(){
-        // Configure the simulator
-        driver.setStartLocation(Helper.entityToDroneLocation(GHENT));
         // Start application
         startFakeApplication();
         // Make sure we are using the Advanced Scheduler!
@@ -71,8 +72,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         BRUSSELS = new Basestation("Brussels", new Location(50.85045,4.34878,0));
         DELHI = new Basestation("Delhi", new Location(28.65381,77.22897,0));
         KINSHASA = new Basestation("Kinshasa", new Location(-4.32758,15.31357,0));
-        LIMA = new Basestation("Li" +
-                "ma", new Location(-12.04318,-77.02824,0));
+        LIMA = new Basestation("Lima", new Location(-12.04318,-77.02824,0));
         MOSCOW = new Basestation("Moscow", new Location(55.75222,37.61556,0));
         NEW_YORK = new Basestation("New York", new Location(40.71427,-74.00597,0));
         ROME = new Basestation("Rome", new Location(41.89193,12.51133,0));
@@ -101,18 +101,11 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         stopFakeApplication();
     }
 
-    @After
-    public void resetSimulatorDriver(){
-        // TODO: There should be better ways to do this
-        // Restore original simulator driver
-        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,new SimulatorDriver());
-    }
-
-    private Drone createTestDrone(Location location){
+    private Drone addTestDrone(Location location) throws SchedulerException{
         driver.setStartLocation(Helper.entityToDroneLocation(location));
-        Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, driver);
         Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
         drone.save();
+        Scheduler.addDrone(drone.getId());
         return drone;
     }
 
@@ -278,7 +271,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void schedule_1Assignment7Drones_ScheduledClosest() throws SchedulerException{
+    public void schedule_1Assignment8Drones_ScheduledClosest() throws SchedulerException{
+        // TODO: waiting for FlightControl to complete this test
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
@@ -289,23 +283,28 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
 
                 // The drone that should be chosen
-                Drone correctDrone = createTestDrone(ANTWERP);
+                Drone correctDrone = addTestDrone(STERRE);
                 // Add all the drones
                 List<Drone> drones = new ArrayList<>();
                 drones.add(correctDrone);
-                drones.add(createTestDrone(PARIS));
-                drones.add(createTestDrone(PARIS));
-                drones.add(createTestDrone(BERLIN));
-                drones.add(createTestDrone(BERLIN));
-                drones.add(createTestDrone(LONDON));
-                drones.add(createTestDrone(LONDON));
-                for (Drone drone : drones){
-                    Scheduler.addDrone(drone.getId());
-                }
-                receiveN(drones.size());
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(CITADELPARK));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(VOORUIT));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(GRAVENSTEEN));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(ZUIDERPOORT));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(PARIS));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(LONDON));
+                expectMsgClass(DroneAddedMessage.class);
+                drones.add(addTestDrone(BERLIN));
+                expectMsgClass(DroneAddedMessage.class);
 
                 // Add the assignment
-                Assignment assignment = new Assignment(Helper.routeTo(GHENT),getUser());
+                Assignment assignment = new Assignment(Helper.routeTo(IKEAGENT),getUser());
                 assignment.save();
 
                 // Schedule!
@@ -339,7 +338,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 for(Drone drone : drones){
                     Scheduler.removeDrone(drone.getId());
                 }
-                receiveN(drones.size());
+                // TODO: Receive DroneRemovedMessage when Flightcontrol is capable
+                // receiveN(drones.size());
 
                 // Delete station
                 tempStation.delete();
@@ -357,8 +357,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
                 Scheduler.subscribe(DroneRemovedMessage.class,getRef());
                 // Add test drone
-                Drone drone = createTestDrone(GHENT);
-                Scheduler.addDrone(drone.getId());
+                Drone drone = addTestDrone(GHENT);
                 DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
                 Assert.assertTrue(addedMessage.getDroneId() == drone.getId());
                 drone.refresh();
@@ -377,7 +376,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     @Ignore
     @Test
     public void assignmentCompleted_1Assignment_DroneReturns() throws SchedulerException{
-        // TODO: waiting for SimplePilot to complete this test
+        // TODO: waiting for FlightControl to complete this test
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
@@ -387,9 +386,8 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
 
                 // Add test drone in Ghent
-                Drone drone = createTestDrone(GHENT);
-                Scheduler.addDrone(drone.getId());
-                DroneAddedMessage addedMessage = expectMsgClass(DroneAddedMessage.class);
+                Drone drone = addTestDrone(GHENT);
+                expectMsgClass(DroneAddedMessage.class);
                 drone.refresh();
                 Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
 

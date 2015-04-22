@@ -148,7 +148,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             // Remove the assignment from the queue
             Assignment assignment = queue.remove();
             // Pick a drone
-            Drone drone = fetchAvailableDrone();
+            Drone drone = fetchAvailableDrone(assignment);
             if(drone == null){
                 //There is no drone suited for this assignment
                 unassigned.add(assignment);
@@ -233,7 +233,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         Drone minDrone = null;
         // Consider all drones
         for (Long droneId : dronePool) {
-
             // Retrieve drone location
             Drone drone = getDrone(droneId);
             DroneCommander commander = getCommander(drone);
@@ -311,8 +310,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
 
     // Temporary metric in battery usage per meter.
-    // Every meter, this drone uses 0.1% of his total power.
-    private static final float batteryUsage = 0.1f;
+    // Every meter, this drone uses 0.01% of his total power, so he can fly 10km.
+    private static final float batteryUsage = 0.01f;
 
     /**
      * Decides if a drone has enough battery power left to fly a certain distance.
