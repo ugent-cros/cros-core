@@ -1,19 +1,19 @@
 package drones.simulation;
 
 import akka.actor.Cancellable;
+import akka.dispatch.Futures;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.messages.*;
+import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.*;
-import drones.models.*;
-import drones.util.LocationNavigator;
+import drones.simulation.messages.ResetMovementMessage;
 import drones.simulation.messages.SetConnectionLostMessage;
 import drones.simulation.messages.SetCrashedMessage;
+import drones.util.LocationNavigator;
 import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by yasser on 25/03/15.
  */
-public class BepopSimulator extends DroneActor {
+public class BepopSimulator extends NavigatedDroneActor {
 
     private static class StepSimulationMessage implements Serializable {
         private FiniteDuration timeStep;
@@ -36,13 +36,15 @@ public class BepopSimulator extends DroneActor {
     // TODO: make drones.simulation properties settable
     protected byte batteryLowLevel = 10;
     protected byte batteryCriticalLevel = 5;
-    protected Cancellable simulationTick;
     protected FiniteDuration simulationTimeStep = Duration.create(1, TimeUnit.SECONDS);
 
     protected double maxHeight;
     protected double topSpeed; // assume m/s
     protected double initialAngleWithRespectToEquator; // in radians, facing East is 0
 
+    // Private variables needed for simulation
+    private Cancellable simulationTick;
+    private Cancellable resetDefaultMovement;
 
     // internal state
     private boolean crashed = false;
@@ -111,17 +113,10 @@ public class BepopSimulator extends DroneActor {
         if(!flyingToHome && !crashed) {
 
             flyingToHome = true;
-            
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.PENDING,
-                    reason
-            ));
-            tellSelf(new FlyingStateChangedMessage(FlyingState.FLYING));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.IN_PROGRESS,
-                    reason
-            ));
-            tellSelf(new SpeedChangedMessage(10, 10, 10));
+            setNavigationState(NavigationState.PENDING, reason);
+            setFlyingState(FlyingState.FLYING);
+            setNavigationState(NavigationState.IN_PROGRESS, reason);
+            setSpeed(new Speed(10, 0, 0));
         }
     }
 
@@ -158,23 +153,16 @@ public class BepopSimulator extends DroneActor {
                 double newLongitude = currentLocation.getLongitude() + deltaLongitude * fraction;
                 double newLatitude = currentLocation.getLatitude() + deltaLatitude * fraction;
                 double newHeight = currentLocation.getHeight() + deltaAltitude * fraction;
-                tellSelf(new LocationChangedMessage(
-                        newLongitude,
-                        newLatitude,
-                        newHeight));
+                setLocation(new Location(newLatitude, newLongitude, newHeight));
+
             } else {
                 // We have arrived
                 flyingToHome = false;
-                tellSelf(new LocationChangedMessage(
-                        homeLocation.getLongitude(),
-                        homeLocation.getLatitude(),
-                        homeLocation.getHeight()
-                ));
-                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-                tellSelf(new NavigationStateChangedMessage(
-                        NavigationState.AVAILABLE,
-                        NavigationStateReason.FINISHED
-                ));
+
+                setLocation(homeLocation);
+                setSpeed(new Speed(0, 0, 0));
+                setFlyingState(FlyingState.HOVERING);
+                setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.FINISHED);
             }
         }
     }
@@ -184,20 +172,28 @@ public class BepopSimulator extends DroneActor {
 
         if(!flyingToHome) {
 
+            Speed movement = speed.getRawValue();
+
+            // Simple stuff first: update height
+            double deltaHeight = 1 * movement.getVz();
+            double updatedAltitude = Math.max(0, altitude.getRawValue() + deltaHeight);
+            setAltitude(updatedAltitude);
+
             // Figure out angle wrt North South Axis
-            double yawInRadians = rotation.getRawValue().getYaw() * Math.PI;
-            double angleWrtNSAxis = initialAngleWithRespectToEquator + yawInRadians;
+            double yawInRadians = rotation.getRawValue().getYaw();
+            double angleWrtEquator = initialAngleWithRespectToEquator + yawInRadians;
 
             // Decompose speed-x vector
-            double p1 = Math.sin(angleWrtNSAxis); // = cos(angle - PI/2) = cos(angleVyWrtNS)
-            double p2 = Math.cos(angleWrtNSAxis); // = -sin(angle - PI/2) = -sin(angleVyWrtNS);
+            double p1 = Math.sin(angleWrtEquator); // = cos(angle - PI/2) = cos(angleVyWrtEquator)
+            double p2 = Math.cos(angleWrtEquator); // = -sin(angle - PI/2) = -sin(angleVyWrtEquator);
 
             // Calculate speed along earth axises
-            Speed movement = speed.getRawValue();
             double vNS = movement.getVx() * p1;
             double vEquator = movement.getVx() * p2;
-            vNS += -p2 * movement.getVx();
-            vEquator += p1 * movement.getVy();
+
+            // Add speed-y vector
+            vNS += movement.getVy() * -p2;
+            vEquator += movement.getVy() * p1;
 
             // Calculate flown distance
             double durationInSec = simulationTimeStep.toUnit(TimeUnit.SECONDS);
@@ -215,14 +211,12 @@ public class BepopSimulator extends DroneActor {
             if (latitude > 90) latitude = 180 -latitude;
             if (latitude < -90) latitude = Math.abs(latitude) -180;
 
-
             double longitude = (oldLocation.getLongitude() + deltaLongitude);    // in degrees
 
             if (longitude > 180) longitude -= 360;
             if (longitude < -180) longitude += 360;
 
-            Location newLocation = new Location(latitude, longitude, oldLocation.getHeight());
-            tellSelf(new LocationChangedMessage(longitude, latitude, newLocation.getHeight()));
+            setLocation(new Location(latitude, longitude, updatedAltitude));
         }
     }
 
@@ -254,10 +248,6 @@ public class BepopSimulator extends DroneActor {
         return new Speed(vx, vy, vz);
     }
 
-    protected void tellSelf(Object msg) {
-        self().tell(msg, self());
-    }
-
     // External control
 
     @Override
@@ -267,13 +257,33 @@ public class BepopSimulator extends DroneActor {
                 match(BatteryPercentageChangedMessage.class, m -> processBatteryLevel(m.getPercent())).
                 match(SetCrashedMessage.class, m -> setCrashed(m.isCrashed())).
                 match(SetConnectionLostMessage.class, m -> setConnectionLost(m.isConnectionLost())).
-                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep()));
+                match(StepSimulationMessage.class, m -> stepSimulation(m.getTimeStep())).
+                match(ResetMovementMessage.class, s -> {
+                    Promise p = Futures.promise();
+                    move3d(p, 0, 0, 0, 0);
+                });
     }
 
     @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal,
-                2f,  40f, 0.4f); // Bebop parameters
+    public void setRotation(Rotation rot) {
+        super.setRotation(rot);
+        // Update speed according to rotation
+        Speed updatedSpeed = calculateSpeed(rot, speed.getRawValue().getVz());
+        setSpeed(updatedSpeed);
+    }
+
+    @Override
+    public void setSpeed(Speed speed) {
+        super.setSpeed(speed);
+
+        if (state.getRawValue() == FlyingState.FLYING
+                && Math.abs(speed.getVx()) + Math.abs(speed.getVy()) + Math.abs(speed.getVz()) == 0) {
+            setFlyingState(FlyingState.HOVERING);
+        }
+        else if (state.getRawValue() == FlyingState.HOVERING
+                && Math.abs(speed.getVx()) + Math.abs(speed.getVy()) + Math.abs(speed.getVz()) > 0) {
+            setFlyingState(FlyingState.FLYING);
+        }
     }
 
     protected void processBatteryLevel(byte percentage) {
@@ -286,7 +296,7 @@ public class BepopSimulator extends DroneActor {
             }
             else if (percentage < batteryCriticalLevel) {
 
-                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_CRITICAL));
+                setAlertState(AlertState.BATTERY_CRITICAL);
 
                 // TODO: figure out what happens
 
@@ -299,8 +309,8 @@ public class BepopSimulator extends DroneActor {
             }
             else {
                 // Return to home on low battery
-                tellSelf(new AlertStateChangedMessage(AlertState.BATTERY_LOW));
-                returnToHome(NavigationStateReason.BATTERY_LOW);
+                setAlertState(AlertState.BATTERY_LOW);
+                //returnToHome(NavigationStateReason.BATTERY_LOW);
             }
         }
     }
@@ -309,14 +319,12 @@ public class BepopSimulator extends DroneActor {
 
         if (crashed) {
             flyingToHome = false;
-            tellSelf(new AltitudeChangedMessage(0.0));
-            tellSelf(new SpeedChangedMessage(0, 0, 0));
-            tellSelf(new FlyingStateChangedMessage(FlyingState.EMERGENCY));
-            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.UNAVAILABLE,
-                    NavigationStateReason.STOPPED
-            ));
+
+            setAltitude(0);
+            setSpeed(new Speed(0, 0, 0));
+            setFlyingState(FlyingState.EMERGENCY);
+            setAlertState(AlertState.CUT_OUT);
+            setNavigationState(NavigationState.UNAVAILABLE, NavigationStateReason.STOPPED);
         }
         else {
             rebootDrone();
@@ -332,11 +340,11 @@ public class BepopSimulator extends DroneActor {
         if(connectionLost) {
 
             // Should start navigation to home
-            returnToHome(NavigationStateReason.CONNECTION_LOST);
-            tellSelf(new AlertStateChangedMessage(AlertState.CUT_OUT));
+            // returnToHome(NavigationStateReason.CONNECTION_LOST);
+            setAlertState(AlertState.CUT_OUT);
         }
         else {
-            tellSelf(new AlertStateChangedMessage(AlertState.NONE));
+            setAlertState(AlertState.NONE);
         }
         this.connectionLost = connectionLost;
     }
@@ -393,12 +401,17 @@ public class BepopSimulator extends DroneActor {
     }
 
     @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
 
         if (connectionLost) return;
 
         //  Land
-        p.failure(new NotImplementedException());
+        p.failure(new DroneException("action not implemented"));
     }
 
     @Override
@@ -414,12 +427,12 @@ public class BepopSimulator extends DroneActor {
                 break;
             case LANDING:
                 // Land drone before taking off again
-                tellSelf(new FlyingStateChangedMessage(FlyingState.LANDED));
+                setFlyingState(FlyingState.LANDED);
                 // Fall-through
             case LANDED:
-                tellSelf(new FlyingStateChangedMessage(FlyingState.TAKINGOFF));
-                tellSelf(new AltitudeChangedMessage(1.0));
-                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                setFlyingState(FlyingState.TAKINGOFF);
+                setAltitude(1);
+                setFlyingState(FlyingState.HOVERING);
                 // Fall-through
             default:
                 p.success(null);
@@ -440,14 +453,14 @@ public class BepopSimulator extends DroneActor {
                 break;
             case TAKINGOFF:
                 // Hover drone before landing again
-                tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
+                setFlyingState(FlyingState.HOVERING);
                 // Fall-through
             case HOVERING:
-                tellSelf(new FlyingStateChangedMessage(FlyingState.LANDING));
+                setFlyingState(FlyingState.LANDING);
                 // Fall-through
             default:
-                tellSelf(new AltitudeChangedMessage(0.0));
-                tellSelf(new FlyingStateChangedMessage(FlyingState.LANDED));
+                setAltitude(0);
+                setFlyingState(FlyingState.LANDED);
                 p.success(null);
         }
     }
@@ -469,17 +482,39 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Invalid arguments: vx, vy, vz and vr need to be in [-1, 1]"));
         }
 
-        // 1: update rotation
-        tellSelf(new AttitudeChangedMessage(vy, vx, vr));
-        // 2: calculate speed resulting from the rotation
-        Speed newSpeed = calculateSpeed(new Rotation(vy, vx, vr), vz);
-        // 3: update the speed
-        tellSelf(new SpeedChangedMessage(newSpeed.getVx(), newSpeed.getVy(), newSpeed.getVz()));
-        // After processing these messages, simulateMove will have the correct behaviour
+        // Cancel setting the rotation back to normal if a new move message arrives
+        if (resetDefaultMovement != null) {
+            resetDefaultMovement.cancel();
+        }
 
-        p.failure(new NotImplementedException());
+        // Update vz
+        Speed rawSpeed = speed.getRawValue();
+        setSpeed(new Speed(rawSpeed.getVx(), rawSpeed.getVy(), vz));
+
+        // Calculate rotation
+        double roll = vy * Math.PI/3;   // 1 <-> 60°
+        double pitch = vx * Math.PI/3;  // 1 <-> 60°
+        double deltaYaw = -vr * Math.PI/6;    // 1 <-> turn of 30°
+        double yaw = rotation.getRawValue().getYaw() + deltaYaw;
+
+        // Update rotation: this will also update the speed
+        // Next simulation step will use the updated speed values
+        setRotation(new Rotation(roll, pitch, yaw));
+
+        // After a 1.5 second: the rotation should be set back to normal
+        resetDefaultMovement = Akka.system().scheduler().scheduleOnce(
+                Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
+                self(),
+                new ResetMovementMessage(),
+                Akka.system().dispatcher(),
+                self()
+        );
+
+
+        p.success(null);
     }
 
+    /*
     @Override
     protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
 
@@ -513,15 +548,19 @@ public class BepopSimulator extends DroneActor {
             p.failure(new DroneException("Unable to send commands to drone in emergency state"));
         } else {
             flyingToHome = false;
-            tellSelf(new SpeedChangedMessage(0, 0, 0));
-            tellSelf(new FlyingStateChangedMessage(FlyingState.HOVERING));
-            tellSelf(new NavigationStateChangedMessage(
-                    NavigationState.AVAILABLE,
-                    NavigationStateReason.STOPPED
-            ));
+            setSpeed(new Speed(0, 0, 0));
+            setFlyingState(FlyingState.HOVERING);
+            setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
             p.success(null);
         }
     }
+    */
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal, (float)topSpeed,  30f, 1f); // Bebop parameters
+    }
+
 
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {

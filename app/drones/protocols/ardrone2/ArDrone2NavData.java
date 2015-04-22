@@ -186,7 +186,7 @@ public class ArDrone2NavData extends UntypedActor {
         float roll = (float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_ROLL_OFFSET.getOffset()) / 1000);
         float yaw=(float) Math.toRadians(PacketHelper.getFloat(navdata, NAV_YAW_OFFSET.getOffset()) / 1000);
 
-        Object attitudeMessage = new AttitudeChangedMessage(roll, pitch, yaw);
+        Object attitudeMessage = new RotationChangedMessage(roll, pitch, yaw);
         listener.tell(attitudeMessage, getSelf());
     }
 

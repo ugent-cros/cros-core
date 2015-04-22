@@ -3,6 +3,7 @@ package drones.models.flightcontrol;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
+import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
@@ -48,24 +49,27 @@ public abstract class Pilot extends FlightControl{
 
     private void setSubscribeMessages(){
         //subscribe to messages
-        dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
+        dc.subscribeTopic(self(), FlyingStateChangedMessage.class);
         dc.subscribeTopic(self(), LocationChangedMessage.class);
+        dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
     }
 
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
-                match(NavigationStateChangedMessage.class, s -> navigateHomeStateChanged(s)).
-                match(LocationChangedMessage.class, s -> locationChanged(s));
+                match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
+                match(LocationChangedMessage.class, s -> locationChanged(s)).
+                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
         cruisingAltitude = s.getCruisingAltitude();
     }
 
-    protected abstract void navigateHomeStateChanged(NavigationStateChangedMessage m);
+    protected abstract void flyingStateChanged(FlyingStateChangedMessage m);
 
     protected abstract void locationChanged(LocationChangedMessage m);
 
+    protected abstract void navigationStateChanged(NavigationStateChangedMessage m);
 }

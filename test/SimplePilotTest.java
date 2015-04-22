@@ -7,7 +7,7 @@ import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.DroneArrivalMessage;
+import drones.models.scheduler.messages.DroneArrivalMessage;
 import drones.simulation.BepopSimulator;
 import models.Checkpoint;
 import org.junit.AfterClass;
@@ -22,13 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Sander on 5/04/2015.
  */
-@Ignore
 public class SimplePilotTest extends TestSuperclass {
 
     private static final Location STERRE = new Location(51.0226, 3.71, 0);
@@ -92,7 +90,7 @@ public class SimplePilotTest extends TestSuperclass {
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue(d < 1);
+                    assertTrue("Check dronelocation",d < 50);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -100,7 +98,7 @@ public class SimplePilotTest extends TestSuperclass {
                 //check if landed
                 try {
                     FlyingState flyingState = Await.result(dc.getFlyingState(), MAX_DURATION_MESSAGE);
-                    assertTrue(flyingState == FlyingState.LANDED);
+                    assertTrue("Check drone status",flyingState == FlyingState.LANDED);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
