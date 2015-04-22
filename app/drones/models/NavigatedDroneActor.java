@@ -18,9 +18,7 @@ public abstract class NavigatedDroneActor extends DroneActor {
 
     public NavigatedDroneActor() {
         super();
-
         navigationLock = new Object();
-        createNavigator(null, null);
     }
 
     @Override
@@ -50,8 +48,8 @@ public abstract class NavigatedDroneActor extends DroneActor {
             // When there's no gps fix, continue
             if (!gpsFix.getRawValue()) {
                 // Stop navigator
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
+                getNavigator().setCurrentLocation(null);
+                getNavigator().setGoal(null);
                 return;
             }
 
@@ -60,15 +58,15 @@ public abstract class NavigatedDroneActor extends DroneActor {
                 location = new Location(location.getLatitude(), location.getLongitude(), altitude.getRawValue());
             }
 
-            MoveCommand cmd = navigator.update(location);
+            MoveCommand cmd = getNavigator().update(location);
             if (cmd == null) { // arrived
-                log.info("Navigator finished at location [{}] for goal [{}]", location, navigator.getGoal());
+                log.info("Navigator finished at location [{}] for goal [{}]", location, getNavigator().getGoal());
                 navigationState.setValue(NavigationState.AVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);
                 eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
 
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
+                getNavigator().setCurrentLocation(null);
+                getNavigator().setGoal(null);
             } else { // execute the movement command
                 Promise<Void> v = Futures.promise();
                 v.future().onFailure(new OnFailure() {
@@ -84,30 +82,30 @@ public abstract class NavigatedDroneActor extends DroneActor {
 
     private void cancelInternal() {
         synchronized (navigationLock) {
-            navigator.setGoal(null);
-            navigator.setCurrentLocation(null);
+            getNavigator().setGoal(null);
+            getNavigator().setCurrentLocation(null);
             setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
         }
     }
 
     @Override
-    protected void cancelMoveToLocation(Promise<Void> p) {
+    final protected void cancelMoveToLocation(Promise<Void> p) {
         cancelInternal();
         p.success(null);
     }
 
     @Override
-    protected void moveToLocation(Promise<Void> v, double latitude, double longitude, double altitude) {
+    final protected void moveToLocation(Promise<Void> v, double latitude, double longitude, double altitude) {
         synchronized (navigationLock) {
             if (navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
-                v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
+                v.failure(new DroneException("Already navigating to " + getNavigator().getGoal() + ", abort this first."));
             } else if (navigationState.getRawValue() == NavigationState.UNAVAILABLE) {
                 v.failure(new DroneException("Unable to navigate to goal"));
             } else if (!gpsFix.getRawValue()) {
                 v.failure(new DroneException("No GPS fix yet."));
             } else {
-                navigator.setCurrentLocation(location.getRawValue());
-                navigator.setGoal(new Location(latitude, longitude, altitude));
+                getNavigator().setCurrentLocation(location.getRawValue());
+                getNavigator().setGoal(new Location(latitude, longitude, altitude));
 
                 setNavigationState(NavigationState.IN_PROGRESS, NavigationStateReason.REQUESTED);
                 v.success(null);
@@ -122,4 +120,12 @@ public abstract class NavigatedDroneActor extends DroneActor {
     }
 
     protected abstract LocationNavigator createNavigator(Location currentLocation, Location goal);
+
+    private LocationNavigator getNavigator() {
+
+        if(navigator == null) {
+            navigator = createNavigator(null, null);
+        }
+        return navigator;
+    }
 }
