@@ -32,7 +32,8 @@ public abstract class FlightControl extends AbstractActor {
                         match(RequestForTakeOffMessage.class, s -> requestForTakeOffMessage(s)).
                         match(RequestForTakeOffGrantedMessage.class, s -> requestForTakeOffGrantedMessage(s)).
                         match(TakeOffCompletedMessage.class, s -> takeOffCompletedMessage(s)).
-                        matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
+                        match(StopFlightControlMessage.class, s -> stopFlightControlMessage(s)).
+                matchAny(o -> log.info("FlightControl message recv: [{}]", o.getClass().getCanonicalName())).build()
         );
     }
 
@@ -54,4 +55,6 @@ public abstract class FlightControl extends AbstractActor {
     protected abstract void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m);
 
     protected abstract void takeOffCompletedMessage(TakeOffCompletedMessage m);
+
+    protected abstract void stopFlightControlMessage(StopFlightControlMessage m);
 }
