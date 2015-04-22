@@ -273,13 +273,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void schedule_1Assignment8Drones_ScheduledClosest() throws SchedulerException{
+    public void schedule_RemoveDrone_Succeeds() throws SchedulerException{
         // TODO: waiting for FlightControl to complete this test
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
                 Scheduler.subscribe(DroneRemovedMessage.class, getRef());
                 Scheduler.subscribe(DroneAssignedMessage.class, getRef());
+                Scheduler.subscribe(DroneUnassignedMessage.class, getRef());
                 Scheduler.subscribe(AssignmentCompletedMessage.class,getRef());
                 Scheduler.subscribe(AssignmentCanceledMessage.class,getRef());
                 Scheduler.subscribe(AssignmentStartedMessage.class,getRef());
@@ -312,36 +313,48 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 // Schedule!
                 Scheduler.schedule();
                 DroneAssignedMessage assignedMessage = expectMsgClass(DroneAssignedMessage.class);
-                Assert.assertTrue("Correct assignment",assignedMessage.getAssignmentId() == assignment.getId());
                 assignment.refresh();
+                Assert.assertTrue("Correct assignment",assignedMessage.getAssignmentId() == assignment.getId());
                 Assert.assertTrue("Assignment is scheduled", assignment.isScheduled());
                 Assert.assertTrue("Closest drone", assignedMessage.getDroneId() == correctDrone.getId());
                 Assert.assertTrue("Consistent database", assignment.getAssignedDrone().getId() == correctDrone.getId());
 
                 // Assignment started
                 AssignmentStartedMessage startedMessage = expectMsgClass(AssignmentStartedMessage.class);
-                Assert.assertTrue("Assignment has started",assignment.getId() == assignedMessage.getAssignmentId());
                 correctDrone.refresh();
+                Assert.assertTrue("Assignment has started",assignment.getId() == assignedMessage.getAssignmentId());
                 Assert.assertTrue("Drone status FLYING",correctDrone.getStatus() == Drone.Status.FLYING);
 
                 // Create temp station for a quick return.
-                Basestation tempStation = new Basestation("Ghent",GHENT);
+                Basestation tempStation = new Basestation("Ghent",STERRE);
                 tempStation.save();
 
                 // Cancel assignment
                 Scheduler.cancelAssignment(assignment.getId());
+                DroneUnassignedMessage unassignedMessage = expectMsgClass(DroneUnassignedMessage.class);
+                correctDrone.refresh();
+                assignment.refresh();
+                Assert.assertTrue("Drone unassigned", unassignedMessage.getDroneId() == correctDrone.getId());
+                Assert.assertTrue("Assignment unassigned", unassignedMessage.getAssignmentId() == assignment.getId());
+                Assert.assertTrue("Assignment no assigned drone",assignment.getAssignedDrone() == null);
                 AssignmentCanceledMessage canceledMessage = expectMsgClass(AssignmentCanceledMessage.class);
                 assignment.refresh();
-                Assert.assertTrue("Assignment unassigned",assignment.getAssignedDrone() == null);
-                Assert.assertTrue("Assignment unscheduled",!assignment.isScheduled());
+                Assert.assertTrue("Assignment canceled", canceledMessage.getAssignmentId() == assignment.getId());
+                Assert.assertTrue("Assignment descheduled",!assignment.isScheduled());
                 assignment.delete();
+
+                // Wait a bit
+                expectNoMsg(SHORT_TIMEOUT);
+                correctDrone.refresh();
+                Assert.assertTrue("Drone available again",correctDrone.getStatus() == Drone.Status.AVAILABLE);
+
 
                 // Remove test drones
                 for(Drone drone : drones){
                     Scheduler.removeDrone(drone.getId());
                 }
-                // TODO: Receive DroneRemovedMessage when Flightcontrol is capable
-                // receiveN(drones.size());
+                // Receive drone removed messages
+                receiveN(drones.size());
             }
         };
     }

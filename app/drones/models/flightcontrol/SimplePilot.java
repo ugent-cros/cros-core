@@ -9,12 +9,11 @@ import akka.actor.PoisonPill;
 import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
-import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
 import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.to.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import models.Checkpoint;
 import scala.concurrent.Await;
@@ -108,7 +107,7 @@ public class SimplePilot extends Pilot {
 
                 @Override
                 public void onSuccess(Void result) throws Throwable {
-                    reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                    reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -160,7 +159,7 @@ public class SimplePilot extends Pilot {
             @Override
             public void onSuccess(Void result) throws Throwable {
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
             }
         }, getContext().system().dispatcher());
     }

@@ -48,7 +48,7 @@ public class SimpleScheduler extends Scheduler {
     protected UnitPFBuilder<Object> initReceivers() {
         return super.initReceivers()
                 .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m))
-                .match(DroneArrivalMessage.class, m -> droneArrived(m))
+                .match(FlightCompletedMessage.class, m -> droneArrived(m))
                 .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m));
     }
 
@@ -61,7 +61,7 @@ public class SimpleScheduler extends Scheduler {
      * Handle a drone arrival.
      * @param message
      */
-    protected void droneArrived(DroneArrivalMessage message) {
+    protected void droneArrived(FlightCompletedMessage message) {
         // Terminate SimplePilot
         ActorRef pilot = sender();
         getContext().stop(pilot);

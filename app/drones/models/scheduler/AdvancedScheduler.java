@@ -64,7 +64,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         context().become(ReceiveBuilder
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
                 .match(FlightCanceledMessage.class, m -> flightCanceled(m))
-                .match(DroneArrivalMessage.class, m -> termination(m))
+                .match(FlightCompletedMessage.class, m -> termination(m))
                 .matchAny(m -> log.warning("[AdvancedScheduler] Termination ignored message: [{}]", m.getClass().getName())
                 ).build());
 
@@ -98,7 +98,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
      *
      * @param message
      */
-    protected void termination(DroneArrivalMessage message) {
+    protected void termination(FlightCompletedMessage message) {
         droneArrived(message);
         // Check if we can terminate
         if (flights.isEmpty()) {
@@ -150,7 +150,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     @Override
-    protected void droneArrived(DroneArrivalMessage message) {
+    protected void droneArrived(FlightCompletedMessage message) {
         // Retrieve flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
@@ -459,6 +459,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             Assignment assignment = getAssignment(assignmentId);
             assignment.setAssignedDrone(null);
             assignment.update();
+            eventBus.publish(new DroneUnassignedMessage(assignmentId,flight.getDroneId()));
         }
 
         // Handle flightControl
