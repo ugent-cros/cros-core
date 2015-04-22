@@ -72,7 +72,7 @@ public class Application extends Controller {
 
         List<User> users = new ArrayList<>();
         users.add(new User("cros@test.be", "freddy", "cros", "tester"));
-        users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.add(new User("admin@drone-drinks.be", "drones123", "first", "last"));
         users.add(new User("teachingstaff@cros.be", "ugent", "teaching", "staff"));
         users.get(0).setRole(User.Role.ADMIN);
         users.get(1).setRole(User.Role.USER);
@@ -180,6 +180,19 @@ public class Application extends Controller {
             result.put("batteryPercentage", v);
             return ok(result);
         });
+    }
+
+    public static F.Promise<Result> flip(long id, String flip){
+        Drone drone = Drone.FIND.byId(id);
+        if(drone != null) {
+            FlipType flipe = Enum.valueOf(FlipType.class, flip);
+            DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+            return F.Promise.wrap(d.flip(flipe)).map(v -> {
+                ObjectNode result = Json.newObject();
+                result.put("flip", flipe.toString());
+                return ok(result);
+            });
+        } else return F.Promise.pure(notFound());
     }
 
     public static F.Promise<Result> setOutdoor(boolean outdoor, long id){

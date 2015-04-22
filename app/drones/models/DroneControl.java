@@ -47,7 +47,7 @@ public interface DroneControl {
      * @param vr Rotate left/right between [-1;1]
      * @return Promise whether request was initiated (but not yet completed)
      */
-    Future<Void> move(double vx, double vy, double r);
+    Future<Void> move(double vx, double vy, double vr);
 
     /**
      * Sets the maximum height for the drone
@@ -103,4 +103,11 @@ public interface DroneControl {
      * @return Promise whether the request was initiated
      */
     Future<Void> setHull(boolean hull);
+
+    /**
+     * Performs a flip in the air
+     * @param type Direction of the flip
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> flip(FlipType type);
 }

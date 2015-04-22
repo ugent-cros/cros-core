@@ -6,9 +6,7 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.messages.AltitudeChangedMessage;
-import drones.messages.BatteryPercentageChangedMessage;
-import drones.messages.LocationChangedMessage;
+import drones.messages.*;
 import drones.models.Fleet;
 import play.Logger;
 import play.libs.F;
@@ -29,13 +27,22 @@ public class MessageWebSocket extends AbstractActor {
     private final ActorRef out;
 
     private static final List<F.Tuple<Class, String>> TYPENAMES;
+    private static final List<Class> IGNORETYPES;
 
     static {
         TYPENAMES = new ArrayList<>();
+        IGNORETYPES = new ArrayList<>();
 
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
+        TYPENAMES.add(new F.Tuple<>(DroneAssignedMessage.class, "droneAssigned"));
+        TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
+        TYPENAMES.add(new F.Tuple<>(AssignmentProgressChangedMessage.class, "assignmentProgressChanged"));
+        TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
+
+        IGNORETYPES.add(FlyingStateChangedMessage.class);
+        IGNORETYPES.add(NavigationStateChangedMessage.class);
     }
 
     public MessageWebSocket(final ActorRef out) {
@@ -61,7 +68,10 @@ public class MessageWebSocket extends AbstractActor {
             });
         }
 
-        builder = builder.matchAny(o -> Logger.debug("[websocket] unkown message type..."));
+        for (int i = 0; i < IGNORETYPES.size(); ++i)
+            builder = builder.match(IGNORETYPES.get(i), s -> {});
+
+        builder = builder.matchAny(o -> Logger.debug("[websocket] Unkown message type..." + o.getClass().getName()));
 
         receive(builder.build());
 
