@@ -3,7 +3,6 @@ package drones.models.scheduler;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.UnitPFBuilder;
-import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import drones.models.DroneCommander;
@@ -47,10 +46,10 @@ public class SimpleScheduler extends Scheduler {
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
-        return super.initReceivers().
-                match(AssignmentMessage.class,
-                        message -> receiveAssignmentMessage(message)
-                );
+        return super.initReceivers()
+                .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m))
+                .match(DroneArrivalMessage.class, m -> droneArrived(m))
+                .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m));
     }
 
     protected void receiveAssignmentMessage(AssignmentMessage message) {
@@ -58,13 +57,16 @@ public class SimpleScheduler extends Scheduler {
         schedule(null);
     }
 
-    @Override
-    protected void droneArrived(long droneId) {
+    /**
+     * Handle a drone arrival.
+     * @param message
+     */
+    protected void droneArrived(DroneArrivalMessage message) {
         // Terminate SimplePilot
         ActorRef pilot = sender();
         getContext().stop(pilot);
         // Drone that arrived
-        Drone drone = Drone.FIND.byId(droneId);
+        Drone drone = Drone.FIND.byId(message.getDroneId());
         // Assignment that has been completed
         Assignment assignment = findAssignmentByDrone(drone);
         // Unassign drone
@@ -74,7 +76,11 @@ public class SimpleScheduler extends Scheduler {
         schedule(null);
     }
 
-    @Override
+    /**
+     * Handle situation when a drone runs out of battery power.
+     * TODO: Replace with FlightFailedMessage
+     * @param message
+     */
     protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
         // Well, this is just a simple scheduler.
         // There is not much this scheduler can do about this right now
@@ -84,14 +90,40 @@ public class SimpleScheduler extends Scheduler {
         drone.update();
     }
 
-    @Override
+    /**
+     * Updates the scheduled assignment and drone in the database.
+     * Publishes an DroneAssignedMessage and creates a flight.
+     * @param drone
+     * @param assignment
+     */
     protected void assign(Drone drone, Assignment assignment) {
-        // Store in database
-        super.assign(drone, assignment);
+        // Update drone
+        drone.setStatus(Drone.Status.FLYING);
+        drone.update();
+        // Update assignment
+        assignment.setAssignedDrone(drone);
+        assignment.update();
         // Tell everyone we assigned
         eventBus.publish(new DroneAssignedMessage(assignment.getId(),drone.getId()));
         // Create a new flight.
-        createFlight(drone,assignment);
+        createFlight(drone, assignment);
+    }
+
+    /**
+     * Updates the arrival of a drone in the database
+     * @param drone      drone that arrived
+     * @param assignment assignment that has been completed by arrival
+     */
+    protected void unassign(Drone drone, Assignment assignment) {
+        // Update drone
+        if (drone.getStatus() == Drone.Status.FLYING) {
+            // Set state available again if possible
+            drone.setStatus(Drone.Status.AVAILABLE);
+            drone.update();
+        }
+        // Update assignment
+        assignment.setAssignedDrone(null);
+        assignment.update();
     }
 
     @Override
@@ -245,4 +277,18 @@ public class SimpleScheduler extends Scheduler {
         return query.findUnique();
     }
 
+    @Override
+    protected void cancelAssignment(CancelAssignmentMessage message) {
+        log.warning("[SimpleScheduler] CancelAssignmentMessage not supported.");
+    }
+
+    @Override
+    protected void addDrone(AddDroneMessage message) {
+        log.warning("[SimpleScheduler] AddDroneMessage not supported.");
+    }
+
+    @Override
+    protected void removeDrone(RemoveDroneMessage message) {
+        log.warning("[SimpleScheduler] RemoveDroneMessage not supported.");
+    }
 }

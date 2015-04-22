@@ -1,7 +1,6 @@
 package drones.models.scheduler;
 
 import akka.actor.AbstractActor;
-import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -13,7 +12,6 @@ import drones.models.scheduler.messages.from.SchedulerReplyMessage;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Drone;
-import models.Location;
 import play.libs.Akka;
 
 import java.util.List;
@@ -168,7 +166,7 @@ public abstract class Scheduler extends AbstractActor {
      * @throws SchedulerException
      */
     public static void publishEvent(SchedulerEvent event) throws SchedulerException{
-        getScheduler().tell(new PublishMessage(event), ActorRef.noSender());
+        getScheduler().tell(new SchedulerPublishMessage(event), ActorRef.noSender());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +177,7 @@ public abstract class Scheduler extends AbstractActor {
     private static Object lock = new Object();
 
     protected Scheduler() {
-        // Create an eventbus for listeners
+        // Create an event bus for listeners
         eventBus = new SchedulerEventBus();
         //Receive behaviour
         UnitPFBuilder<Object> builder = initReceivers();
@@ -189,57 +187,33 @@ public abstract class Scheduler extends AbstractActor {
 
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder
-                .match(SchedulerRequestMessage.class, m -> reply(m.getRequestId()))
+                .match(SchedulerRequestMessage.class, m -> reply(m))
                 .match(EmergencyMessage.class, m -> emergency(m))
                 .match(ScheduleMessage.class, m -> schedule(m))
-                .match(DroneArrivalMessage.class, m -> droneArrived(m.getDroneId()))
-                .match(DroneBatteryMessage.class, m -> receiveDroneBatteryMessage(m))
+                .match(StopSchedulerMessage.class, m -> stop(m))
+                .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
+                .match(AddDroneMessage.class, m -> addDrone(m))
+                .match(RemoveDroneMessage.class, m -> removeDrone(m))
+                .match(SchedulerPublishMessage.class, m -> eventBus.publish(m.getEvent()))
                 .match(SubscribeMessage.class, m -> eventBus.subscribe(sender(), m.getEventType()))
-                .match(UnsubscribeMessage.class, m -> eventBus.unsubscribe(sender(), m.getEventType()))
-                .match(StopSchedulerMessage.class, m -> stop(m));
+                .match(UnsubscribeMessage.class, m -> eventBus.unsubscribe(sender(), m.getEventType()));
+    }
+
+
+    private void reply(SchedulerRequestMessage message){
+        eventBus.publish(new SchedulerReplyMessage(message.getRequestId()));
+    }
+
+    protected Drone getDrone(long droneId) {
+        return Drone.FIND.byId(droneId);
+    }
+
+    protected Assignment getAssignment(long assignmentId) {
+        return Assignment.FIND.byId(assignmentId);
     }
 
     /**
-     * Reply to a request message by publishing a reply message with the same request id.
-     * @param requestId
-     */
-    private void reply(long requestId){
-        eventBus.publish(new SchedulerReplyMessage(requestId));
-    }
-
-    /**
-     * Updates the dispatch in the database.
-     * @param drone      dispatched drone
-     * @param assignment assigned assignment
-     */
-    protected void assign(Drone drone, Assignment assignment) {
-        // Update drone
-        drone.setStatus(Drone.Status.FLYING);
-        drone.update();
-        // Update assignment
-        assignment.setAssignedDrone(drone);
-        assignment.update();
-    }
-
-    /**
-     * Updates the arrival of a drone in the database
-     * @param drone      drone that arrived
-     * @param assignment assignment that has been completed by arrival
-     */
-    protected void unassign(Drone drone, Assignment assignment) {
-        // Update drone
-        if (drone.getStatus() == Drone.Status.FLYING) {
-            // Set state available again if possible
-            drone.setStatus(Drone.Status.AVAILABLE);
-            drone.update();
-        }
-        // Update assignment
-        assignment.setAssignedDrone(null);
-        assignment.update();
-    }
-
-    /**
-     * Handle an emergency message
+     * Handle a drone emergency message
      * @param message
      */
     protected abstract void emergency(EmergencyMessage message);
@@ -251,20 +225,26 @@ public abstract class Scheduler extends AbstractActor {
     protected abstract void schedule(ScheduleMessage message);
 
     /**
-     * Tell the scheduler a drone has arrived at it's destination.
-     * @param droneId id of the drone that arrived
-     */
-    protected abstract void droneArrived(long droneId);
-
-    /**
-     * Tell the scheduler a that a drone has insufficient battery to finish his assignment
-     * @param message message containing the drone, the current location and remaining battery percentage.
-     */
-    protected abstract void receiveDroneBatteryMessage(DroneBatteryMessage message);
-
-    /**
      * Tell the scheduler to stop all flights and terminate itself.
      * @param message
      */
     protected abstract void stop(StopSchedulerMessage message);
+
+    /**
+     * Tell the scheduler to cancel an assignment, regardless whether it is assigned to a drone.
+     * @param message
+     */
+    protected abstract void cancelAssignment(CancelAssignmentMessage message);
+
+    /**
+     * Tell the scheduler to add a drone to the drone pool.
+     * @param message
+     */
+    protected abstract void addDrone(AddDroneMessage message);
+
+    /**
+     * Tell the scheduler to remove a drone from his drone pool, regardless whether it is executing an assignment.
+     * @param message
+     */
+    protected abstract void removeDrone(RemoveDroneMessage message);
 }

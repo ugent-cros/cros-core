@@ -101,6 +101,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         stopFakeApplication();
     }
 
+    @After
+    public void after(){
+        // Clean DB
+        Ebean.delete(Drone.FIND.all());
+        Ebean.delete(Basestation.FIND.all());
+        Ebean.delete(Assignment.FIND.all());
+    }
+
     private Drone addTestDrone(Location location) throws SchedulerException{
         driver.setStartLocation(Helper.entityToDroneLocation(location));
         Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
@@ -208,9 +216,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 }
                 // Removed drone messages
                 receiveN(drones.size());
-
-                // Delete drones
-                Ebean.delete(Drone.FIND.all());
             }
         };
     }
@@ -263,9 +268,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 // Send already removed drone to remove.
                 Scheduler.removeDrone(drones.get(0).getId());
                 expectNoMsg(SHORT_TIMEOUT);
-
-                // Delete drones from db
-                Ebean.delete(Drone.FIND.all());
             }
         };
     }
@@ -340,12 +342,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 }
                 // TODO: Receive DroneRemovedMessage when Flightcontrol is capable
                 // receiveN(drones.size());
-
-                // Delete station
-                tempStation.delete();
-
-                // Delete drones from database
-                Ebean.delete(Drone.FIND.all());
             }
         };
     }

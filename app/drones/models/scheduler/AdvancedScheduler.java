@@ -42,22 +42,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
-        // TODO: add more receivers
+        // TODO: add more flight control receivers
         return super.initReceivers().
                 match(FlightCanceledMessage.class,
                         m -> flightCanceled(m)
-                ).
-                match(CancelAssignmentMessage.class,
-                        m -> cancelAssignment(m)
-                ).
-                match(AddDroneMessage.class,
-                        m -> addDrone(m)
-                ).
-                match(RemoveDroneMessage.class,
-                        m -> removeDrone(m)
-                ).
-                match(PublishMessage.class,
-                        m -> publish(m)
                 );
     }
 
@@ -76,11 +64,11 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         context().become(ReceiveBuilder
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
                 .match(FlightCanceledMessage.class, m -> flightCanceled(m))
-                .match(DroneArrivalMessage.class, m -> termination(m.getDroneId()))
+                .match(DroneArrivalMessage.class, m -> termination(m))
                 .matchAny(m -> log.warning("[AdvancedScheduler] Termination ignored message: [{}]", m.getClass().getName())
                 ).build());
 
-        // Unschedule all assignments in the queue
+        // Deschedule all assignments in the queue
         for (Assignment assignment : queue) {
             assignment.setScheduled(false);
         }
@@ -105,21 +93,13 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     /**
-     * Tell the scheduler to publish a certain event message.
-     * @param message containing the event
-     */
-    protected void publish(PublishMessage message){
-        eventBus.publish(message.getEvent());
-    }
-
-    /**
      * Signal the scheduler that a drone has returned home after stop
      * Only when every active drone is home safely, we will terminate the scheduler.
      *
-     * @param droneId
+     * @param message
      */
-    protected void termination(long droneId) {
-        droneArrived(droneId);
+    protected void termination(DroneArrivalMessage message) {
+        droneArrived(message);
         // Check if we can terminate
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
@@ -170,9 +150,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     @Override
-    protected void droneArrived(long droneId) {
+    protected void droneArrived(DroneArrivalMessage message) {
         // Retrieve flight
-        Flight flight = flights.remove(droneId);
+        Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
             log.warning("[AdvancedScheduler] Received arrival from nonexistent flight.");
             return;
@@ -234,7 +214,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         int routeSize = assignment.getRoute().size();
         Location stopLocation = assignment.getRoute().get(routeSize-1).getLocation();
         Basestation station = Helper.closestBaseStation(stopLocation);
-        routeLength += Helper.distance(stopLocation,station.getLocation());
+        if(station != null) {
+            // No return station
+            routeLength += Helper.distance(stopLocation, station.getLocation());
+        }
 
         // Find the closest drone to this assignment start location
         Location startLocation = assignment.getRoute().get(0).getLocation();
@@ -270,14 +253,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             dronePool.remove(minDrone.getId());
         }
         return minDrone;
-    }
-
-    protected Drone getDrone(long droneId) {
-        return Drone.FIND.byId(droneId);
-    }
-
-    protected Assignment getAssignment(long assignmentId) {
-        return Assignment.FIND.byId(assignmentId);
     }
 
     /**
@@ -340,10 +315,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-    /**
-     * Cancel an assignment, regardless whether it is in progress or not.
-     * @param message containing the assignment id
-     */
+    @Override
     protected void cancelAssignment(CancelAssignmentMessage message) {
         Assignment assignment = getAssignment(message.getAssignmentId());
         // Unschedule the assignment first
@@ -359,10 +331,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         eventBus.publish(new AssignmentCanceledMessage(message.getAssignmentId()));
     }
 
-    /**
-     * Add a new drone to the drone pool.
-     * @param message containing the add-drone request
-     */
+    @Override
     protected void addDrone(AddDroneMessage message) {
         Drone drone = getDrone(message.getDroneId());
         Fleet fleet = Fleet.getFleet();
@@ -382,7 +351,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                     dronePool.add(message.getDroneId());
                 }
                 SchedulerEvent event = new DroneAddedMessage(drone.getId(),success);
-                self().tell(new PublishMessage(event),ActorRef.noSender());
+                self().tell(new SchedulerPublishMessage(event),ActorRef.noSender());
             }
         };
         // Create a commander for this drone
@@ -396,7 +365,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                         pingFuture.onComplete(pingComplete,executor);
                     }else{
                         SchedulerEvent event = new DroneAddedMessage(drone.getId(),false);
-                        self().tell(new PublishMessage(event), ActorRef.noSender());
+                        self().tell(new SchedulerPublishMessage(event), ActorRef.noSender());
                     }
                 }
             };
@@ -405,10 +374,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
-    /**
-     * Remove a drone from the drone pool or flights in progress.
-     * @param message containing the drone id
-     */
+    @Override
     protected void removeDrone(RemoveDroneMessage message) {
         long droneId = message.getDroneId();
         if (dronePool.contains(droneId)) {
