@@ -90,7 +90,7 @@ public class SimplePilotTest extends TestSuperclass {
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue(d < 1);
+                    assertTrue("Check dronelocation",d < 50);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -98,7 +98,7 @@ public class SimplePilotTest extends TestSuperclass {
                 //check if landed
                 try {
                     FlyingState flyingState = Await.result(dc.getFlyingState(), MAX_DURATION_MESSAGE);
-                    assertTrue(flyingState == FlyingState.LANDED);
+                    assertTrue("Check drone status",flyingState == FlyingState.LANDED);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
