@@ -42,7 +42,7 @@ public class PilotingStateHandler extends CommandProcessor {
         float roll = it.getFloat(FrameHelper.BYTE_ORDER);
         float pitch = it.getFloat(FrameHelper.BYTE_ORDER);
         float yaw = it.getFloat(FrameHelper.BYTE_ORDER);
-        return new AttitudeChangedMessage(roll, pitch, yaw);
+        return new RotationChangedMessage(roll, pitch, yaw);
     }
 
     private static Object speedChanged(Packet p) {

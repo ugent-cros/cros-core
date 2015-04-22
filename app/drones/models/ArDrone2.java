@@ -17,7 +17,7 @@ import java.io.Serializable;
 /**
  * Created by brecht on 3/9/15.
  */
-public class ArDrone2 extends DroneActor {
+public class ArDrone2 extends NavigatedDroneActor {
 
     private ActorRef protocol;
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -32,6 +32,12 @@ public class ArDrone2 extends DroneActor {
         this.ip = ip;
         this.indoor = indoor;
         this.hull = hull;
+    }
+
+    @Override
+    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
+        return new LocationNavigator(currentLocation, goal,
+                2f, 30f, 1f);
     }
 
     @Override
@@ -86,16 +92,6 @@ public class ArDrone2 extends DroneActor {
     }
 
     @Override
-    protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
-        p.failure(new DroneException(NOT_IMPLEMENTED));
-    }
-
-    @Override
-    protected void cancelMoveToLocation(Promise<Void> p) {
-        p.failure(new DroneException(NOT_IMPLEMENTED));
-    }
-
-    @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
         sendCommand(p, new SetMaxHeightCommand(meters));
     }
@@ -125,6 +121,11 @@ public class ArDrone2 extends DroneActor {
         sendCommand(p, new ResetCommand());
     }
 
+    @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
     private void sendCommand(Promise<Void> p, Serializable command) {
         if (sendMessage(command)) {
             p.success(null);
@@ -137,13 +138,6 @@ public class ArDrone2 extends DroneActor {
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
                 match(InitCompletedMessage.class, s -> handleInitCompletedResponse());
-    }
-
-    @Override
-    protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
-        return new LocationNavigator(currentLocation, goal,
-                2f, 60f, 1f); // TODO: adjust: send adjustments to the drone
-        // Max: 2f, 350f, ?, 2f // See ARDrone developer guide
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {

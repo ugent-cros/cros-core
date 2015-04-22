@@ -3,6 +3,7 @@ package drones.util.ardrone3;
 import akka.util.ByteStringBuilder;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
+import drones.models.FlipType;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
 import org.apache.commons.lang3.CharSet;
@@ -133,5 +134,26 @@ public class PacketCreator {
         b.putByte((byte)0);
 
         return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.COMMON.getVal(), (short)2, b.result());
+    }
+
+    private static int getFlipNum(FlipType type){
+        switch(type){
+            case FRONT:
+                return 0;
+            case BACK:
+                return 1;
+            case RIGHT:
+                return 2;
+            case LEFT:
+                return 3;
+            default:
+                throw new IllegalArgumentException("fliptype");
+        }
+    }
+
+    public static Packet createFlipPacket(FlipType flip){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putInt(getFlipNum(flip), FrameHelper.BYTE_ORDER);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.ANIMATIONS.getVal(), (short)0, b.result());
     }
 }

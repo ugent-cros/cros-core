@@ -22,7 +22,7 @@ public class SimulatorDriver implements DroneDriver {
     public Location startLocation = STERRE;
     public double maxHeight = 0;
     public double angleWrtEquator = Math.PI/2;  // Facing north by default
-    public double topSpeed = 1;     // m/s
+    public double topSpeed = 10;     // m/s
 
     @Override
     public Set<DroneType> supportedTypes() {

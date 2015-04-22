@@ -45,8 +45,18 @@ public class QueryHelper {
                 case "total" :
                     break;
                 default :
-                    if (model.findValue(e.getKey()) != null)
-                        exp.contains(e.getKey(), e.getValue()[0]);
+                    if (model.findValue(e.getKey()) != null && e.getValue()[0].length() != 0) {
+                        try {
+                            Class fieldType = clazz.getDeclaredField(e.getKey()).getType();
+                            String value = e.getValue()[0];
+                            if (fieldType == String.class)
+                                exp.contains(e.getKey(), value);
+                            else
+                                exp.eq(e.getKey(), value);
+                        } catch (NoSuchFieldException e1) {
+                            // ignore unknown properties
+                        }
+                    }
             }
         });
 
