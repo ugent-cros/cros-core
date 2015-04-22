@@ -81,14 +81,9 @@ public class SimpleScheduler extends Scheduler {
         Drone drone = Drone.FIND.byId(droneId);
         Fleet fleet = Fleet.getFleet();
         if (fleet.hasCommander(drone)) {
-            // Cancel all movement... and land.
+            // Land immediately
             DroneCommander commander = fleet.getCommanderForDrone(drone);
-            commander.cancelMoveToLocation().onComplete(new OnComplete<Void>() {
-                @Override
-                public void onComplete(Throwable failure, Void success) throws Throwable {
-                    commander.land();
-                }
-            }, getContext().dispatcher());
+            commander.land();
         }
 
         // Update drone
