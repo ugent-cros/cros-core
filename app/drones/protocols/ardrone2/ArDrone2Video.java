@@ -33,6 +33,8 @@ public class ArDrone2Video extends UntypedActor {
          * Following code is not the best use case for Akka. At the moment we haven't found a workaround to remove the *
          * used inputstream (Xuggler seems only to work well this way). Other h264 decoders aren't able to do what we  *
          * want.                                                                                                       *
+         *                                                                                                             *
+         * See: https://github.com/MahatmaX/YADrone/issues/15                                                          *
          **************************************************************************************************************/
         try (Socket skt = new Socket(details.getIp(), DefaultPorts.VIDEO_DATA.getPort())) {
             InputStream is = skt.getInputStream();

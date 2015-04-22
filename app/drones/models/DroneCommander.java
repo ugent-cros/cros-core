@@ -158,6 +158,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> flip(FlipType type) {
+        return ask(droneActor, new FlipRequestMessage(type), TIMEOUT).map(new Mapper<Object, Void>() {
+            public Void apply(Object s) {
+                return null;
+            }
+        }, Akka.system().dispatcher());
+    }
+
+    @Override
     public Future<FlyingState> getFlyingState() {
         return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
             public FlyingState apply(Object s) {

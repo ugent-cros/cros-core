@@ -19,7 +19,7 @@ import java.io.Serializable;
 /**
  * Created by Cedric on 3/8/2015.
  */
-public class Bepop extends DroneActor {
+public class Bepop extends NavigatedDroneActor {
 
     private ActorRef protocol;
     private ActorRef discoveryProtocol;
@@ -29,8 +29,6 @@ public class Bepop extends DroneActor {
     private final boolean hull;
 
     private final Object lock = new Object();
-
-    private int homeLocationSum = 0; // check to store latest requested home location
 
     private Promise<Void> initPromise;
 
@@ -47,8 +45,7 @@ public class Bepop extends DroneActor {
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse).
-                match(HomeChangedMessage.class, this::handleHomeChangedResponse);
+                match(DroneDiscoveredMessage.class, this::handleDroneDiscoveryResponse);
     }
 
     @Override
@@ -91,6 +88,7 @@ public class Bepop extends DroneActor {
         sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
         sendMessage(new SetOutdoorCommand(!indoor));
         sendMessage(new SetHullCommand(hull));
+        sendMessage(new SetMaxHeightCommand(5)); //TODO: when rebooting commander, do not override these again
         sendMessage(new SetMaxTiltCommand(60f)); //default max tilt to 60 degrees
         sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
         sendMessage(new SetDateCommand(DateTime.now()));
@@ -151,45 +149,6 @@ public class Bepop extends DroneActor {
         }
     }
 
-    private void handleHomeChangedResponse(HomeChangedMessage msg){
-        int check = getLocationHashcode(msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
-        if(check == homeLocationSum){
-            //TODO: enable this message for actual movement
-            sendMessage(new NavigateHomeCommand(true));
-            log.info("Issueing navigate home command.");
-            //log.warning("MOVE TO LOCATION MESSAGE DISABLED FOR TESTING. ENABLE ME WHEN NECESSARY");
-        } else {
-            log.debug("Home location changed to non-requested value (ignoring) (lat=[{}], lon=[{}], alt=[{}]), hash=[{}]",
-                    msg.getLatitude(), msg.getLongitude(), msg.getAltitude(), check);
-        }
-    }
-
-    private static int getLocationHashcode(double lat, double lon, double alt){
-        return Double.valueOf(lat).hashCode() ^ Double.valueOf(lon).hashCode() ^ Double.valueOf(alt).hashCode();
-    }
-
-    @Override
-    protected void moveToLocation(Promise<Void> p, double latitude, double longitude, double altitude) {
-        if(indoor) {
-            p.failure(new DroneException("Cannot move to location indoor."));
-        } else {
-            if(sendMessage(new SetHomeCommand(latitude, longitude, altitude))){
-                // Now we have to wait for home location set
-                homeLocationSum = getLocationHashcode(latitude, longitude, altitude);
-                p.success(null);
-            } else {
-                p.failure(new DroneException("Failed to send command. Not initialized yet."));
-            }
-        }
-    }
-
-    @Override
-    protected void cancelMoveToLocation(Promise<Void> p) {
-        if(sendMessage(new NavigateHomeCommand(false))){
-            p.success(null);
-        }
-    }
-
     @Override
     protected void setMaxHeight(Promise<Void> p, float meters) {
         if(sendMessage(new SetMaxHeightCommand(meters))){
@@ -241,7 +200,16 @@ public class Bepop extends DroneActor {
     }
 
     @Override
+    protected void flip(Promise<Void> p, FlipType type) {
+        if(sendMessage(new FlipCommand(type))){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
-        p.failure(new DroneException("Not implemented"));
+        land(p);
     }
 }

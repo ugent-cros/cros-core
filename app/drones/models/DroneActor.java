@@ -28,7 +28,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<AlertState> alertState;
     protected LazyProperty<Location> location;
     protected LazyProperty<Byte> batteryPercentage;
-    protected LazyProperty<Void> flatTrimStatus;
+    protected LazyProperty<Boolean> flatTrimStatus;
     protected LazyProperty<Rotation> rotation;
     protected LazyProperty<Speed> speed;
     protected LazyProperty<Double> altitude;
@@ -42,10 +42,6 @@ public abstract class DroneActor extends AbstractActor {
 
     protected DroneEventBus eventBus;
 
-    // Navigation
-    private LocationNavigator navigator;
-    private final Object navigationLock;
-
     private boolean loaded = false;
     private boolean loading = false;
 
@@ -53,12 +49,11 @@ public abstract class DroneActor extends AbstractActor {
 
     public DroneActor() {
         eventBus = new DroneEventBus(self());
-        navigationLock = new Object();
 
         batteryPercentage = new LazyProperty<>();
         state = new LazyProperty<>(FlyingState.LANDED); //TODO: check assumption of connecting in-flight
         alertState = new LazyProperty<>(AlertState.NONE);
-        flatTrimStatus = new LazyProperty<>();
+        flatTrimStatus = new LazyProperty<>(false);
         location = new LazyProperty<>();
         rotation = new LazyProperty<>();
         speed = new LazyProperty<>();
@@ -71,8 +66,6 @@ public abstract class DroneActor extends AbstractActor {
         calibrationRequired = new LazyProperty<>(false);
         image = new LazyProperty<>();
 
-        navigator = createNavigator(null, null);
-
         // TODO: build pipeline that directly forwards to the eventbus
         //TODO: revert quickfix and support null
         UnitPFBuilder<Object> extraListeners = createListeners();
@@ -83,7 +76,7 @@ public abstract class DroneActor extends AbstractActor {
         }
         receive(extraListeners.
                 // General commands (can be converted to switch as well, depends on embedded data)
-                        match(InitRequestMessage.class, s -> initInternal(sender(), self())).
+                match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
@@ -95,132 +88,112 @@ public abstract class DroneActor extends AbstractActor {
                 match(SetMaxTiltRequestMessage.class, s -> setMaxTiltInternal(sender(), self(), s.getDegrees())).
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
+                match(FlipRequestMessage.class, s -> flipInternal(sender(), self(), s.getFlip())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
                 // Drone -> external
-                match(LocationChangedMessage.class, s -> {
-                    Location l = new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeight());
-                    location.setValue(l);
-                    processLocation(l);
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(GPSFixChangedMessage.class, s -> {
-                    log.info("GPS fix changed: [{}]", s.isFixed());
-
-                    // Publish navigation state to event bus
-                    if (s.isFixed() && !gpsFix.getRawValue()) {
-                        navigationState.setValue(NavigationState.AVAILABLE);
-                        eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.ENABLED)));
-                    } else if (!s.isFixed() && gpsFix.getRawValue()) {
-                        navigationState.setValue(NavigationState.UNAVAILABLE);
-                        eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.CONNECTION_LOST)));
-                    }
-                    gpsFix.setValue(s.isFixed());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(BatteryPercentageChangedMessage.class, s -> {
-                    batteryPercentage.setValue(s.getPercent());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(FlyingStateChangedMessage.class, s -> {
-                    state.setValue(s.getState());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(AlertStateChangedMessage.class, s -> {
-                    alertState.setValue(s.getState());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(FlatTrimChangedMessage.class, s -> {
-                    flatTrimStatus.setValue(null);
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(AttitudeChangedMessage.class, s -> {
-                    Rotation rot = new Rotation(s.getRoll(), s.getPitch(), s.getYaw());
-                    rotation.setValue(rot);
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(AltitudeChangedMessage.class, s -> {
-                    altitude.setValue(s.getAltitude());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(SpeedChangedMessage.class, s -> {
-                    speed.setValue(new Speed(s.getSpeedX(), s.getSpeedY(), s.getSpeedZ()));
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(ProductVersionChangedMessage.class, s -> {
-                    version.setValue(new DroneVersion(s.getSoftware(), s.getHardware()));
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(JPEGFrameMessage.class, s -> {
-                    image.setValue(s.getImageData());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(NavigationStateChangedMessage.class, s -> {
-                    // This was generated by protocol previously, but uses internal LocationNavigator now
-
-                    //navigationState.setValue(s.getState());
-                    //navigationStateReason.setValue(s.getReason());
-                    //eventBus.publish(new DroneEventMessage(s));
-                }).
-                match(MagnetoCalibrationStateChangedMessage.class, s -> {
-                    calibrationRequired.setValue(s.isCalibrationRequired());
-                    eventBus.publish(new DroneEventMessage(s));
-                    if(s.isCalibrationRequired())
-                        log.warning("Drone requires calibration!!!");
-                    else
-                        log.info("No drone calibration required.");
-                }).
-                match(ConnectionStatusChangedMessage.class, s -> {
-                    if (!s.isConnected()) {
-                        log.warning("Drone network became unreachable.");
-                    } else {
-                        log.info("Drone network became reachable.");
-                    }
-                    isOnline.setValue(s.isConnected());
-                    eventBus.publish(new DroneEventMessage(s));
-                }).
+                match(LocationChangedMessage.class, s -> setLocation(new Location(s.getLatitude(), s.getLongitude(), s.getGpsHeight()))).
+                match(GPSFixChangedMessage.class, s -> setGPSFix(s.isFixed())).
+                match(BatteryPercentageChangedMessage.class, s -> setBatteryPercentage(s.getPercent())).
+                match(FlyingStateChangedMessage.class, s -> setFlyingState(s.getState())).
+                match(AlertStateChangedMessage.class, s -> setAlertState(s.getState())).
+                match(FlatTrimChangedMessage.class, s -> setFlatTrim(true)).
+                match(RotationChangedMessage.class, s -> setRotation(new Rotation(s.getRoll(), s.getPitch(), s.getYaw()))).
+                match(AltitudeChangedMessage.class, s -> setAltitude(s.getAltitude())).
+                match(SpeedChangedMessage.class, s -> setSpeed(new Speed(s.getSpeedX(), s.getSpeedY(), s.getSpeedZ()))).
+                match(ProductVersionChangedMessage.class, s -> setProductVersion(new DroneVersion(s.getSoftware(), s.getHardware()))).
+                match(NavigationStateChangedMessage.class, s -> setNavigationState(s.getState(), s.getReason())).
+                match(MagnetoCalibrationStateChangedMessage.class, s -> setMagnetoCalibrationState(s.isCalibrationRequired())).
+                match(ConnectionStatusChangedMessage.class, s -> setConnectionStatus(s.isConnected())).
+                match(JPEGFrameMessage.class, s -> setJPEGImage(s)).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
     }
 
-    private void processLocation(Location location) {
-        synchronized (navigationLock){
-            if(navigationState.getRawValue() != NavigationState.IN_PROGRESS)
-                return;
+    protected void setLocation(Location l) {
+        location.setValue(l);
+        eventBus.publish(new DroneEventMessage(
+                new LocationChangedMessage(l.getLongitude(), l.getLatitude(), l.getHeight())));
+    }
 
-            // When there's no gps fix, continue
-            if (!gpsFix.getRawValue()) {
-                // Stop navigator
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
-                return;
-            }
+    protected void setGPSFix(boolean fix) {
+        log.info("GPS fix changed: [{}]", fix);
+        gpsFix.setValue(fix);
+        eventBus.publish(new DroneEventMessage(new GPSFixChangedMessage(fix)));
+    }
 
-            // Prefer altitude of non-gps sensor
-            if (altitude.getRawValue() > 0) {
-                location = new Location(location.getLatitude(), location.getLongitude(), altitude.getRawValue());
-            }
+    protected void setFlyingState(FlyingState s) {
+        state.setValue(s);
+        eventBus.publish(new DroneEventMessage(new FlyingStateChangedMessage(s)));
+    }
 
-            MoveCommand cmd = navigator.update(location);
-            if(cmd == null){ // arrived
-                log.info("Navigator finished at location [{}] for goal [{}]", location, navigator.getGoal());
-                navigationState.setValue(NavigationState.AVAILABLE);
-                navigationStateReason.setValue(NavigationStateReason.FINISHED);
-                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
+    protected void setAlertState(AlertState state) {
+        alertState.setValue(state);
+        eventBus.publish(new DroneEventMessage(new AlertStateChangedMessage(state)));
+    }
 
-                navigator.setCurrentLocation(null);
-                navigator.setGoal(null);
-            } else { // execute the movement command
-                Promise<Void> v = Futures.promise();
-                v.future().onFailure(new OnFailure() {
-                    @Override
-                    public void onFailure(Throwable failure) throws Throwable {
-                        log.error(failure, "Failed to issue move command for auto navigation.");
-                    }
-                }, getContext().dispatcher());
-                move3d(v, cmd.getVx(), cmd.getVy(), cmd.getVz(), cmd.getVr());
-            }
+    protected void setFlatTrim(boolean trimmed){
+        flatTrimStatus.setValue(trimmed);
+        eventBus.publish(new DroneEventMessage(new FlatTrimChangedMessage()));
+    }
+
+    protected void setBatteryPercentage(byte percentage) {
+        batteryPercentage.setValue(percentage);
+        eventBus.publish(new DroneEventMessage(new BatteryPercentageChangedMessage(percentage)));
+    }
+
+    protected void setRotation(Rotation rot){
+        rotation.setValue(rot);
+        eventBus.publish(
+                new DroneEventMessage(new RotationChangedMessage(rot.getRoll(), rot.getPitch(), rot.getYaw())));
+    }
+
+    protected void setAltitude(double a){
+        altitude.setValue(a);
+        eventBus.publish(new DroneEventMessage(new AltitudeChangedMessage(a)));
+    }
+
+    protected void setSpeed(Speed s){
+        speed.setValue(s);
+        eventBus.publish(
+                new DroneEventMessage(new SpeedChangedMessage(s.getVx(), s.getVy(), s.getVz())));
+    }
+
+    protected void setProductVersion(DroneVersion v){
+        version.setValue(v);
+        eventBus.publish(new DroneEventMessage(new ProductVersionChangedMessage(v.getSoftware(), v.getHardware())));
+    }
+
+    protected void setNavigationState(NavigationState state, NavigationStateReason reason){
+        navigationState.setValue(state);
+        navigationStateReason.setValue(reason);
+        eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(state, reason)));
+    }
+
+    protected void setMagnetoCalibrationState(boolean calibRequired){
+        calibrationRequired.setValue(calibRequired);
+        eventBus.publish(new DroneEventMessage(new MagnetoCalibrationStateChangedMessage(calibRequired)));
+
+        if (calibRequired)
+            log.warning("Drone requires calibration!!!");
+        else
+            log.info("No drone calibration required.");
+    }
+
+    protected void setConnectionStatus(boolean connected){
+        isOnline.setValue(connected);
+        eventBus.publish(new DroneEventMessage(new ConnectionStatusChangedMessage(connected)));
+
+        if (!connected) {
+            log.warning("Drone network became unreachable.");
+        } else {
+            log.info("Drone network became reachable.");
         }
+    }
+
+    protected void setJPEGImage(JPEGFrameMessage jpegImage) {
+        image.setValue(jpegImage.getImageData());
+        eventBus.publish(new DroneEventMessage(jpegImage));
     }
 
     @Override
@@ -234,7 +207,7 @@ public abstract class DroneActor extends AbstractActor {
     }
 
     private void handleSubscribeMessage(final ActorRef sub, Class[] cl) {
-        for(Class c : cl){
+        for (Class c : cl) {
             eventBus.subscribe(sub, c);
         }
     }
@@ -375,60 +348,24 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
-    private void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self) {
+    protected void cancelMoveToLocationInternal(final ActorRef sender, final ActorRef self) {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
         } else {
             log.info("Cancelling move to location.");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-
-            synchronized (navigationLock){
-                navigationState.setValue(NavigationState.AVAILABLE);
-                navigationStateReason.setValue(NavigationStateReason.FINISHED);
-                eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
-
-                navigator.setGoal(null);
-                navigator.setCurrentLocation(null);
-
-                v.success(null);
-            }
-
-            // Old code:
-            //cancelMoveToLocation(v);
+            cancelMoveToLocation(v);
         }
     }
 
-    private void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg) {
+    protected void moveToLocationInternal(final ActorRef sender, final ActorRef self, final MoveToLocationRequestMessage msg) {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone cannot move when not initialized")), self);
         } else {
             log.info("Navigating to lat=[{}], long=[{}], alt=[{}]", msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
-
-            /*
-            synchronized(navigationLock){
-                if(navigationState.getRawValue() == NavigationState.IN_PROGRESS) {
-                    v.failure(new DroneException("Already navigating to " + navigator.getGoal() + ", abort this first."));
-                } else if(navigationState.getRawValue() == NavigationState.UNAVAILABLE) {
-                    v.failure(new DroneException("Unable to navigate to goal"));
-                }else if(!gpsFix.getRawValue()) {
-                    v.failure(new DroneException("No GPS fix yet."));
-                } else {
-                    navigator.setCurrentLocation(location.getRawValue());
-                    navigator.setGoal(new Location(msg.getLatitude(), msg.getLongitude(), msg.getAltitude()));
-                    // navigator.setNavigationState(NavigationState.IN_PROGRESS);
-
-                    navigationState.setValue(NavigationState.IN_PROGRESS);
-                    navigationStateReason.setValue(NavigationStateReason.REQUESTED);
-                    eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.IN_PROGRESS, NavigationStateReason.REQUESTED)));
-                    v.success(null);
-                }
-            }
-            */
-
-            // Old movetohome code:
             moveToLocation(v, msg.getLatitude(), msg.getLongitude(), msg.getAltitude());
         }
     }
@@ -482,19 +419,9 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
-    private void landInternal(final ActorRef sender, final ActorRef self) {
+    protected void landInternal(final ActorRef sender, final ActorRef self) {
         if (loaded) {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
-
-            // Stop navigating
-            navigator.setGoal(null);
-            navigator.setCurrentLocation(null);
-
-            // @TODO
-            navigationState.setValue(NavigationState.AVAILABLE);
-            navigationStateReason.setValue(NavigationStateReason.FINISHED);
-            eventBus.publish(new DroneEventMessage(new NavigationStateChangedMessage(NavigationState.AVAILABLE, NavigationStateReason.FINISHED)));
-
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             land(v);
@@ -520,6 +447,17 @@ public abstract class DroneActor extends AbstractActor {
             setMaxTilt(v, degrees);
         } else {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Drone not initialized yet")), self);
+        }
+    }
+
+    private void flipInternal(final ActorRef sender, final ActorRef self, FlipType type){
+        if (!loaded || state.getRawValue() == FlyingState.LANDED) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot flip when on ground / not initialized.")), self);
+        } else {
+            log.debug("Attempting flip.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            flip(v, type);
         }
     }
 
@@ -549,7 +487,7 @@ public abstract class DroneActor extends AbstractActor {
 
     protected abstract void reset(Promise<Void> p);
 
-    protected abstract UnitPFBuilder<Object> createListeners();
+    protected abstract void flip(Promise<Void> p, FlipType type);
 
-    protected abstract LocationNavigator createNavigator(Location currentLocation, Location goal);
+    protected abstract UnitPFBuilder<Object> createListeners();
 }

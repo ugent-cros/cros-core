@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by Sander on 5/04/2015.
  */
-@Ignore
 public class SimplePilotTest extends TestSuperclass {
 
     private static final Location STERRE = new Location(51.0226, 3.71, 0);
