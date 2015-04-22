@@ -1,0 +1,52 @@
+Merge branch 'dev' of https://jira-student.atlantis.ugent.be:7443/stash/scm/dpcros/cros-core into feature-ardrone2-imageandvideo
+
+# Conflicts:
+#	app/controllers/Application.java
+#	app/drones/models/DroneActor.java
+#	app/drones/models/DroneControl.java
+#	conf/routes
+#
+# It looks like you may be committing a merge.
+# If this is not correct, please remove the file
+#	.git/MERGE_HEAD
+# and try again.
+
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch feature-ardrone2-imageandvideo
+# Your branch is ahead of 'origin/feature-ardrone2-imageandvideo' by 1 commit.
+#   (use "git push" to publish your local commits)
+#
+# All conflicts fixed but you are still merging.
+#
+# Changes to be committed:
+#	modified:   app/controllers/Application.java
+#	new file:   app/drones/commands/FlipCommand.java
+#	modified:   app/drones/handlers/ardrone3/PilotingStateHandler.java
+#	new file:   app/drones/messages/FlipRequestMessage.java
+#	renamed:    app/drones/messages/AttitudeChangedMessage.java -> app/drones/messages/RotationChangedMessage.java
+#	modified:   app/drones/models/ArDrone2.java
+#	modified:   app/drones/models/Bepop.java
+#	modified:   app/drones/models/DroneActor.java
+#	modified:   app/drones/models/DroneCommander.java
+#	modified:   app/drones/models/DroneControl.java
+#	new file:   app/drones/models/FlipType.java
+#	new file:   app/drones/models/NavigatedDroneActor.java
+#	modified:   app/drones/models/flightcontrol/Pilot.java
+#	modified:   app/drones/models/flightcontrol/SimplePilot.java
+#	modified:   app/drones/protocols/ArDrone3.java
+#	modified:   app/drones/protocols/ardrone2/ArDrone2NavData.java
+#	modified:   app/drones/protocols/ardrone2/ArDrone2Video.java
+#	modified:   app/drones/simulation/BepopSimulator.java
+#	modified:   app/drones/util/ardrone3/PacketCreator.java
+#	modified:   app/utilities/MessageWebSocket.java
+#	modified:   app/utilities/QueryHelper.java
+#	modified:   app/utilities/frontendSimulator/AssignmentSimulator.java
+#	modified:   app/utilities/frontendSimulator/SchedulerSimulator.java
+#	modified:   conf/routes
+#	modified:   test/DroneActorTest.java
+#	modified:   test/SimplePilotTest.java
+#	modified:   test/SimulatorTest.java
+#	modified:   test/TestDroneActor.java
+#

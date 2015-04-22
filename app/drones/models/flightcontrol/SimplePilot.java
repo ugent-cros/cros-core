@@ -2,6 +2,7 @@ package drones.models.flightcontrol;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
@@ -13,6 +14,8 @@ import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.DroneArrivalMessage;
 import models.Checkpoint;
 import models.Drone;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -37,8 +40,8 @@ public class SimplePilot extends Pilot {
     //Range around a evacuation point where the drone should be evacuated.
     private static final int EVACUATION_RANGE = 6;
 
-    boolean waitForTakeOffDone = false;
-    boolean start = false;
+    private boolean waitForTakeOffDone = false;
+    private boolean start = false;
 
     
     /**
@@ -73,8 +76,13 @@ public class SimplePilot extends Pilot {
         if (cruisingAltitude == 0) {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
-        start = true;
-        takeOff();
+        try {
+            Await.ready(dc.setMaxHeight(4), Duration.create(10,"seconds"));
+            start = true;
+            takeOff();
+        } catch (InterruptedException | TimeoutException e) {
+            e.printStackTrace();
+        }
     }
 
     protected void goToNextWaypoint() {
@@ -230,10 +238,17 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void navigationStateChanged(NavigationStateChangedMessage m) {
-        if(start && m.getState() == NavigationState.AVAILABLE && m.getReason() == NavigationStateReason.FINISHED){
-            //TO DO wait at checkpoint
-            actualWaypoint++;
-            goToNextWaypoint();
+        if(start && m.getState() == NavigationState.AVAILABLE){
+            switch (m.getReason()){
+                case FINISHED:
+                    //TO DO wait at checkpoint
+                    actualWaypoint++;
+                    goToNextWaypoint();
+                    break;
+                case STOPPED:
+                    start = false;
+            }
+
         }
     }
 }
