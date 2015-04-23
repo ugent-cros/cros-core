@@ -104,9 +104,9 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     @After
     public void after(){
         // Clean DB
+        Ebean.delete(Assignment.FIND.all());
         Ebean.delete(Drone.FIND.all());
         Ebean.delete(Basestation.FIND.all());
-        Ebean.delete(Assignment.FIND.all());
     }
 
     private Drone addTestDrone(Location location) throws SchedulerException{
@@ -274,7 +274,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @Test
     public void schedule_RemoveDrone_Succeeds() throws SchedulerException{
-        // TODO: waiting for FlightControl to complete this test
         new JavaTestKit(system){
             {
                 Scheduler.subscribe(DroneAddedMessage.class, getRef());
@@ -344,7 +343,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 assignment.delete();
 
                 // Wait a bit
-                expectNoMsg(SHORT_TIMEOUT);
+                expectNoMsg(LONG_TIMEOUT);
                 correctDrone.refresh();
                 Assert.assertTrue("Drone available again",correctDrone.getStatus() == Drone.Status.AVAILABLE);
 
@@ -384,7 +383,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     @Ignore
     @Test
-    public void assignmentCompleted_1Assignment_DroneReturns() throws SchedulerException{
+    public void schedule_Complete_DroneReturns() throws SchedulerException{
         // TODO: waiting for FlightControl to complete this test
         new JavaTestKit(system){
             {

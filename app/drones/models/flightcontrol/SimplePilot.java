@@ -107,6 +107,7 @@ public class SimplePilot extends Pilot {
                 @Override
                 public void onSuccess(Void result) throws Throwable {
                     start = false;
+                    reporterRef.tell(new FlightCompletedMessage(droneId,actualLocation),self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -254,15 +255,16 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        try {
-            Await.ready(dc.land(), Duration.create(120,"seconds"));
-        } catch (Exception e) {
-            e.printStackTrace();
-            //TO DO add exception
+        if (actualWaypoint != waypoints.size()){
+            try {
+                Await.ready(dc.land(), Duration.create(2, "seconds"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                //TO DO add exception
+            }
+            reporterRef.tell(new FlightCanceledMessage(droneId), self());
         }
-        reporterRef.tell(new FlightCanceledMessage(droneId),self());
-
         //stop
-        self().tell(PoisonPill.getInstance(),self());
+        self().tell(PoisonPill.getInstance(), self());
     }
 }

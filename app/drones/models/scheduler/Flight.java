@@ -8,20 +8,24 @@ import akka.actor.ActorRef;
 public class Flight {
 
     public static final long NO_ASSIGNMENT_ID = -1;
-    public static final long RETURN_HOME = -2;
 
     private long droneId;
     private long assignmentId;
     private ActorRef flightControl;
-
-    public Flight(long droneId, ActorRef flightControl) {
-        this(droneId, NO_ASSIGNMENT_ID, flightControl);
-    }
+    private Type type;
 
     public Flight(long droneId, long assignmentId, ActorRef flightControl) {
         this.droneId = droneId;
         this.assignmentId = assignmentId;
         this.flightControl = flightControl;
+        this.type = Type.ASSIGNMENT;
+    }
+
+    public Flight(long droneId, ActorRef flightControl){
+        this.droneId = droneId;
+        this.assignmentId = NO_ASSIGNMENT_ID;
+        this.flightControl = flightControl;
+        this.type = Type.RETURN;
     }
 
     public Long getDroneId() {
@@ -34,5 +38,14 @@ public class Flight {
 
     public ActorRef getFlightControl() {
         return flightControl;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public enum Type{
+        ASSIGNMENT,
+        RETURN;
     }
 }

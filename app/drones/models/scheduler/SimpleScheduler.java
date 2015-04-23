@@ -112,7 +112,7 @@ public class SimpleScheduler extends Scheduler {
     protected void unassign(Drone drone, Assignment assignment) {
         // Update drone
         if (drone.getStatus() == Drone.Status.FLYING) {
-            // Set state available again if possible
+            // Only previous state was flying
             drone.setStatus(Drone.Status.AVAILABLE);
             drone.update();
         }
@@ -188,19 +188,17 @@ public class SimpleScheduler extends Scheduler {
         // Fetch 'count' first assignments with progress = 0, ordered by Id
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("progress", 0);
-        query.orderBy("id");
+        query.where().eq("scheduled",false);
         List<Assignment> assignments = query.findList();
 
-        // Add assignments to the queue and update them
+        // Add to queue and set scheduled
         for (Assignment assignment : assignments) {
             queue.add(assignment);
-            // Progress = 1 means assignment is added to scheduler queue
-            assignment.setProgress(1);
+            assignment.setScheduled(true);
             assignment.update();
         }
 
-        // Only if added return true
+        // Return true if assignments added
         return !assignments.isEmpty();
     }
 
@@ -234,7 +232,7 @@ public class SimpleScheduler extends Scheduler {
      * @return true if the drone is fitted for assignment
      */
     protected boolean isValidDrone(Drone drone) {
-        // FIND OR CREATE COMMANDER
+        // Create commander
         Fleet fleet = Fleet.getFleet();
         DroneCommander commander = null;
         if(!fleet.hasCommander(drone)) {
@@ -247,26 +245,6 @@ public class SimpleScheduler extends Scheduler {
         }
         else {
             commander = fleet.getCommanderForDrone(drone);
-        }
-
-        if (commander == null) {
-            // Fleet was unable to create a driver
-            drone.setStatus(Drone.Status.MISSING_DRIVER);
-            drone.update();
-            return false;
-        }
-
-        // INITIALIZE COMMANDER
-        // TODO: Move the commander init to somewhere else
-        if (!commander.isInitialized()) {
-            try {
-                Await.result(commander.init(), TIMEOUT);
-            } catch (Exception ex) {
-                log.warning("[SimpleScheduler] Failed to initialize commander.");
-                drone.setStatus(Drone.Status.UNREACHABLE);
-                drone.update();
-                return false;
-            }
         }
 
         // BATTERY CHECK
@@ -299,7 +277,7 @@ public class SimpleScheduler extends Scheduler {
 
     @Override
     protected void stop(StopSchedulerMessage message) {
-        log.warning("[SimpleScheduler] Does not care about his anything when stopped.");
+        log.warning("[SimpleScheduler] Does not care about anything when stopped.");
         getContext().stop(self());
     }
 
