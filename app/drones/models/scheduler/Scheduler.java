@@ -9,6 +9,8 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.models.scheduler.messages.from.SchedulerEvent;
 import drones.models.scheduler.messages.from.SchedulerReplyMessage;
+import drones.models.scheduler.messages.from.SubscribedMessage;
+import drones.models.scheduler.messages.from.UnsubscribedMessage;
 import drones.models.scheduler.messages.to.*;
 import models.Assignment;
 import models.Drone;
@@ -187,6 +189,8 @@ public abstract class Scheduler extends AbstractActor {
 
     protected UnitPFBuilder<Object> initReceivers() {
         return ReceiveBuilder
+                .match(SubscribeMessage.class, m -> subscribe(m))
+                .match(UnsubscribeMessage.class, m -> unsubscribe(m))
                 .match(SchedulerRequestMessage.class, m -> reply(m))
                 .match(EmergencyMessage.class, m -> emergency(m))
                 .match(ScheduleMessage.class, m -> schedule(m))
@@ -194,11 +198,18 @@ public abstract class Scheduler extends AbstractActor {
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
                 .match(AddDroneMessage.class, m -> addDrone(m))
                 .match(RemoveDroneMessage.class, m -> removeDrone(m))
-                .match(SchedulerPublishMessage.class, m -> eventBus.publish(m.getEvent()))
-                .match(SubscribeMessage.class, m -> eventBus.subscribe(sender(), m.getEventType()))
-                .match(UnsubscribeMessage.class, m -> eventBus.unsubscribe(sender(), m.getEventType()));
+                .match(SchedulerPublishMessage.class, m -> eventBus.publish(m.getEvent()));
     }
 
+    private void subscribe(SubscribeMessage message){
+        eventBus.subscribe(sender(),message.getEventType());
+        sender().tell(new SubscribedMessage(message.getEventType()),self());
+    }
+
+    private void unsubscribe(UnsubscribeMessage message){
+        eventBus.unsubscribe(sender(), message.getEventType());
+        sender().tell(new UnsubscribedMessage(message.getEventType()),self());
+    }
 
     private void reply(SchedulerRequestMessage message){
         eventBus.publish(new SchedulerReplyMessage(message.getRequestId()));

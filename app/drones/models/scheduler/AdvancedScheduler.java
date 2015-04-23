@@ -136,7 +136,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 //There is no drone suited for this assignment
                 unassigned.add(assignment);
             }else{
-                assign(drone,assignment);
+                assign(drone, assignment);
             }
         }
         // Refill the queue.
@@ -195,11 +195,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         // Drone remove request
         if(drone.getStatus() == Drone.Status.DECOMMISSIONED){
-            dronePool.remove(drone);
-            drone.setStatus(Drone.Status.INACTIVE);
-            drone.update();
-            // Publish
-            eventBus.publish(new DroneRemovedMessage(drone.getId()));
+            removeDrone(drone);
         }
     }
 
@@ -356,7 +352,6 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                 self().tell(new SchedulerPublishMessage(event),ActorRef.noSender());
             }
         };
-        // Create a commander for this drone
         if(!fleet.hasCommander(drone)){
             OnComplete<DroneCommander> commanderComplete = new OnComplete<DroneCommander>(){
                 @Override
@@ -371,8 +366,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                     }
                 }
             };
-            Future<DroneCommander> futureCommander = fleet.createCommanderForDrone(drone);
-            futureCommander.onComplete(commanderComplete, executor);
+            // Create commander
+            fleet.createCommanderForDrone(drone).onComplete(commanderComplete, executor);
         }
     }
 
@@ -382,13 +377,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         if (dronePool.contains(droneId)) {
             // Drone present in drone pool is safe to remove.
             dronePool.remove(droneId);
-            // Update drone status
             Drone drone = getDrone(droneId);
-            drone.setStatus(Drone.Status.INACTIVE);
-            drone.update();
-            // Tell the world we successfully removed a drone from the drone pool.
-            eventBus.publish(new DroneRemovedMessage(droneId));
-            return;
+            removeDrone(drone);
         }
         if (flights.containsKey(droneId)) {
             // Drone is busy with assignment, so cancel the flight.
@@ -400,6 +390,18 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             // Send the drone home
             returnHome(drone);
         }
+    }
+
+    protected void removeDrone(Drone drone){
+        // TODO: Stop drone commander
+        // Fleet.getFleet().destroyCommander(drone);
+
+        // Update status
+        drone.setStatus(Drone.Status.INACTIVE);
+        drone.update();
+        // Publish
+        eventBus.publish(new DroneRemovedMessage(drone.getId()));
+        return;
     }
 
     /**
