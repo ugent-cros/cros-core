@@ -455,6 +455,10 @@ public class BepopSimulator extends NavigatedDroneActor {
                 // Hover drone before landing again
                 setFlyingState(FlyingState.HOVERING);
                 // Fall-through
+            case FLYING:
+                // Cancel movement
+                move3d(Futures.promise(), 0, 0, 0, 0);
+                // Fall-through
             case HOVERING:
                 setFlyingState(FlyingState.LANDING);
                 // Fall-through
