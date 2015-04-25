@@ -3,30 +3,38 @@ package utilities;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.JPEGFrameMessage;
+import drones.models.DroneCommander;
 import drones.models.Fleet;
-import play.Logger;
+import models.Drone;
 import play.libs.Json;
 
 /**
  * Created by brecht on 4/20/15.
  */
 public class VideoWebSocket extends AbstractActor {
+    protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public static Props props(ActorRef out) {
-        return Props.create(VideoWebSocket.class, out);
+    public static Props props(ActorRef out, long droneID) {
+        return Props.create(VideoWebSocket.class, out, droneID);
     }
 
     private final ActorRef out;
 
-    public VideoWebSocket(final ActorRef out) {
+    public VideoWebSocket(final ActorRef out, long droneID) {
         this.out = out;
 
-        ReceiveBuilder.match(JPEGFrameMessage.class, s -> handleJPEGFrameMessage(s))
-                .matchAny(s -> Logger.debug("[videosocket] unkown message type..."));;
+        Drone drone = Drone.FIND.byId(droneID);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        d.subscribeTopic(self(), JPEGFrameMessage.class);
 
+        receive(ReceiveBuilder.match(JPEGFrameMessage.class, s -> handleJPEGFrameMessage(s)).build());
+
+        log.info("[VIDEOSOCKET] Started (for ID: {})", droneID);
     }
 
     private void handleJPEGFrameMessage(JPEGFrameMessage s) {

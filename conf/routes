@@ -22,7 +22,7 @@ GET            /moveTo                               controllers.Application.mov
 GET            /move                                 controllers.Application.moveVector(vx: Double, vy: Double, vz: Double, vr: Double, id: Long)
 GET            /setMaxHeight                         controllers.Application.setMaxHeight(meters: Float, id: Long)
 GET            /image                                controllers.Application.getImage(id: Long)
-GET             /flip                               controllers.Application.flip(id: Long, flip: String)
+GET            /flip                                 controllers.Application.flip(id: Long, flip: String)
 
 GET            /takeoff                              controllers.Application.takeOff(id: Long)
 GET            /land                                 controllers.Application.land(id: Long)
@@ -30,7 +30,8 @@ GET            /subscribe                            controllers.Application.sub
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
 GET            /socket                               controllers.Application.socket()
-GET            /videosocket                          controllers.Application.videoSocket(id: Long)
+GET            /videoSocket                          controllers.Application.videoSocket(id: Long)
+GET            /videoTestSocket                      controllers.Application.videoTestSocket(id: Long)
 
 
 # Drone REST calls

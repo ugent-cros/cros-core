@@ -2,10 +2,12 @@ package controllers;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
+import drones.messages.JPEGFrameMessage;
 import drones.models.*;
 import models.Assignment;
 import models.Basestation;
@@ -163,10 +165,20 @@ public class Application extends Controller {
 
         User u = models.User.findByAuthToken(tokens[0]);
         if (u != null) {
-            return WebSocket.withActor(VideoWebSocket::props);
+            return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
         } else {
             return WebSocket.reject(unauthorized());
         }
+    }
+
+    /**
+     * @TODO remove
+     *
+     * @param id
+     * @return
+     */
+    public static WebSocket<String> videoTestSocket(long id) {
+        return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
     }
 
     public static Result unsubscribeMonitor(long id){
@@ -174,7 +186,7 @@ public class Application extends Controller {
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
 
         try {
-            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
+            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneVideoMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
                     new Timeout(5, TimeUnit.SECONDS).duration());
 
             d.unsubscribe(r);
