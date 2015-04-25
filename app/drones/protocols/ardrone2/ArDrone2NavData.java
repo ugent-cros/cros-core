@@ -110,7 +110,6 @@ public class ArDrone2NavData extends UntypedActor {
 
     private void processData(byte[] navdata) {
         if(navdata.length >= MIN_SIZE) { // Otherwise this will crash
-            //boolean gpsAvailable = false;
             int offset = 0;
 
             int header = PacketHelper.getInt(navdata, offset);
@@ -135,7 +134,6 @@ public class ArDrone2NavData extends UntypedActor {
                 }
 
                 if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
-                    //log.info("Parsing demo data");
                     parseDemoData(navdata);
                 } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
                     parseGPSData(navdata, offset);
@@ -144,9 +142,6 @@ public class ArDrone2NavData extends UntypedActor {
                 offset += optionLen - 4;
 
             }
-
-            //Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
-            //listener.tell(gpsFixMessage, getSelf());
         } else {
             log.info("Packet doesn't contain data");
             parent.tell(new InitNavDataMessage(), getSelf());
@@ -251,7 +246,6 @@ public class ArDrone2NavData extends UntypedActor {
     private FlyingState parseCtrlState(int state) {
         switch(state) {
             case 2:
-                //log.info("Landed");
                 return FlyingState.LANDED;
             case 3:
                 log.info("Flying");
