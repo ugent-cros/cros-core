@@ -50,6 +50,8 @@ public class ArDrone2Video extends UntypedActor {
          * want.                                                                                                       *
          *                                                                                                             *
          * See: https://github.com/MahatmaX/YADrone/issues/15 for a discussion on different decoders                   *
+         *  (The videostream from the ardrone2 contains a  proprietary header (PaVE). This header cannot be handled by *
+         *   every decoder.)                                                                                           *
          **************************************************************************************************************/
         try (Socket skt = new Socket(details.getIp(), DefaultPorts.VIDEO_DATA.getPort())) {
             log.info("[ARDRONE2VIDEO] Starting ARDrone 2.0 Video");
