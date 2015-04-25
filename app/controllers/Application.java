@@ -2,18 +2,15 @@ package controllers;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.Logging;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.BatteryPercentageChangedMessage;
-import drones.messages.JPEGFrameMessage;
 import drones.models.*;
 import models.Assignment;
 import models.Basestation;
 import models.Drone;
 import models.User;
-import play.api.libs.iteratee.Concurrent;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
