@@ -9,10 +9,18 @@ public class JPEGFrameMessage implements Serializable {
 
     private String imageData;
 
+    /**
+     *
+     * @param imageData The image data as a base 64 string
+     */
     public JPEGFrameMessage(String imageData) {
         this.imageData = imageData;
     }
 
+    /**
+     *
+     * @return The image data as a base 64 string
+     */
     public String getImageData() {
         return imageData;
     }
