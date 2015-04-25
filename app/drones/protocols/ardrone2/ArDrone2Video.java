@@ -11,7 +11,6 @@ import drones.messages.JPEGFrameMessage;
 import drones.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -23,9 +22,6 @@ import java.util.Base64;
  */
 public class ArDrone2Video extends UntypedActor {
 
-    private static final int IMAGE_WIDTH = 640;
-    private static final int IMAGE_HEIGHT = 360;
-
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final ActorRef listener;
     private final ActorRef parent;
@@ -34,13 +30,11 @@ public class ArDrone2Video extends UntypedActor {
     private IContainer container;
     private IConverter converter;
     private IStreamCoder videoCoder;
+    private IVideoPicture toConvert;
     private IVideoResampler resampler;
     private IPacket packet;
     private int videoStreamId;
     private int numStreams;
-    private BufferedImage bufferedImage;
-
-
 
     public ArDrone2Video(DroneConnectionDetails details, final ActorRef listener, final ActorRef parent) {
         // ArDrone 2 Model
@@ -93,6 +87,7 @@ public class ArDrone2Video extends UntypedActor {
 
                         if (picture.isComplete()) {
                             IVideoPicture newPic = picture;
+                            toConvert = picture;
 
                             if (resampler != null) {
                                 newPic = IVideoPicture.make(resampler.getOutputPixelFormat(), picture.getWidth(), picture.getHeight());
@@ -107,7 +102,7 @@ public class ArDrone2Video extends UntypedActor {
 
                             // http://stackoverflow.com/questions/7178937/java-bufferedimage-to-png-format-base64-string
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            ImageIO.write(Utils.videoPictureToImage(newPic), "JPEG", Base64.getEncoder().wrap(bos)); // @TODO
+                            ImageIO.write(converter.toImage(picture), "JPEG", Base64.getEncoder().wrap(bos)); 
                             String imageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
@@ -178,6 +173,8 @@ public class ArDrone2Video extends UntypedActor {
         }
 
         packet = IPacket.make();
+
+        converter = ConverterFactory.createConverter(ConverterFactory.XUGGLER_BGR_24, IPixelFormat.Type.YUV420P, 640, 360);
     }
 
     private void closeDecoder() {
