@@ -27,9 +27,11 @@ public class MessageWebSocket extends AbstractActor {
     private final ActorRef out;
 
     private static final List<F.Tuple<Class, String>> TYPENAMES;
+    private static final List<Class> IGNORETYPES;
 
     static {
         TYPENAMES = new ArrayList<>();
+        IGNORETYPES = new ArrayList<>();
 
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
@@ -38,6 +40,9 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
         TYPENAMES.add(new F.Tuple<>(AssignmentProgressChangedMessage.class, "assignmentProgressChanged"));
         TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
+
+        IGNORETYPES.add(FlyingStateChangedMessage.class);
+        IGNORETYPES.add(NavigationStateChangedMessage.class);
     }
 
     public MessageWebSocket(final ActorRef out) {
@@ -62,6 +67,9 @@ public class MessageWebSocket extends AbstractActor {
                 out.tell(node.toString(), self());
             });
         }
+
+        for (int i = 0; i < IGNORETYPES.size(); ++i)
+            builder = builder.match(IGNORETYPES.get(i), s -> {});
 
         builder = builder.matchAny(o -> Logger.debug("[websocket] Unkown message type..." + o.getClass().getName()));
 

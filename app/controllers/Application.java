@@ -76,7 +76,7 @@ public class Application extends Controller {
 
         List<User> users = new ArrayList<>();
         users.add(new User("cros@test.be", "freddy", "cros", "tester"));
-        users.add(new User("admin@drone-drinks.be", "drones", "first", "last"));
+        users.add(new User("admin@drone-drinks.be", "drones123", "first", "last"));
         users.add(new User("teachingstaff@cros.be", "ugent", "teaching", "staff"));
         users.get(0).setRole(User.Role.ADMIN);
         users.get(1).setRole(User.Role.USER);

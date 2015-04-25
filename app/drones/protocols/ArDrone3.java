@@ -390,7 +390,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(RequestStatusCommand.class, s -> requestStatus())
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
-                    .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVz()))
+                    .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVr()))
                     .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
                     .match(SetTimeCommand.class, s -> setTime(s.getTime()))

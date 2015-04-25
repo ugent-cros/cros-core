@@ -51,6 +51,7 @@ public abstract class Pilot extends FlightControl{
         //subscribe to messages
         dc.subscribeTopic(self(), FlyingStateChangedMessage.class);
         dc.subscribeTopic(self(), LocationChangedMessage.class);
+        dc.subscribeTopic(self(), NavigationStateChangedMessage.class);
     }
 
     @Override
@@ -58,7 +59,8 @@ public abstract class Pilot extends FlightControl{
         return ReceiveBuilder.
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
-                match(LocationChangedMessage.class, s -> locationChanged(s));
+                match(LocationChangedMessage.class, s -> locationChanged(s)).
+                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s));
     }
 
     private void setCruisingAltitude(SetCruisingAltitudeMessage s){
@@ -69,4 +71,5 @@ public abstract class Pilot extends FlightControl{
 
     protected abstract void locationChanged(LocationChangedMessage m);
 
+    protected abstract void navigationStateChanged(NavigationStateChangedMessage m);
 }
