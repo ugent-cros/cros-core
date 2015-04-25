@@ -5,10 +5,13 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.xuggle.xuggler.*;
+import com.xuggle.xuggler.video.ConverterFactory;
+import com.xuggle.xuggler.video.IConverter;
 import drones.messages.JPEGFrameMessage;
 import drones.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -20,9 +23,24 @@ import java.util.Base64;
  */
 public class ArDrone2Video extends UntypedActor {
 
+    private static final int IMAGE_WIDTH = 640;
+    private static final int IMAGE_HEIGHT = 360;
+
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final ActorRef listener;
     private final ActorRef parent;
+
+    // Xuggler variables
+    private IContainer container;
+    private IConverter converter;
+    private IStreamCoder videoCoder;
+    private IVideoResampler resampler;
+    private IPacket packet;
+    private int videoStreamId;
+    private int numStreams;
+    private BufferedImage bufferedImage;
+
+
 
     public ArDrone2Video(DroneConnectionDetails details, final ActorRef listener, final ActorRef parent) {
         // ArDrone 2 Model
@@ -34,18 +52,21 @@ public class ArDrone2Video extends UntypedActor {
          * used inputstream (Xuggler seems only to work well this way). Other h264 decoders aren't able to do what we  *
          * want.                                                                                                       *
          *                                                                                                             *
-         * See: https://github.com/MahatmaX/YADrone/issues/15                                                          *
+         * See: https://github.com/MahatmaX/YADrone/issues/15 for a discussion on different decoders                   *
          **************************************************************************************************************/
         try (Socket skt = new Socket(details.getIp(), DefaultPorts.VIDEO_DATA.getPort())) {
-            InputStream is = skt.getInputStream();
-            decode(is);
+            log.info("[ARDRONE2VIDEO] Starting ARDrone 2.0 Video");
+
+            initDecoder(skt.getInputStream());
+            decode();
+            closeDecoder();
         } catch (UnknownHostException e) {
             log.error(e.getMessage());
         } catch (IOException e) {
             log.error(e.getMessage());
+        } catch (XugglerException e) {
+            log.error(e.getMessage());
         }
-
-        log.info("[ARDRONE2VIDEO] Starting ARDrone 2.0 Video");
     }
 
     @Override
@@ -55,62 +76,18 @@ public class ArDrone2Video extends UntypedActor {
 
     /**
      * See: https://github.com/MahatmaX/YADrone/blob/master/YADrone/src/de/yadrone/base/video/xuggler/XugglerDecoder.java
-     * @param is
      */
-    public void decode(InputStream is) {
-        if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION)) {
-            throw new RuntimeException("you must install the GPL version of Xuggler (with IVideoResampler support) for this to work");
-        }
-
-        IContainer container = IContainer.make();
-
-        if (container.open(is, null) < 0) {
-            throw new IllegalArgumentException("could not open inpustream");
-        }
-
-        int numStreams = container.getNumStreams();
-
-        int videoStreamId = -1;
-        IStreamCoder videoCoder = null;
-        for (int i = 0; i < numStreams; i++)
-        {
-            IStream stream = container.getStream(i);
-            IStreamCoder coder = stream.getStreamCoder();
-
-            if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
-            {
-                videoStreamId = i;
-                videoCoder = coder;
-                break;
-            }
-        }
-        if (videoStreamId == -1) {
-            throw new RuntimeException("could not find video stream");
-        }
-
-        if (videoCoder.open() < 0) {
-            throw new RuntimeException("could not open video decoder for container");
-        }
-
-        IVideoResampler resampler = null;
-        if (videoCoder.getPixelType() != IPixelFormat.Type.BGR24) {
-            resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.BGR24, videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
-            if (resampler == null) {
-                throw new RuntimeException("could not create color space resampler.");
-            }
-        }
-
-        IPacket packet = IPacket.make();
-
+    private void decode() {
         while (container.readNextPacket(packet) >= 0) {
             if (packet.getStreamIndex() == videoStreamId) {
-                IVideoPicture picture = IVideoPicture.make(videoCoder.getPixelType(), videoCoder.getWidth(), videoCoder.getHeight());
+                IVideoPicture picture = IVideoPicture.make(videoCoder.getPixelType(),
+                        videoCoder.getWidth(), videoCoder.getHeight());
                 try {
                     int offset = 0;
                     while (offset < packet.getSize()) {
                         int bytesDecoded = videoCoder.decodeVideo(picture, packet, offset);
                         if (bytesDecoded < 0) {
-                            throw new RuntimeException("got an error decoding single video frame");
+                            throw new XugglerException("Got an error decoding single video frame");
                         }
                         offset += bytesDecoded;
 
@@ -120,21 +97,22 @@ public class ArDrone2Video extends UntypedActor {
                             if (resampler != null) {
                                 newPic = IVideoPicture.make(resampler.getOutputPixelFormat(), picture.getWidth(), picture.getHeight());
                                 if (resampler.resample(newPic, picture) < 0) {
-                                    throw new RuntimeException("could not resample video");
+                                    throw new XugglerException("could not resample video");
                                 }
                             }
+
                             if (newPic.getPixelType() != IPixelFormat.Type.BGR24) {
-                                throw new RuntimeException("could not decode video as BGR 24 bit data");
+                                throw new XugglerException("could not decode video as BGR 24 bit data");
                             }
 
                             // http://stackoverflow.com/questions/7178937/java-bufferedimage-to-png-format-base64-string
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            ImageIO.write(Utils.videoPictureToImage(newPic), "JPEG", Base64.getEncoder().wrap(bos));
-                            String ImageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
+                            ImageIO.write(Utils.videoPictureToImage(newPic), "JPEG", Base64.getEncoder().wrap(bos)); // @TODO
+                            String imageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
 
-                            Object imageMessage = new JPEGFrameMessage(ImageB64);
+                            Object imageMessage = new JPEGFrameMessage(imageB64);
                             listener.tell(imageMessage, getSelf());
                         }
                     }
@@ -151,7 +129,58 @@ public class ArDrone2Video extends UntypedActor {
                 break;
             }
         }
+    }
 
+    /**
+     * See: https://github.com/MahatmaX/YADrone/blob/master/YADrone/src/de/yadrone/base/video/xuggler/XugglerDecoder.java
+     */
+    private void initDecoder(InputStream is) throws XugglerException {
+        if (!IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_COLORSPACECONVERSION)) {
+            throw new XugglerException("You must install the GPL version of Xuggler (with IVideoResampler support) for this to work");
+        }
+
+        container = IContainer.make();
+
+        if (container.open(is, null) < 0) {
+            throw new XugglerException("could not open inputstream");
+        }
+
+        numStreams = container.getNumStreams();
+
+        videoStreamId = -1;
+        videoCoder = null;
+        for (int i = 0; i < numStreams; i++)
+        {
+            IStream stream = container.getStream(i);
+            IStreamCoder coder = stream.getStreamCoder();
+
+            if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)
+            {
+                videoStreamId = i;
+                videoCoder = coder;
+                break;
+            }
+        }
+        if (videoStreamId == -1) {
+            throw new XugglerException("could not find video stream");
+        }
+
+        if (videoCoder.open(null, null) < 0) {
+            throw new XugglerException("could not open video decoder for container");
+        }
+
+        resampler = null;
+        if (videoCoder.getPixelType() != IPixelFormat.Type.BGR24) {
+            resampler = IVideoResampler.make(videoCoder.getWidth(), videoCoder.getHeight(), IPixelFormat.Type.BGR24, videoCoder.getWidth(), videoCoder.getHeight(), videoCoder.getPixelType());
+            if (resampler == null) {
+                throw new XugglerException("could not create color space resampler.");
+            }
+        }
+
+        packet = IPacket.make();
+    }
+
+    private void closeDecoder() {
         if (videoCoder != null) {
             videoCoder.close();
         }
