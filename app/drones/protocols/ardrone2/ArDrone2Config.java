@@ -118,6 +118,8 @@ public class ArDrone2Config extends UntypedActor {
                         case GEN_NUM_VERSION_MB:
                             hardwareVersion = value;
                             break;
+                        default:
+                            break;
                     }
                 }
             } else {
