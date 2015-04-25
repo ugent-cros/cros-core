@@ -134,7 +134,7 @@ public class ArDrone2Config extends UntypedActor {
 
     private ConfigKey getConfigValue(String configValue) {
         for(ConfigKey key : ConfigKey.values()) {
-            if(key.getKey().equalsIgnoreCase(configValue.toLowerCase())) {
+            if(key.getKey().equalsIgnoreCase(configValue)) {
                 return key;
             }
         }
