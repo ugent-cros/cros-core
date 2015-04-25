@@ -22,6 +22,9 @@ import java.util.Base64;
  */
 public class ArDrone2Video extends UntypedActor {
 
+    private static final int WIDTH = 640;
+    private static final int HEIGHT = 360;
+
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final ActorRef listener;
     private final ActorRef parent;
@@ -102,7 +105,7 @@ public class ArDrone2Video extends UntypedActor {
 
                             // http://stackoverflow.com/questions/7178937/java-bufferedimage-to-png-format-base64-string
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            ImageIO.write(converter.toImage(picture), "JPEG", Base64.getEncoder().wrap(bos)); 
+                            ImageIO.write(converter.toImage(picture), "JPEG", Base64.getEncoder().wrap(bos));
                             String imageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
@@ -174,7 +177,7 @@ public class ArDrone2Video extends UntypedActor {
 
         packet = IPacket.make();
 
-        converter = ConverterFactory.createConverter(ConverterFactory.XUGGLER_BGR_24, IPixelFormat.Type.YUV420P, 640, 360);
+        converter = ConverterFactory.createConverter(ConverterFactory.XUGGLER_BGR_24, IPixelFormat.Type.YUV420P, WIDTH, HEIGHT);
     }
 
     private void closeDecoder() {
