@@ -169,12 +169,11 @@ public class ArDrone2NavData extends UntypedActor {
         offsetTemp += 16; // Elevation and hdop
         int dataAvailable = PacketHelper.getInt(navdata, offsetTemp);
 
-        boolean gpsAvailable = dataAvailable == 1 ? true : false;
+        boolean gpsAvailable = dataAvailable == 1;
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
         listener.tell(gpsFixMessage, getSelf());
-        log.info("GPS Available: {}", Boolean.toString(gpsAvailable));
 
-        log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}]", latitude, longitude, elevation);
+        log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}], available: {}", latitude, longitude, elevation, gpsAvailable); // @TODO remove
         Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
         listener.tell(locationMessage, getSelf());
     }

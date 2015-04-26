@@ -13,6 +13,7 @@ import drones.commands.*;
 import drones.commands.ardrone2.atcommand.*;
 import drones.messages.*;
 import drones.models.DroneConnectionDetails;
+import drones.models.FlipType;
 import drones.util.ardrone2.PacketCreator;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
@@ -20,6 +21,8 @@ import scala.concurrent.duration.Duration;
 import java.io.Serializable;
 import java.net.*;
 import java.util.concurrent.TimeUnit;
+
+import static drones.models.FlipType.*;
 
 /**
  *
@@ -96,6 +99,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .match(RequestConfigMessage.class, s -> handleConfigRequest())
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
+                    .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
 
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -117,6 +121,26 @@ public class ArDrone2Protocol extends UntypedActor {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+    }
+
+    private void handleFlip(FlipType flip) {
+        ATCommandANIM.AnimationID anim;
+        switch(flip) {
+            case BACK:
+                anim = ATCommandANIM.AnimationID.FLIP_BEHIND;
+                break;
+            case FRONT:
+                anim = ATCommandANIM.AnimationID.FLIP_AHEAD;
+                break;
+            case LEFT:
+                anim = ATCommandANIM.AnimationID.FLIP_LEFT;
+                break;
+            default: // Flip right
+                anim = ATCommandANIM.AnimationID.FLIP_RIGHT;
+                break;
+        }
+
+        sendData(PacketCreator.createPacket(new ATCommandANIM(seq++, anim, 1)));
     }
 
     private void handleMaxTilt(SetMaxTiltCommand s) {
