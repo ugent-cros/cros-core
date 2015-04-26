@@ -8,6 +8,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.messages.InitCompletedMessage;
+import drones.messages.StopMessage;
 import drones.protocols.ardrone2.ArDrone2Protocol;
 import drones.util.LocationNavigator;
 import scala.concurrent.Promise;
@@ -42,7 +43,10 @@ public class ArDrone2 extends NavigatedDroneActor {
 
     @Override
     protected void stop() {
-
+        if (protocol != null) {
+            protocol.tell(new StopMessage(), self());
+            protocol = null;
+        }
     }
 
     @Override
