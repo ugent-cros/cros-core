@@ -5,12 +5,14 @@ import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.FlipType;
 import models.Drone;
+import models.User;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
+import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 /**
  * Created by matthias on 25/04/2015.
  */
+
+@Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
 public class ManualDroneController extends Controller {
 
     private static final Map<String,Function<DroneCommander,F.Promise<Result>>> COMMANDS;
@@ -54,10 +58,10 @@ public class ManualDroneController extends Controller {
         Drone drone = Drone.FIND.byId(id);
 
         if (drone.getStatus() != Drone.Status.MANUAL_CONTROL)
-            return F.Promise.pure(forbidden("you can only conrol a drone which is in manual control mode."));
+            return F.Promise.pure(forbidden(Json.toJson("you can only control a drone which is in manual control mode.")));
 
         if (!COMMANDS.containsKey(command))
-            return F.Promise.pure(badRequest("unknown command"));
+            return F.Promise.pure(badRequest(Json.toJson("unknown command")));
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return COMMANDS.get(command).apply(commander);
@@ -76,14 +80,14 @@ public class ManualDroneController extends Controller {
                 drone.getStatus() == Drone.Status.EMERGENCY_LANDED || drone.getStatus() == Drone.Status.MISSING_DRIVER ||
                 drone.getStatus() == Drone.Status.UNAVAILABLE || drone.getStatus() == Drone.Status.UNKNOWN ||
                 drone.getStatus() == Drone.Status.UNREACHABLE)
-            return F.Promise.pure(forbidden("you cannot set control mode of a drone with status " + drone.getStatus().toString()));
+            return F.Promise.pure(forbidden(Json.toJson("you cannot set control mode of a drone with status " + drone.getStatus().toString() + ".")));
 
         if (drone.getStatus() == status)
-            return F.Promise.pure(ok("drone was allready in mode " + status.toString()));
+            return F.Promise.pure(ok(Json.toJson("drone was allready in mode " + status.toString() + ".")));
 
         drone.setStatus(status);
         drone.update();
-        return F.Promise.pure(ok("drone mode updated to " + status.toString() + "."));
+        return F.Promise.pure(ok(Json.toJson("drone mode updated to " + status.toString() + ".")));
     }
 
     public static Result links(Long id) {
