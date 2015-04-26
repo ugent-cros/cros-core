@@ -1,27 +1,31 @@
 package drones.messages;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Created by brecht on 4/20/15.
  */
 public class JPEGFrameMessage implements Serializable {
 
-    private String imageData;
+    private byte[] data;
 
     /**
      *
-     * @param imageData The image data as a base 64 string
+     * @param data The image data as a byte array
      */
-    public JPEGFrameMessage(String imageData) {
-        this.imageData = imageData;
+    public JPEGFrameMessage(byte[] data) {
+        this.data = data;
     }
 
     /**
      *
      * @return The image data as a base 64 string
      */
-    public String getImageData() {
-        return imageData;
+    public byte[] getByteData() {
+        return data;
     }
 }

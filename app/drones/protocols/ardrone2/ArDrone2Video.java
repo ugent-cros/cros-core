@@ -105,14 +105,13 @@ public class ArDrone2Video extends UntypedActor {
                                 throw new XugglerException("could not decode video as BGR 24 bit data");
                             }
 
-                            // http://stackoverflow.com/questions/7178937/java-bufferedimage-to-png-format-base64-string
+
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            ImageIO.write(converter.toImage(picture), "JPEG", Base64.getEncoder().wrap(bos));
-                            String imageB64 = bos.toString(StandardCharsets.ISO_8859_1.name());
+                            ImageIO.write(converter.toImage(picture), "JPEG", bos);
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
 
-                            Object imageMessage = new JPEGFrameMessage(imageB64);
+                            Object imageMessage = new JPEGFrameMessage(bos.toByteArray());
                             listener.tell(imageMessage, getSelf());
                         }
                     }

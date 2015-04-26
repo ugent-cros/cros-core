@@ -106,9 +106,9 @@ public interface DroneControl {
 
     /**
      *
-     * @return An image taken by a camera of the drone encoded in base64
+     * @return An image taken by a camera of the drone
      */
-    Future<String> getImage();
+    Future<byte[]> getImage();
 
     /**
      * Performs a flip in the air

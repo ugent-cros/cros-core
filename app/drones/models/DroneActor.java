@@ -36,7 +36,7 @@ public abstract class DroneActor extends AbstractActor {
     protected LazyProperty<Boolean> gpsFix;
     protected LazyProperty<Boolean> isOnline;
     protected LazyProperty<Boolean> calibrationRequired;
-    protected LazyProperty<String> image;
+    protected LazyProperty<byte[]> image;
 
     protected DroneEventBus eventBus;
 
@@ -104,7 +104,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(NavigationStateChangedMessage.class, s -> setNavigationState(s.getState(), s.getReason())).
                 match(MagnetoCalibrationStateChangedMessage.class, s -> setMagnetoCalibrationState(s.isCalibrationRequired())).
                 match(ConnectionStatusChangedMessage.class, s -> setConnectionStatus(s.isConnected())).
-                match(JPEGFrameMessage.class, s -> setJPEGImage(s.getImageData())).
+                match(JPEGFrameMessage.class, s -> setJPEGImage(s.getByteData())).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
     }
 
@@ -189,7 +189,7 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
-    protected void setJPEGImage(String jpegImageData) {
+    protected void setJPEGImage(byte[] jpegImageData) {
         image.setValue(jpegImageData);
         eventBus.publish(new DroneEventMessage(new JPEGFrameMessage(jpegImageData)));
     }

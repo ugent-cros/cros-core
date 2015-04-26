@@ -13,6 +13,8 @@ import drones.models.Fleet;
 import models.Drone;
 import play.libs.Json;
 
+import java.util.Base64;
+
 /**
  * Created by brecht on 4/20/15.
  */
@@ -41,7 +43,8 @@ public class VideoWebSocket extends AbstractActor {
         ObjectNode node = Json.newObject();
         node.put("type", "JPEGFrameChanged");
         node.put("id", sender().path().name().split("-")[1]);
-        node.put("value", Json.toJson(s));
+
+        node.put("value", Json.toJson(new JPEGBase64Image(s.getByteData())));
 
         out.tell(node.toString(), self());
     }
@@ -50,5 +53,17 @@ public class VideoWebSocket extends AbstractActor {
     public void postStop() throws Exception {
         super.postStop();
         Fleet.getFleet().unsubscribe(self());
+    }
+
+    private class JPEGBase64Image {
+        private String imageData;
+
+        public JPEGBase64Image(byte[] data) {
+            this.imageData = Base64.getEncoder().encodeToString(data);
+        }
+
+        public String getImageData() {
+            return imageData;
+        }
     }
 }

@@ -24,6 +24,7 @@ import utilities.VideoWebSocket;
 import utilities.frontendSimulator.NotificationSimulator;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -212,7 +213,7 @@ public class Application extends Controller {
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.getImage()).map(v -> {
             ObjectNode result = Json.newObject();
-            result.put("image", v);
+            result.put("image", Base64.getEncoder().encodeToString(v));
             return ok(result);
         });
     }
