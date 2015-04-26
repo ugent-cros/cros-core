@@ -22,7 +22,7 @@ public class TestDroneActor extends DroneActor {
 
     @Override
     protected void init(Promise<Void> p) {
-
+        p.success(null);
     }
 
     @Override

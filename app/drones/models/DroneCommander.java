@@ -6,6 +6,8 @@ import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
 import play.libs.Akka;
+import scala.Function1;
+import scala.Function1$class;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
@@ -49,7 +51,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     @Override
     public Future<Void> init() {
-        if (!canSend()) {
+        if (!initialized) {
             return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
                 public Void apply(Object s) {
                     initialized = true;
@@ -351,7 +353,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param cl  The topic class of the message to subscribe to
      */
     public void subscribeTopic(final ActorRef sub, Class cl) {
-        subscribeTopics(sub, new Class[] { cl });
+        subscribeTopics(sub, new Class[]{cl});
     }
 
     /**
@@ -360,9 +362,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param topics The topic class of the message to subscribe to
      */
     public void subscribeTopics(final ActorRef sub, Class[] topics){
-        if(canSend()) {
-            droneActor.tell(new SubscribeEventMessage(topics), sub);
-        } else throw new DroneException("Drone already shutdown.");
+        droneActor.tell(new SubscribeEventMessage(topics), sub);
     }
 
     /**
@@ -372,9 +372,7 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param cl  The topic class of the messages to unsubscribe
      */
     public void unsubscribeTopic(final ActorRef sub, Class cl) {
-        if(canSend()) {
-            droneActor.tell(new UnsubscribeEventMessage(cl), sub);
-        } else throw new DroneException("Drone Already shutdown.");
+        droneActor.tell(new UnsubscribeEventMessage(cl), sub);
     }
 
     /**
@@ -383,8 +381,6 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param sub The actor to unsubscribe
      */
     public void unsubscribe(final ActorRef sub) {
-        if(canSend()) {
-            droneActor.tell(new UnsubscribeEventMessage(), sub);
-        } else throw new DroneException("Drone Already shutdown.");
+        droneActor.tell(new UnsubscribeEventMessage(), sub);
     }
 }
