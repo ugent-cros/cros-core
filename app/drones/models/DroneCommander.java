@@ -1,7 +1,6 @@
 package drones.models;
 
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.util.Timeout;
@@ -26,52 +25,71 @@ public class DroneCommander implements DroneControl, DroneStatus {
     private final ActorRef droneActor;
 
     private boolean initialized = false;
+    private boolean shutdown = false;
 
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
+    }
+
+    public boolean canSend(){
+        return initialized && !shutdown;
     }
 
     public boolean isInitialized() {
         return initialized;
     }
 
+    private <T> Future<T> noDroneConnection(){
+        if(initialized && shutdown){
+            return Futures.failed(new DroneException("DroneCommander was shut down previously."));
+        } else {
+            return Futures.failed(new DroneException("DroneCommander not initialized yet."));
+        }
+    }
+
     @Override
     public Future<Void> init() {
-        if (!initialized) {
+        if (!canSend()) {
             return ask(droneActor, new InitRequestMessage(), INIT_TIMEOUT).map(new Mapper<Object, Void>() {
                 public Void apply(Object s) {
                     initialized = true;
                     return null;
                 }
             }, Akka.system().dispatcher());
-        } else return Futures.failed(new DroneException("Drone already initialized."));
+        } else return Futures.failed(new DroneException("Drone already initialized/stopped."));
     }
 
     @Override
     public Future<Void> takeOff() {
-        return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new TakeOffRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> land() {
-        return ask(droneActor, new LandRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new LandRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> move3d(double vx, double vy, double vz, double vr) {
-        return ask(droneActor, new MoveRequestMessage(vx, vy, vz, vr), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new MoveRequestMessage(vx, vy, vz, vr), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
@@ -82,196 +100,248 @@ public class DroneCommander implements DroneControl, DroneStatus {
     @Override
     public Future<Void> setMaxHeight(float meters) {
         if(meters <= 0.5)
-            throw new IllegalArgumentException("Max height cannot be lower than 0.5m");
-        return ask(droneActor, new SetMaxHeightRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+            return Futures.failed(new IllegalArgumentException("Max height cannot be lower than 0.5m"));
+
+        if(canSend()) {
+            return ask(droneActor, new SetMaxHeightRequestMessage(meters), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> setMaxTilt(float degrees) {
-        return ask(droneActor, new SetMaxTiltRequestMessage(degrees), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(degrees < 0)
+            return Futures.failed(new IllegalArgumentException("Max tilt cannot be negative."));
+
+        if(canSend()) {
+            return ask(droneActor, new SetMaxTiltRequestMessage(degrees), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> moveToLocation(double latitude, double longitude, double altitude) {
         // Lat is bound by 90 degrees (north/south), longitude by 180 east/west
         if(Math.abs(latitude) > 90.0d || Math.abs(longitude) > 180.0d || altitude <= 0.0d)
-            throw new IllegalArgumentException("invalid coordinates");
+            return Futures.failed(new IllegalArgumentException("invalid coordinates"));
 
-        return ask(droneActor, new MoveToLocationRequestMessage(latitude, longitude, altitude), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new MoveToLocationRequestMessage(latitude, longitude, altitude), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> cancelMoveToLocation() {
-        return ask(droneActor, new MoveToLocationCancellationMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new MoveToLocationCancellationMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> calibrate(boolean outdoor, boolean hull) {
-        return ask(droneActor, new CalibrateRequestMessage(hull, outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new CalibrateRequestMessage(hull, outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> flatTrim() {
-        return ask(droneActor, new FlatTrimRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new FlatTrimRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> setOutdoor(boolean outdoor) {
-        return ask(droneActor, new SetOutdoorRequestMessage(outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new SetOutdoorRequestMessage(outdoor), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> setHull(boolean hull) {
-        return ask(droneActor, new SetHullRequestMessage(hull), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new SetHullRequestMessage(hull), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Void> flip(FlipType type) {
-        return ask(droneActor, new FlipRequestMessage(type), TIMEOUT).map(new Mapper<Object, Void>() {
-            public Void apply(Object s) {
-                return null;
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new FlipRequestMessage(type), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
+    public void stop() {
+        droneActor.tell(new StopMessage(), ActorRef.noSender());
+        shutdown = true;
     }
 
     @Override
     public Future<FlyingState> getFlyingState() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
-            public FlyingState apply(Object s) {
-                return (FlyingState) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.FLYINGSTATE), TIMEOUT).map(new Mapper<Object, FlyingState>() {
+                public FlyingState apply(Object s) {
+                    return (FlyingState) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Location> getLocation() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.LOCATION), TIMEOUT).map(new Mapper<Object, Location>() {
-            public Location apply(Object s) {
-                return (Location) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.LOCATION), TIMEOUT).map(new Mapper<Object, Location>() {
+                public Location apply(Object s) {
+                    return (Location) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Byte> getBatteryPercentage() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.BATTERY), TIMEOUT).map(new Mapper<Object, Byte>() {
-            public Byte apply(Object s) {
-                return (Byte) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.BATTERY), TIMEOUT).map(new Mapper<Object, Byte>() {
+                public Byte apply(Object s) {
+                    return (Byte) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Double> getAltitude() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.ALTITUDE), TIMEOUT).map(new Mapper<Object, Double>() {
-            public Double apply(Object s) {
-                return (Double) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.ALTITUDE), TIMEOUT).map(new Mapper<Object, Double>() {
+                public Double apply(Object s) {
+                    return (Double) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Rotation> getRotation() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.ROTATION), TIMEOUT).map(new Mapper<Object, Rotation>() {
-            public Rotation apply(Object s) {
-                return (Rotation) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.ROTATION), TIMEOUT).map(new Mapper<Object, Rotation>() {
+                public Rotation apply(Object s) {
+                    return (Rotation) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Speed> getSpeed() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.SPEED), TIMEOUT).map(new Mapper<Object, Speed>() {
-            public Speed apply(Object s) {
-                return (Speed) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.SPEED), TIMEOUT).map(new Mapper<Object, Speed>() {
+                public Speed apply(Object s) {
+                    return (Speed) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<DroneVersion> getVersion() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.VERSION), TIMEOUT).map(new Mapper<Object, DroneVersion>() {
-            public DroneVersion apply(Object s) {
-                return (DroneVersion) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.VERSION), TIMEOUT).map(new Mapper<Object, DroneVersion>() {
+                public DroneVersion apply(Object s) {
+                    return (DroneVersion) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<NavigationState> getNavigationState() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONSTATE), TIMEOUT).map(new Mapper<Object, NavigationState>() {
-            public NavigationState apply(Object s) {
-                return (NavigationState) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONSTATE), TIMEOUT).map(new Mapper<Object, NavigationState>() {
+                public NavigationState apply(Object s) {
+                    return (NavigationState) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<NavigationStateReason> getNavigationStateReason() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONREASON), TIMEOUT).map(new Mapper<Object, NavigationStateReason>() {
-            public NavigationStateReason apply(Object s) {
-                return (NavigationStateReason) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.NAVIGATIONREASON), TIMEOUT).map(new Mapper<Object, NavigationStateReason>() {
+                public NavigationStateReason apply(Object s) {
+                    return (NavigationStateReason) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Boolean> isGPSFixed() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.GPSFIX), TIMEOUT).map(new Mapper<Object, Boolean>() {
-            public Boolean apply(Object s) {
-                return (Boolean) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.GPSFIX), TIMEOUT).map(new Mapper<Object, Boolean>() {
+                public Boolean apply(Object s) {
+                    return (Boolean) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Boolean> isOnline() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
-            public Boolean apply(Object s) {
-                return (Boolean) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.NETWORK_STATUS), TIMEOUT).map(new Mapper<Object, Boolean>() {
+                public Boolean apply(Object s) {
+                    return (Boolean) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     @Override
     public Future<Boolean> isCalibrationRequired() {
-        return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
-            public Boolean apply(Object s) {
-                return (Boolean) ((ExecutionResultMessage) s).getValue();
-            }
-        }, Akka.system().dispatcher());
+        if(canSend()) {
+            return ask(droneActor, new PropertyRequestMessage(PropertyType.CALIBRATION_REQUIRED), TIMEOUT).map(new Mapper<Object, Boolean>() {
+                public Boolean apply(Object s) {
+                    return (Boolean) ((ExecutionResultMessage) s).getValue();
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
     }
 
     /**
@@ -290,7 +360,9 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param topics The topic class of the message to subscribe to
      */
     public void subscribeTopics(final ActorRef sub, Class[] topics){
-        droneActor.tell(new SubscribeEventMessage(topics), sub);
+        if(canSend()) {
+            droneActor.tell(new SubscribeEventMessage(topics), sub);
+        } else throw new DroneException("Drone already shutdown.");
     }
 
     /**
@@ -300,7 +372,9 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param cl  The topic class of the messages to unsubscribe
      */
     public void unsubscribeTopic(final ActorRef sub, Class cl) {
-        droneActor.tell(new UnsubscribeEventMessage(cl), sub);
+        if(canSend()) {
+            droneActor.tell(new UnsubscribeEventMessage(cl), sub);
+        } else throw new DroneException("Drone Already shutdown.");
     }
 
     /**
@@ -309,6 +383,8 @@ public class DroneCommander implements DroneControl, DroneStatus {
      * @param sub The actor to unsubscribe
      */
     public void unsubscribe(final ActorRef sub) {
-        droneActor.tell(new UnsubscribeEventMessage(), sub);
+        if(canSend()) {
+            droneActor.tell(new UnsubscribeEventMessage(), sub);
+        } else throw new DroneException("Drone Already shutdown.");
     }
 }

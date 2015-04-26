@@ -16,6 +16,11 @@ public class TestDroneActor extends DroneActor {
     }
 
     @Override
+    protected void stop() {
+
+    }
+
+    @Override
     protected void init(Promise<Void> p) {
 
     }

@@ -41,6 +41,11 @@ public class ArDrone2 extends NavigatedDroneActor {
     }
 
     @Override
+    protected void stop() {
+
+    }
+
+    @Override
     protected void init(Promise<Void> p) {
         log.info("[ARDRONE2 MODEL] Starting ARDrone 2.0 INIT");
 

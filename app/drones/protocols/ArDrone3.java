@@ -84,7 +84,7 @@ public class ArDrone3 extends UntypedActor {
 
     @Override
     public SupervisorStrategy supervisorStrategy() {
-        return new OneForOneStrategy(10, Duration.create("1 minute"),
+        return new OneForOneStrategy(-1, Duration.create("1 minute"),
                 t -> {
                     log.error(t, "Bepop actor failure caught by supervisor.");
                     System.err.println(t.getMessage());
@@ -113,6 +113,7 @@ public class ArDrone3 extends UntypedActor {
         log.debug("Unbinding ARDrone 3 UDP listener.");
         if (senderRef != null) {
             senderRef.tell(UdpMessage.unbind(), self());
+            senderRef = null;
         }
         getContext().stop(self());
     }
@@ -365,6 +366,7 @@ public class ArDrone3 extends UntypedActor {
 
             // Setup handlers
             getContext().become(ReceiveBuilder
+                    .match(StopMessage.class, s -> stop())
                     .match(String.class, "tick"::equals, s -> tick())
                     .match(Udp.Received.class, s -> {
                         try {
@@ -391,7 +393,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVr()))
-                    .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
+                    .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
                     .match(SetTimeCommand.class, s -> setTime(s.getTime()))
                     .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))

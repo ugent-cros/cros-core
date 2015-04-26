@@ -57,13 +57,17 @@ public class Bepop extends NavigatedDroneActor {
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
         if (s.getStatus() == DroneDiscoveredMessage.DroneDiscoveryStatus.FAILED) {
             //TODO: https://github.com/akka/akka/issues/15882 fix unbound when failed
-            // protocol.tell(new StopMessage(), self()); // Stop the protocol (and bind)
             initPromise.failure(new DroneException("Failed to get drone discovery response."));
+            protocol.tell(new StopMessage(), self()); // tell protocol to stop
+            protocol = null;
         } else {
             setupDrone(s);
-
             initPromise.success(null);
         }
+
+        // Close discovery protocol
+        discoveryProtocol.tell(new StopMessage(), self());
+        discoveryProtocol = null;
         initPromise = null;
     }
 
@@ -96,6 +100,18 @@ public class Bepop extends NavigatedDroneActor {
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
         sendMessage(new FlatTrimCommand());
+    }
+
+    @Override
+    protected void stop() {
+        if(protocol != null){
+            protocol.tell(new StopMessage(), self());
+            protocol = null;
+        }
+        if(discoveryProtocol != null){
+            discoveryProtocol.tell(new StopMessage(), self());
+            discoveryProtocol = null;
+        }
     }
 
     @Override

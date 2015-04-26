@@ -286,6 +286,11 @@ public class BepopSimulator extends NavigatedDroneActor {
         }
     }
 
+    @Override
+    protected void stop() {
+
+    }
+
     protected void processBatteryLevel(byte percentage) {
 
         if(percentage < batteryLowLevel) {
