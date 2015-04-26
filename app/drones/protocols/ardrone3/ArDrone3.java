@@ -1,4 +1,4 @@
-package drones.protocols;
+package drones.protocols.ardrone3;
 
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
@@ -353,6 +353,9 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
+        if(this.senderAddress != null){
+            log.debug("ArDrone3 protocol drone IP information updated: {}", details);
+        }
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
         isOffline = false;

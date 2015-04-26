@@ -1,9 +1,10 @@
-package drones.protocols;
+package drones.protocols.ardrone3;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.io.Inet;
 import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.Procedure;
@@ -14,25 +15,31 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import drones.messages.DroneDiscoveredMessage;
 import drones.messages.StopMessage;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Cedric on 3/8/2015.
  */
 public class ArDrone3Discovery extends UntypedActor {
 
+    public final static int CONNECT_TIMEOUT = 2; // already fail after 2 seconds
+
+    private static final String DISCOVERY_MSG =
+            "{ \"d2c_port\": %d,\n" +
+                    "\"controller_name\": \"actor\",\n" +
+                    "\"controller_type\": \"cros\" }";
+
     final InetSocketAddress remote;
     final ActorRef listener;
     final int commandPort;
     boolean sentResult = false;
-
-    private static final String DISCOVERY_MSG =
-            "{ \"d2c_port\": %d,\n" +
-            "\"controller_name\": \"toto\",\n" +
-            "\"controller_type\": \"tata\" }";
 
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -42,7 +49,8 @@ public class ArDrone3Discovery extends UntypedActor {
         this.listener = listener;
 
         final ActorRef tcp = Tcp.get(getContext().system()).manager();
-        tcp.tell(TcpMessage.connect(remote), getSelf());
+        final List<Inet.SocketOption> options = new ArrayList<>();
+        tcp.tell(TcpMessage.connect(remote, null, options, new FiniteDuration(CONNECT_TIMEOUT, TimeUnit.SECONDS), false), getSelf());
     }
 
     private void sendDiscoveryMsg(final ActorRef sender) {
