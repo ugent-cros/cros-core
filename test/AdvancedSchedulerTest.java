@@ -180,6 +180,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         Assert.assertTrue(length >= 0);
     }
 
+    @Ignore
     @Test
     public void subscriberTest_RequestMessage_ReplyMessage() throws SchedulerException {
         new JavaTestKit(system){
@@ -513,25 +514,19 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     public void assertScheduled(JavaTestKit test, Assignment assignment, Drone drone) throws SchedulerException{
         subscribe(test, DroneAssignedMessage.class);
         subscribe(test,AssignmentStartedMessage.class);
-
-        subscribe(test,SchedulerReplyMessage.class);
-        Scheduler.getScheduler().tell(new SchedulerRequestMessage(), test.getRef());
-        test.expectMsgClass(SchedulerReplyMessage.class);
-        unsubscribe(test,SchedulerReplyMessage.class);
-
         Scheduler.schedule();
-//        DroneAssignedMessage A = test.expectMsgClass(LONG_TIMEOUT, DroneAssignedMessage.class);
-//        assignment.refresh();
-//        drone.refresh();
-//        Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
-//        Assert.assertTrue("Assignment assigned", A.getAssignmentId() == assignment.getId());
-//        Assert.assertTrue("Drone assigned", A.getDroneId() == drone.getId());
-//        Assert.assertTrue("Assignment drone", drone.equals(assignment.getAssignedDrone()));
-//        AssignmentStartedMessage B = test.expectMsgClass(AssignmentStartedMessage.class);
-//        assignment.refresh();
-//        drone.refresh();
-//        Assert.assertTrue("Assignment started",B.getAssignmentId() == assignment.getId());
-//        Assert.assertTrue("Drone FLYING",drone.getStatus() == Drone.Status.FLYING);
+        DroneAssignedMessage A = test.expectMsgClass(LONG_TIMEOUT, DroneAssignedMessage.class);
+        assignment.refresh();
+        drone.refresh();
+        Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
+        Assert.assertTrue("Assignment assigned", A.getAssignmentId() == assignment.getId());
+        Assert.assertTrue("Drone assigned", A.getDroneId() == drone.getId());
+        Assert.assertTrue("Assignment drone", drone.equals(assignment.getAssignedDrone()));
+        AssignmentStartedMessage B = test.expectMsgClass(AssignmentStartedMessage.class);
+        assignment.refresh();
+        drone.refresh();
+        Assert.assertTrue("Assignment started",B.getAssignmentId() == assignment.getId());
+        Assert.assertTrue("Drone FLYING",drone.getStatus() == Drone.Status.FLYING);
         unsubscribe(test, DroneAssignedMessage.class);
         unsubscribe(test, AssignmentStartedMessage.class);
     }

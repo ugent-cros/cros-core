@@ -16,6 +16,7 @@ import drones.models.flightcontrol.messages.StopFlightControlMessage;
 import drones.models.scheduler.messages.from.*;
 import drones.models.scheduler.messages.to.*;
 import models.*;
+import play.Logger;
 import scala.concurrent.Await;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
@@ -43,10 +44,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
         // TODO: add more flight control receivers
-        return super.initReceivers().
-                match(FlightCanceledMessage.class,
-                        m -> flightCanceled(m)
-                );
+        return super.initReceivers()
+                .match(FlightCanceledMessage.class, m -> flightCanceled(m))
+                .match(FlightCompletedMessage.class, m -> flightCompleted(m));
     }
 
     @Override
@@ -111,7 +111,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void emergency(EmergencyMessage message) {
         long droneId = message.getDroneId();
-        if(flights.containsKey(droneId)){
+        if(flights.containsKey(droneId)) {
             Drone drone = getDrone(droneId);
             drone.setStatus(Drone.Status.EMERGENCY);
             cancelFlight(flights.get(droneId));
@@ -157,6 +157,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         assignment.setAssignedDrone(drone);
         assignment.update();
         // Publish
+        Logger.debug("SCHEDULER PUBLISH");
         eventBus.publish(new DroneAssignedMessage(assignment.getId(), drone.getId()));
         // Get route
         createFlight(drone, assignment);
@@ -415,8 +416,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // TODO: Use ControlTower
         // Create flight control
         ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), droneId, false, assignment.getRoute())));
+                Props.create(FlightControlSimulator.class,
+                        () -> new FlightControlSimulator(self(), droneId, false, assignment.getRoute())));
         // Record flight
         Flight flight = new Flight(droneId, assignment.getId(), pilot);
         flights.put(droneId, flight);
@@ -437,8 +438,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // TODO: Use ControlTower
         // Create flight control
         ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), droneId, false, route)));
+                Props.create(FlightControlSimulator.class,
+                        () -> new FlightControlSimulator(self(), droneId, false, route)));
         // Record flight
         Flight flight = new Flight(droneId, pilot);
         flights.put(droneId, flight);
