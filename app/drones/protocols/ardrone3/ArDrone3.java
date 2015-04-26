@@ -1,9 +1,6 @@
 package drones.protocols.ardrone3;
 
-import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
-import akka.actor.SupervisorStrategy;
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
@@ -80,6 +77,18 @@ public class ArDrone3 extends UntypedActor {
         final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
         udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
+
+        // Request a sender socket
+        udpMgr.tell(UdpMessage.simpleSender(), getSelf());
+    }
+
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
+        }
     }
 
     @Override
@@ -367,7 +376,7 @@ public class ArDrone3 extends UntypedActor {
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
             log.debug("Socket ARDRone 3.0 bound.");
-            senderRef = getSender();
+            //senderRef = getSender();
 
             // Setup handlers
             getContext().become(ReceiveBuilder
@@ -384,6 +393,7 @@ public class ArDrone3 extends UntypedActor {
                         log.info("UDP unbound received.");
                         getContext().stop(getSelf());
                     })
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> {
                         log.info("ArDrone3 protocol stop received.");
@@ -417,6 +427,8 @@ public class ArDrone3 extends UntypedActor {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
             stop();
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             unhandled(msg);
         }
