@@ -143,6 +143,21 @@ public class Fleet {
         }, Akka.system().dispatcher());
     }
 
+    public void shutdown(){
+        for(DroneCommander cmd : drones.values()){
+            cmd.stop();
+        }
+        drones.clear();
+    }
+
+    public boolean stopCommander(Drone droneEntity){
+        DroneCommander cmd = drones.remove(droneEntity.getId());
+        if(cmd != null){
+            cmd.stop();
+            return true;
+        } else return false;
+    }
+
     public boolean hasCommander(Drone droneEntity) {
         return drones.containsKey(droneEntity.getId());
     }

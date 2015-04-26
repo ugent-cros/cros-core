@@ -115,6 +115,23 @@ public class FleetTest extends TestSuperclass {
     }
 
     @Test
+    public void fleet_stops_drone_actor() throws Exception {
+        Drone drone = new Drone("FleetTestDrone10", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        drone.save();
+
+        DroneCommander cmd = Await.result(Fleet.getFleet().createCommanderForDrone(drone), TIMEOUT);
+        Await.ready(cmd.setOutdoor(true), TIMEOUT); //should not throw
+
+        Fleet.getFleet().stopCommander(drone);
+        try {
+            Await.ready(cmd.setOutdoor(true), TIMEOUT); // should timeout / throw exception
+            throw new RuntimeException("Drone was not shut down."); //should never be reached
+        } catch(Exception ex) {
+
+        }
+    }
+
+    @Test
     public void registerDriver_ForOneExistingType_ReplacedDriverOnce() {
 
         DroneType type1 = new DroneType("RegTest2", "1");
