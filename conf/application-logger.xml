@@ -9,7 +9,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%date{yyyy-MM-dd HH:mm:ss ZZZZ} - [%level] - from %logger in %thread %n%message%n%xException%n</pattern>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss ZZZZ} - [%level] - from %logger in %thread %message %xException%n</pattern>
         </encoder>
     </appender>
 

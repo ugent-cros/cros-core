@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class Bepop extends NavigatedDroneActor {
 
-    private static final int RECONNECT_MAX_BACKOFF = 12; // max delay before reconnect
+    private static final int RECONNECT_MAX_BACKOFF = 32; // max delay before reconnect
 
     private ActorRef protocol;
     private ActorRef discoveryProtocol;
@@ -77,7 +77,7 @@ public class Bepop extends NavigatedDroneActor {
                         reconnectBackoff = Math.min(RECONNECT_MAX_BACKOFF, reconnectBackoff * 2);
 
                         getContext().system().scheduler().scheduleOnce(
-                                Duration.create(reconnectBackoff, TimeUnit.MILLISECONDS),
+                                Duration.create(reconnectBackoff, TimeUnit.SECONDS),
                                 self(), "reconnect", getContext().dispatcher(), null);
                         break;
                 }
@@ -97,7 +97,6 @@ public class Bepop extends NavigatedDroneActor {
                 log.warning("Invalid drone discovery response status.");
                 break;
         }
-        stopDiscovery();
     }
 
     private <T extends Serializable> boolean sendMessage(T msg) {
@@ -164,10 +163,10 @@ public class Bepop extends NavigatedDroneActor {
 
                 //TODO: dispose each time when udp bound is fixed
                 protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                        () -> new ArDrone3(d2cPort, Bepop.this.self()))); // Initialize listening already before broadcasting itself
+                        () -> new ArDrone3(d2cPort, Bepop.this.self())), "protocol"); // Initialize listening already before broadcasting itself
 
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)));
+                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)), "discovery");
             }
         }
     }
@@ -180,7 +179,7 @@ public class Bepop extends NavigatedDroneActor {
         if (!connected) {
             // Schedule reconnect
             getContext().system().scheduler().scheduleOnce(
-                    Duration.create(reconnectBackoff, TimeUnit.MILLISECONDS),
+                    Duration.create(reconnectBackoff, TimeUnit.SECONDS),
                     self(), "reconnect", getContext().dispatcher(), null);
         }
     }
@@ -190,11 +189,10 @@ public class Bepop extends NavigatedDroneActor {
         if (!isOnline.getRawValue()) {
             log.warning("Reconnection procedure for Bebop (backoff={})", reconnectBackoff);
             connectionStatus = ConnectionStatus.RECONNECTING;
-            // Initiate new discovery
-            stopDiscovery();
 
+            // Initiate new discovery
             discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                    () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)));
+                    () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)), "discovery");
         }
     }
 

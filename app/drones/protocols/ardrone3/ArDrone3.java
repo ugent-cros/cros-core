@@ -354,11 +354,13 @@ public class ArDrone3 extends UntypedActor {
 
     private void droneDiscovered(DroneConnectionDetails details) {
         if(this.senderAddress != null){
-            log.debug("ArDrone3 protocol drone IP information updated: {}", details);
+            log.info("ArDrone3 protocol drone IP information updated: {}", details);
         }
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
         isOffline = false;
+
+        lastPong = System.currentTimeMillis(); // reset ping timers
     }
 
     @Override
@@ -501,14 +503,14 @@ public class ArDrone3 extends UntypedActor {
                     sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
                 }
             }
-
-            // Reschedule
-            getContext().system().scheduler().scheduleOnce(
-                    Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
-                    getSelf(), "tick", getContext().dispatcher(), null);
         } catch(Exception ex){
             log.warning("Failed to process ArDrone3 timer tick.");
         }
+
+        // Reschedule
+        getContext().system().scheduler().scheduleOnce(
+                Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
+                getSelf(), "tick", getContext().dispatcher(), null);
     }
 
 

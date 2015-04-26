@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ArDrone3Discovery extends UntypedActor {
 
-    public final static int CONNECT_TIMEOUT = 2; // already fail after 2 seconds
+    public final static int CONNECT_TIMEOUT = 4;
 
     private static final String DISCOVERY_MSG =
             "{ \"d2c_port\": %d,\n" +
