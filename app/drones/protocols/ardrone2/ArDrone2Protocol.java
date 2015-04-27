@@ -272,6 +272,7 @@ public class ArDrone2Protocol extends UntypedActor {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
         ardrone2Config.tell(new StopMessage(), self());
+        // ardrone2Video does not have to be stopped
 
         udpManager.tell(UdpMessage.unbind(), self());
         getContext().stop(self());

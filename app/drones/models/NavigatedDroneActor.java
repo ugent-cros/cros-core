@@ -60,6 +60,8 @@ public abstract class NavigatedDroneActor extends DroneActor {
 
             MoveCommand cmd = getNavigator().update(location);
             if (cmd == null) { // arrived
+                move3d(Futures.promise(), 0d, 0d, 0d, 0d); // Cancel any movement
+
                 log.info("Navigator finished at location [{}] for goal [{}]", location, getNavigator().getGoal());
                 navigationState.setValue(NavigationState.AVAILABLE);
                 navigationStateReason.setValue(NavigationStateReason.FINISHED);

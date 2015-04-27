@@ -110,4 +110,9 @@ public interface DroneControl {
      * @return Promise whether the request was initiated
      */
     Future<Void> flip(FlipType type);
+
+    /**
+     * Stops the drone communication
+     */
+    void stop();
 }
