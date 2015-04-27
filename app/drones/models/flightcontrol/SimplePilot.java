@@ -54,7 +54,7 @@ public class SimplePilot extends Pilot {
     public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, droneId, linkedWithControlTower);
 
-        if (wayPoints.size() < 1) {
+        if (wayPoints.isEmpty()) {
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
         }
         this.wayPoints = wayPoints;
@@ -66,7 +66,7 @@ public class SimplePilot extends Pilot {
     public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
-        if (wayPoints.size() < 1) {
+        if (wayPoints.isEmpty()) {
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
         }
         this.wayPoints = wayPoints;
