@@ -13,7 +13,7 @@ public class AbstractIdFlightControlMessage implements Serializable {
         this.id = id;
     }
 
-    public Long getId() {
+    public Long getDroneId() {
         return id;
     }
 }

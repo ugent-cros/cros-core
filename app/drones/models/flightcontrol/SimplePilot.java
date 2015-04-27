@@ -102,9 +102,10 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        if(!blocked && !landed){
+        if(!landed){
             try {
                 Await.ready(dc.land(), MAX_DURATION_LONG);
+                landed = true;
             } catch (TimeoutException | InterruptedException e) {
                 handleErrorMessage("Could no land drone after stop message");
                 return;
@@ -153,7 +154,7 @@ public class SimplePilot extends Pilot {
     private void land() {
         if(!blocked){
             if(linkedWithControlTower){
-                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.LANDING),self());
+                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.LANDING, droneId),self());
             } else {
                 try {
                     Await.ready(dc.land(), MAX_DURATION_LONG);
@@ -171,7 +172,7 @@ public class SimplePilot extends Pilot {
     private void takeOff() {
         if(!blocked){
             if(linkedWithControlTower){
-                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.TAKEOFF),self());
+                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.TAKEOFF, droneId),self());
             } else {
                 try {
                     Await.ready(dc.takeOff(), MAX_DURATION_LONG);
@@ -194,7 +195,7 @@ public class SimplePilot extends Pilot {
                 evacuationPoints.add(m);
             } else {
                 noFlyPoints.add(m.getLocation());
-                reporterRef.tell(new RequestGrantedMessage(m), self());
+                reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
             }
         }
     }
@@ -250,7 +251,7 @@ public class SimplePilot extends Pilot {
                 if (actualLocation.distance(r.getLocation()) > EVACUATION_RANGE) {
                     evacuationPoints.remove(r);
                     noFlyPoints.add(r.getLocation());
-                    reporterRef.tell(new RequestGrantedMessage(r),self());
+                    reporterRef.tell(new RequestGrantedMessage(droneId,r),self());
                 }
             }
             for (Location l : noFlyPoints) {

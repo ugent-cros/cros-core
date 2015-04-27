@@ -5,11 +5,17 @@ import java.io.Serializable;
 /**
  * Created by Sander on 26/03/2015.
  */
-public class RequestGrantedMessage implements Serializable{
+public class RequestGrantedMessage extends AbstractIdFlightControlMessage{
 
     private RequestMessage requestMessage;
 
-    public RequestGrantedMessage(RequestMessage requestMessage) {
+    /**
+     *
+     * @param id DroneId how has granted the request.
+     * @param requestMessage Original requestMessage
+     */
+    public RequestGrantedMessage(Long id, RequestMessage requestMessage) {
+        super(id);
         this.requestMessage = requestMessage;
     }
 
