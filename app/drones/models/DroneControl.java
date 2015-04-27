@@ -121,7 +121,7 @@ public interface DroneControl {
      *
      * @return Promise whether the request was initiated
      */
-    Future<Void> startVideo();
+    Future<Void> initVideo();
 
     /**
      * Stops the drone communication

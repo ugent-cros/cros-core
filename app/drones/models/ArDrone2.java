@@ -132,12 +132,12 @@ public class ArDrone2 extends NavigatedDroneActor {
 
     @Override
     protected void flip(Promise<Void> p, FlipType type) {
-        sendMessage(new FlipCommand(type));
+        sendCommand(p, new FlipCommand(type));
     }
 
     @Override
     protected void initVideo(Promise<Void> p) {
-        sendMessage(new InitVideoCommand());
+        sendCommand(p, new InitVideoCommand());
     }
 
     private void sendCommand(Promise<Void> p, Serializable command) {

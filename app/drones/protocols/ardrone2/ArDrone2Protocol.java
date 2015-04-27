@@ -71,6 +71,9 @@ public class ArDrone2Protocol extends UntypedActor {
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
+        // Request a sender socket
+        udpManager.tell(UdpMessage.simpleSender(), getSelf());
+
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
 
@@ -78,7 +81,6 @@ public class ArDrone2Protocol extends UntypedActor {
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2] Socket ARDRone 2.0 bound.");
-
 
             // Setup handlers
             getContext().become(ReceiveBuilder
@@ -134,6 +136,31 @@ public class ArDrone2Protocol extends UntypedActor {
     }
 
     private void handleInitVideo() {
+        // Video configs
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_CTRL_MODE,
+                Integer.toString(0))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE,
+                Integer.toString(1000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_MAX,
+                Integer.toString(4000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CODEC,
+                "0x81")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CHANNEL,
+                "0")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
+
         // Create config data actor
         ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
                 () -> new ArDrone2Video(details, listener, getSelf())));
@@ -250,31 +277,6 @@ public class ArDrone2Protocol extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_CONTROL_VZ_MAX,
                 Integer.toString(VZ_MAX))));
 
-        // Video configs
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_CTRL_MODE,
-                Integer.toString(0))));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE,
-                Integer.toString(1000))));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_MAX,
-                Integer.toString(4000))));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CODEC,
-                "0x81")));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CHANNEL,
-                "0")));
-
-        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
-        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
-                ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
-
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
                 () -> new ArDrone2ResetWDG(details)));
@@ -358,7 +360,7 @@ public class ArDrone2Protocol extends UntypedActor {
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
             return true;
         } else {
-            log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
+            log.error("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
             return false;
         }
     }

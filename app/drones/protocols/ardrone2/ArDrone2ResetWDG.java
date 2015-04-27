@@ -36,6 +36,9 @@ public class ArDrone2ResetWDG extends UntypedActor {
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         this.senderAddressATC = new InetSocketAddress(details.getIp(), DefaultPorts.AT_COMMAND.getPort());
+
+        // Request a sender socket
+        udpManager.tell(UdpMessage.simpleSender(), getSelf());
     }
 
     @Override
@@ -43,6 +46,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2COMWDG] Socket ARDRone 2.0 bound.");
 
+            senderRef = sender();
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
@@ -59,7 +63,7 @@ public class ArDrone2ResetWDG extends UntypedActor {
         } else if(msg instanceof Udp.SimpleSenderReady){
             senderRef = sender();
         } else {
-            log.info("[ARDRONE2COMWDG] Unhandled message received - ArDrone2ResetWDG protocol");
+            log.error("[ARDRONE2COMWDG] Unhandled message received - ArDrone2ResetWDG protocol");
             unhandled(msg);
         }
     }
@@ -73,7 +77,9 @@ public class ArDrone2ResetWDG extends UntypedActor {
         if (senderAddressATC != null && senderRef != null) {
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
         } else {
-            log.info("[ARDRONE2COMWDG] Sending data failed (senderAddressATC or senderRef is null).");
+            if(senderAddressATC == null) log.info("ATC null");
+            if(senderRef == null) log.info("Ref null");
+            log.error("[ARDRONE2COMWDG] Sending data failed (senderAddressATC or senderRef is null).");
         }
     }
 

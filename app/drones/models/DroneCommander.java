@@ -6,8 +6,6 @@ import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import drones.messages.*;
 import play.libs.Akka;
-import scala.Function1;
-import scala.Function1$class;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
@@ -209,9 +207,9 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
-    public Future<Void> startVideo() {
+    public Future<Void> initVideo() {
         if(canSend()) {
-            return ask(droneActor, new InitVideoMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+            return ask(droneActor, new InitVideoRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
                 public Void apply(Object s) {
                     return null;
                 }

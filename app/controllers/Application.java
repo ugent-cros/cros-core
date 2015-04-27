@@ -394,7 +394,7 @@ public class Application extends Controller {
     public static F.Promise<Result> initVideo(long id){
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
-        return F.Promise.wrap(d.startVideo()).map(v -> {
+        return F.Promise.wrap(d.initVideo()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             return ok(result);

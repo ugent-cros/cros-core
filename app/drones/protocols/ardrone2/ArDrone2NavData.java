@@ -48,6 +48,9 @@ public class ArDrone2NavData extends UntypedActor {
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
+
+        // Request a sender socket
+        udpManager.tell(UdpMessage.simpleSender(), getSelf());
     }
 
     @Override
@@ -62,7 +65,7 @@ public class ArDrone2NavData extends UntypedActor {
                     .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(StopMessage.class, s -> stop())
                     .matchAny(s -> {
-                        log.info("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        log.error("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
                     })
                     .build());
@@ -73,8 +76,7 @@ public class ArDrone2NavData extends UntypedActor {
         } else if(msg instanceof Udp.SimpleSenderReady){
             senderRef = sender();
         } else {
-            log.info(msg.toString());
-            log.info("[ARDRONE2NAVDATA] Unhandled message received");
+            log.error("[ARDRONE2NAVDATA] Unhandled message received ({})", msg.toString());
             unhandled(msg);
         }
     }
@@ -107,7 +109,7 @@ public class ArDrone2NavData extends UntypedActor {
             senderRef.tell(UdpMessage.send(data, senderAddressNAV), getSelf());
             return true;
         } else {
-            log.info("[ARDRONE2NAVDATA] Sending data failed (senderAddressATC or senderRef is null).");
+            log.error("[ARDRONE2NAVDATA] Sending data failed (senderAddressATC or senderRef is null).");
             return false;
         }
     }
@@ -257,19 +259,15 @@ public class ArDrone2NavData extends UntypedActor {
             case 2:
                 return FlyingState.LANDED;
             case 3:
-                log.info("Flying");
                 return FlyingState.FLYING;
             case 4:
-                log.info("Hovering");
                 return FlyingState.HOVERING;
             case 6:
-                log.info("Taking off");
                 return FlyingState.TAKINGOFF;
             case 8:
-                log.info("Landing");
                 return FlyingState.LANDING;
             default:
-                log.info("Unknown state discovered");
+                log.error("Unknown state discovered");
                 return null;
         }
     }

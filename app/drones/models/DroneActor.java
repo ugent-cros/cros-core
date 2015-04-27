@@ -88,7 +88,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
                 match(FlipRequestMessage.class, s -> flipInternal(sender(), self(), s.getFlip())).
-                match(InitVideoMessage.class, s -> initVideoInternal(sender(), self())).
+                match(InitVideoRequestMessage.class, s -> initVideoInternal(sender(), self())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
@@ -465,7 +465,7 @@ public abstract class DroneActor extends AbstractActor {
         if (!loaded) {
             sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot init video when not initialized.")), self);
         } else {
-            log.debug("Attempting init video.");
+            log.info("Attempting init video.");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             initVideo(v);
