@@ -9,6 +9,7 @@ import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.simulation.BepopSimulator;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -64,7 +65,7 @@ public class SimplePilotTest extends TestSuperclass {
      * Check if SimplePilot flies to the destination
      * @throws TimeoutException
      * @throws InterruptedException
-     */
+    */
     @Test
     public void normalFlow() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
@@ -82,6 +83,10 @@ public class SimplePilotTest extends TestSuperclass {
 
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                System.out.println("test ok1");
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                System.out.println("test ok2");
                 expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
 
                 //check if on destination
@@ -107,7 +112,8 @@ public class SimplePilotTest extends TestSuperclass {
 
     /**
      * Test if correct request messages are used for landing/takeoff.
-     */
+     *
+    */
     @Test
     public void requestMessages() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
@@ -123,21 +129,28 @@ public class SimplePilotTest extends TestSuperclass {
                                 () -> new SimplePilot(getRef(), dc, true, wayPoints))
                 );
 
+                //start
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForTakeOffMessage.class);
+                //request for take off
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
-                simplePilot.tell(new RequestForTakeOffGrantedMessage(simplePilot,STERRE),getRef());
+                simplePilot.tell(new RequestGrantedMessage(new RequestMessage(simplePilot,STERRE,AbstractFlightControlMessage.RequestType.TAKEOFF)),getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, TakeOffCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, CompletedMessage.class);
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForLandingMessage.class);
+                //at wayPoints
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+
+                //request for landing
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
                 Location tmp = new Location(destination.getLocation().getLatitude(),destination.getLocation().getLongitude(),destination.getLocation().getAltitude());
-                simplePilot.tell(new RequestForLandingGrantedMessage(simplePilot,tmp),getRef());
+                simplePilot.tell(new RequestGrantedMessage(new RequestMessage(simplePilot,tmp,AbstractFlightControlMessage.RequestType.LANDING)),getRef());
 
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,LandingCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,LandingCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
             }
         };
     }

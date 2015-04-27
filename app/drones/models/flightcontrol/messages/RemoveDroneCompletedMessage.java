@@ -1,0 +1,13 @@
+package drones.models.flightcontrol.messages;
+
+import drones.models.flightcontrol.messages.AbstractIdFlightControlMessage;
+
+/**
+ * Created by Sander on 26/03/2015.
+ */
+public class RemoveDroneCompletedMessage extends AbstractIdFlightControlMessage {
+
+    public RemoveDroneCompletedMessage(Long id) {
+        super(id);
+    }
+}

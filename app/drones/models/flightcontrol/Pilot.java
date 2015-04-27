@@ -7,9 +7,13 @@ import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
 import drones.models.DroneCommander;
+import drones.models.DroneException;
 import drones.models.Fleet;
 import drones.models.flightcontrol.messages.*;
 import models.Drone;
+import scala.concurrent.Await;
+
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -60,11 +64,18 @@ public abstract class Pilot extends FlightControl{
                 match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
-                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s));
+                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s)).
+                match(AddNoFlyPointMessage.class, s -> addNoFlyPointMessage(s)).
+                match(WaitAtWayPointCompletedMessage.class, s -> waitAtWayPointCompletedMessage(s));
     }
 
-    private void setCruisingAltitude(SetCruisingAltitudeMessage s){
+    protected void setCruisingAltitude(SetCruisingAltitudeMessage s){
         cruisingAltitude = s.getCruisingAltitude();
+        try {
+            Await.ready(dc.setMaxHeight((float) cruisingAltitude), MAX_DURATION_SHORT);
+        } catch (TimeoutException | InterruptedException e) {
+            handleErrorMessage("Failed to set max height after SetCruisingAltitudeMessage");
+        }
     }
 
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);
@@ -72,4 +83,8 @@ public abstract class Pilot extends FlightControl{
     protected abstract void locationChanged(LocationChangedMessage m);
 
     protected abstract void navigationStateChanged(NavigationStateChangedMessage m);
+
+    protected abstract void addNoFlyPointMessage(AddNoFlyPointMessage m);
+
+    protected abstract void waitAtWayPointCompletedMessage(WaitAtWayPointCompletedMessage m);
 }
