@@ -391,10 +391,16 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
     }
 
+    /**
+     * Destroys the associated commander and sets status to INACTIVE.
+     * @param drone
+     */
     protected void removeDrone(Drone drone){
-        // TODO: Stop drone commander
-        // Fleet.getFleet().destroyCommander(drone);
-
+        // Stop commander
+        boolean removed = Fleet.getFleet().stopCommander(drone);
+        if (!removed) {
+            Logger.warn("Tried to shut down non-existent commander.");
+        }
         // Update status
         drone.setStatus(Drone.Status.INACTIVE);
         drone.update();
