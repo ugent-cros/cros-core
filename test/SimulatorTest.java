@@ -128,23 +128,39 @@ public class SimulatorTest extends TestSuperclass {
     @Test
     public void move3d_Hovering_Moves() throws Exception {
 
-        // Prepare commander
-        DroneCommander commander = newCommander();
-        commander.init();
-        commander.takeOff();
+        new JavaTestKit(system) {{
 
-        // Move forward
-        assertMovement(commander, 1, 0);
-        // Move backward
-        assertMovement(commander, -1, 0);
-        // Move left
-        assertMovement(commander, 0, 1);
-        // Move right
-        assertMovement(commander, 0, -1);
+            // Prepare commander
+            DroneCommander commander = newCommander();
+            commander.init();
+            commander.subscribeTopic(getRef(), FlyingStateChangedMessage.class);
+            commander.takeOff();
+
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    try {
+                        FlyingState state = Await.result(commander.getFlyingState(), Duration.create(2, TimeUnit.SECONDS));
+                        return state == FlyingState.HOVERING;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+            };
+
+            // Move forward
+            assertMovement(commander, 1, 0);
+            // Move backward
+            assertMovement(commander, -1, 0);
+            // Move left
+            assertMovement(commander, 0, 1);
+            // Move right
+            assertMovement(commander, 0, -1);
+        }};
 
     }
 
-    private void assertMovement(DroneCommander commander, double vx, double vy) {
+    private void assertMovement(DroneCommander commander, double vx, double vy) throws Exception {
 
         new JavaTestKit(system) {{
 
@@ -171,6 +187,7 @@ public class SimulatorTest extends TestSuperclass {
             rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), RotationChangedMessage.class);
             assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI / 3);
             assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI / 3);
+
 
             speed = listener.expectMsgClass(SpeedChangedMessage.class);
             // Check speedX
@@ -243,8 +260,6 @@ public class SimulatorTest extends TestSuperclass {
     @Test
     public void moveToLocation_Hovering_MovesTowardsLocation() throws Exception {
 
-        final double errorRadius = driver.topSpeed; // GPS accuracy == topspeed for simulator
-
         new JavaTestKit(system) {{
 
             // Prepare commander
@@ -308,12 +323,12 @@ public class SimulatorTest extends TestSuperclass {
                 arrived = Await.result(commander.getNavigationStateReason(), Duration.create(1, TimeUnit.SECONDS));
             }
 
+            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
+
             navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
             assertThat(navState.getState()).isEqualTo(NavigationState.AVAILABLE);
             assertThat(navState.getReason()).isEqualTo(NavigationStateReason.FINISHED);
-
-            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
-            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
         }};
     }
 
@@ -467,8 +482,6 @@ public class SimulatorTest extends TestSuperclass {
             };
             commander.unsubscribe(getRef());
 
-            System.out.println("Taken off");
-
             // Locations
             Location rosier = new Location(51.04545, 3.7249, 10);
             Location initialLocation = Await.result(commander.getLocation(), Duration.create(2, TimeUnit.SECONDS));
@@ -492,8 +505,6 @@ public class SimulatorTest extends TestSuperclass {
             FlyingStateChangedMessage flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
             assertThat(flyingState.getState()).isEqualTo(FlyingState.FLYING);
 
-            System.out.println("Started moving");
-
             // Cancel movement
             commander.cancelMoveToLocation();
 
@@ -510,8 +521,6 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(speed.getVy()).isEqualTo(0);
             assertThat(speed.getVz()).isEqualTo(0);
 
-            System.out.println("Stoped moving");
-
             // Send drone back on his way
             commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
 
@@ -519,12 +528,8 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(navState.getState()).isEqualTo(NavigationState.IN_PROGRESS);
             assertThat(navState.getReason()).isEqualTo(NavigationStateReason.REQUESTED);
 
-            System.out.println("Navigation started");
-
             flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
             assertThat(flyingState.getState()).isEqualTo(FlyingState.FLYING);
-
-            System.out.println("Flying");
 
             // Wait untill navigator has found correct direction
             new AwaitCond() {
@@ -549,18 +554,12 @@ public class SimulatorTest extends TestSuperclass {
                 arrived = Await.result(commander.getNavigationStateReason(), Duration.create(1, TimeUnit.SECONDS));
             }
 
-            System.out.println("Direction found");
+            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
 
             navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
             assertThat(navState.getState()).isEqualTo(NavigationState.AVAILABLE);
             assertThat(navState.getReason()).isEqualTo(NavigationStateReason.FINISHED);
-
-            System.out.println("Finished");
-
-            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
-            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
-
-            System.out.println("Hovering");
         }};
     }
 }
