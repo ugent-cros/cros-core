@@ -88,6 +88,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(MoveToLocationRequestMessage.class, s -> moveToLocationInternal(sender(), self(), s)).
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
                 match(FlipRequestMessage.class, s -> flipInternal(sender(), self(), s.getFlip())).
+                match(InitVideoMessage.class, s -> initVideoInternal(sender(), self())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
@@ -460,6 +461,17 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    private void initVideoInternal(final ActorRef sender, final ActorRef self){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot init video when not initialized.")), self);
+        } else {
+            log.debug("Attempting init video.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            initVideo(v);
+        }
+    }
+
     protected abstract void stop();
 
     protected abstract void init(Promise<Void> p);
@@ -489,6 +501,8 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void reset(Promise<Void> p);
 
     protected abstract void flip(Promise<Void> p, FlipType type);
+
+    protected abstract void initVideo(Promise<Void> p);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

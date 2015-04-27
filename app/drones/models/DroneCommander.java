@@ -209,6 +209,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> startVideo() {
+        if(canSend()) {
+            return ask(droneActor, new InitVideoMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, Akka.system().dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
     public void stop() {
         droneActor.tell(new StopMessage(), ActorRef.noSender());
         shutdown = true;

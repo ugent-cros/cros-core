@@ -106,7 +106,8 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .match(RequestConfigMessage.class, s -> handleConfigRequest())
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
-                    .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
+                    .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
+                    .match(InitVideoCommand.class, s -> handleInitVideo())
 
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -130,6 +131,12 @@ public class ArDrone2Protocol extends UntypedActor {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+    }
+
+    private void handleInitVideo() {
+        // Create config data actor
+        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                () -> new ArDrone2Video(details, listener, getSelf())));
     }
 
     @Override
@@ -280,11 +287,6 @@ public class ArDrone2Protocol extends UntypedActor {
         // Create config data actor
         ardrone2Config = getContext().actorOf(Props.create(ArDrone2Config.class,
                 () -> new ArDrone2Config(details, listener, getSelf())));
-
-        // Create config data actor
-        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
-                () -> new ArDrone2Video(details, listener, getSelf())));
-
     }
 
     private void handleFlatTrim() {

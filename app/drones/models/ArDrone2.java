@@ -135,6 +135,11 @@ public class ArDrone2 extends NavigatedDroneActor {
         sendMessage(new FlipCommand(type));
     }
 
+    @Override
+    protected void initVideo(Promise<Void> p) {
+        sendMessage(new InitVideoCommand());
+    }
+
     private void sendCommand(Promise<Void> p, Serializable command) {
         if (sendMessage(command)) {
             p.success(null);

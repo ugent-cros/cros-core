@@ -118,6 +118,12 @@ public interface DroneControl {
     Future<Void> flip(FlipType type);
 
     /**
+     *
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> startVideo();
+
+    /**
      * Stops the drone communication
      */
     void stop();

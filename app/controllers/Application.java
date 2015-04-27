@@ -116,6 +116,8 @@ public class Application extends Controller {
         });
     }
 
+
+
     public static Result subscribeMonitor(long id){
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
@@ -383,6 +385,16 @@ public class Application extends Controller {
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.land()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> initVideo(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.startVideo()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             return ok(result);
