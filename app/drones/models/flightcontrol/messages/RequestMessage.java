@@ -8,7 +8,7 @@ import drones.models.Location;
  */
 public class RequestMessage extends AbstractFlightControlMessage{
 
-    public RequestMessage(ActorRef requester, Location location, RequestType type) {
+    public RequestMessage(ActorRef requester, Location location, AbstractFlightControlMessage.RequestType type) {
         super(requester, location, type);
     }
 }
