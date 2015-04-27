@@ -48,4 +48,12 @@ public abstract class AbstractFlightControlMessage implements Serializable{
         }
         return result;
     }
+
+    @Override
+    public int hashCode() {
+        int result = location.hashCode();
+        result = 31 * result + requester.hashCode();
+        result = 31 * result + type.hashCode();
+        return result;
+    }
 }
