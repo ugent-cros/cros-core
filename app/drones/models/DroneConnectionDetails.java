@@ -25,4 +25,13 @@ public class DroneConnectionDetails {
     public int getReceivingPort() {
         return receivingPort;
     }
+
+    @Override
+    public String toString() {
+        return "DroneConnectionDetails{" +
+                "ip='" + ip + '\'' +
+                ", sendingPort=" + sendingPort +
+                ", receivingPort=" + receivingPort +
+                '}';
+    }
 }

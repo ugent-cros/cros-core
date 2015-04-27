@@ -1,6 +1,7 @@
 package drones.protocols.ardrone2;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -78,10 +79,16 @@ public class ArDrone2Protocol extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2] Socket ARDRone 2.0 bound.");
 
-            senderRef = getSender();
+
             // Setup handlers
             getContext().become(ReceiveBuilder
-                    .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    //.match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.Unbound.class, s -> {
+                        log.info("UDP unbound received.");
+                        getContext().stop(getSelf());
+                    })
+
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitNavDataMessage.class, s -> sendInitNavData())
@@ -117,9 +124,19 @@ public class ArDrone2Protocol extends UntypedActor {
         } else if (msg instanceof StopMessage) {
             log.info("[ARDRONE2] Stop message received - ArDrone2 protocol");
             stop();
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
+        }
+    }
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
         }
     }
 
@@ -327,7 +344,7 @@ public class ArDrone2Protocol extends UntypedActor {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
         ardrone2Config.tell(new StopMessage(), self());
-        ardrone2Video.tell(new StopMessage(), self());
+        // ardrone2Video does not have to be stopped
 
         udpManager.tell(UdpMessage.unbind(), self());
         getContext().stop(self());

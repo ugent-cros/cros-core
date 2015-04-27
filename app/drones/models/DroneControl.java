@@ -117,4 +117,8 @@ public interface DroneControl {
      */
     Future<Void> flip(FlipType type);
 
+    /**
+     * Stops the drone communication
+     */
+    void stop();
 }

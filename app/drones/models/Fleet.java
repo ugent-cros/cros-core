@@ -3,6 +3,7 @@ package drones.models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Mapper;
+import akka.dispatch.OnFailure;
 import akka.util.Timeout;
 import drones.messages.*;
 import drones.protocols.ICMPPing;
@@ -98,7 +99,7 @@ public class Fleet {
     }
 
     private void registerFleetBus(DroneCommander cmd){
-        cmd.subscribeTopics(fleetBus, new Class[] {
+        cmd.subscribeTopics(fleetBus, new Class[]{
                 LocationChangedMessage.class,
                 BatteryPercentageChangedMessage.class,
                 ConnectionStatusChangedMessage.class,
@@ -134,13 +135,35 @@ public class Fleet {
                 Props.create(driver.getActorClass(),
                         () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
         DroneCommander commander = new DroneCommander(droneActor);
-        return commander.init().map(new Mapper<Void, DroneCommander>() {
+        Future<Void> f = commander.init();
+        f.onFailure(new OnFailure(){
+            @Override
+            public void onFailure(Throwable failure) throws Throwable {
+                commander.stop(); // Stop commander when init fails
+            }
+        }, Akka.system().dispatcher());
+        return f.map(new Mapper<Void, DroneCommander>() {
             public DroneCommander apply(Void s) {
                 registerFleetBus(commander);
                 drones.put(droneEntity.getId(), commander);
                 return commander;
             }
         }, Akka.system().dispatcher());
+    }
+
+    public void shutdown(){
+        for(DroneCommander cmd : drones.values()){
+            cmd.stop();
+        }
+        drones.clear();
+    }
+
+    public boolean stopCommander(Drone droneEntity){
+        DroneCommander cmd = drones.remove(droneEntity.getId());
+        if(cmd != null){
+            cmd.stop();
+            return true;
+        } else return false;
     }
 
     public boolean hasCommander(Drone droneEntity) {

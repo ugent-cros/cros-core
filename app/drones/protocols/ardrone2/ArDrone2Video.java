@@ -60,11 +60,11 @@ public class ArDrone2Video extends UntypedActor {
             decode();
             closeDecoder();
         } catch (UnknownHostException e) {
-            log.error(e.getMessage());
+            log.error(e, "Could not find ArDrone2 host");
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error(e, "IOException in processing ArDrone2 video");
         } catch (XugglerException e) {
-            log.error(e.getMessage());
+            log.error(e, "Exception in processing ArDrone2 video");
         }
     }
 
@@ -115,10 +115,12 @@ public class ArDrone2Video extends UntypedActor {
                             listener.tell(imageMessage, getSelf());
                         }
                     }
+                } catch (XugglerException e) {
+                    log.error(e, "Exception in processing ArDrone2 video");
+                } catch (IOException e) {
+                    log.error(e, "Exception in processing ArDrone2 video");
                 }
-                catch(Exception exc) {
-                    log.error(exc.getMessage());
-                }
+
             }
 
             // If parent (ArDrone2Protocol) is terminated, terminate this actor.

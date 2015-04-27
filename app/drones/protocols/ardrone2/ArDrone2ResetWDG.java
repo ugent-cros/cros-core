@@ -43,10 +43,10 @@ public class ArDrone2ResetWDG extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2COMWDG] Socket ARDRone 2.0 bound.");
 
-            senderRef = getSender();
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(StopMessage.class, s -> stop())
                     .match(ComWDGMessage.class, s -> sendComWDG())
                     .matchAny(s -> {
@@ -56,6 +56,8 @@ public class ArDrone2ResetWDG extends UntypedActor {
                     .build());
 
             runComWDG();
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             log.info("[ARDRONE2COMWDG] Unhandled message received - ArDrone2ResetWDG protocol");
             unhandled(msg);

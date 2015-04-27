@@ -1,6 +1,7 @@
 package drones.protocols.ardrone2;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -54,12 +55,11 @@ public class ArDrone2NavData extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2NAVDATA] Socket ARDRone 2.0 bound.");
 
-            senderRef = getSender();
-
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Received.class, s -> processRawData(s.data()))
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(StopMessage.class, s -> stop())
                     .matchAny(s -> {
                         log.info("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -70,10 +70,20 @@ public class ArDrone2NavData extends UntypedActor {
             // Enable nav data
             sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
             parent.tell(new InitNavDataMessage(), getSelf());
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             log.info(msg.toString());
             log.info("[ARDRONE2NAVDATA] Unhandled message received");
             unhandled(msg);
+        }
+    }
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
         }
     }
 
