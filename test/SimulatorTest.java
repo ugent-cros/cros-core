@@ -169,8 +169,8 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(speed.getSpeedZ()).isEqualTo(0);
 
             rotation = listener.expectMsgClass(Duration.create(5, TimeUnit.SECONDS), RotationChangedMessage.class);
-            assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI/3);
-            assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI/3);
+            assertThat(rotation.getPitch()).isEqualTo(vx * Math.PI / 3);
+            assertThat(rotation.getRoll()).isEqualTo(vy * Math.PI / 3);
 
             speed = listener.expectMsgClass(SpeedChangedMessage.class);
             // Check speedX
@@ -443,6 +443,124 @@ public class SimulatorTest extends TestSuperclass {
             assertThat(speed.getVy()).isEqualTo(0);
             assertThat(speed.getVz()).isEqualTo(0);
 
+        }};
+    }
+
+    @Test
+    public void moveToLocation_AfterCancel_Moves() throws Exception {
+
+        new JavaTestKit(system) {{
+
+            // Prepare commander
+            DroneCommander commander = newCommander();
+            commander.init();
+            commander.subscribeTopic(getRef(), FlyingStateChangedMessage.class);
+
+            // Wait until commander has taken off
+            commander.takeOff();
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    FlyingStateChangedMessage state = expectMsgClass(FlyingStateChangedMessage.class);
+                    return state.getState() == FlyingState.HOVERING;
+                }
+            };
+            commander.unsubscribe(getRef());
+
+            System.out.println("Taken off");
+
+            // Locations
+            Location rosier = new Location(51.04545, 3.7249, 10);
+            Location initialLocation = Await.result(commander.getLocation(), Duration.create(2, TimeUnit.SECONDS));
+            final double initialDistance = rosier.distance(initialLocation);
+
+            // Listen for location changes
+            JavaTestKit tracker = new JavaTestKit(system);
+            JavaTestKit stateTracker = new JavaTestKit(system);
+            commander.subscribeTopic(tracker.getRef(), LocationChangedMessage.class);
+            commander.subscribeTopic(stateTracker.getRef(), NavigationStateChangedMessage.class);
+            commander.subscribeTopic(stateTracker.getRef(), FlyingStateChangedMessage.class);
+
+            // Send drone to some location, intial location is sterre
+            commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
+
+            // Wait until drone is flying
+            NavigationStateChangedMessage navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.IN_PROGRESS);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.REQUESTED);
+
+            FlyingStateChangedMessage flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.FLYING);
+
+            System.out.println("Started moving");
+
+            // Cancel movement
+            commander.cancelMoveToLocation();
+
+            // Check if status is updated accordingly
+            navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.AVAILABLE);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.STOPPED);
+
+            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
+
+            Speed speed = Await.result(commander.getSpeed(), Duration.create(2, TimeUnit.SECONDS));
+            assertThat(speed.getVx()).isEqualTo(0);
+            assertThat(speed.getVy()).isEqualTo(0);
+            assertThat(speed.getVz()).isEqualTo(0);
+
+            System.out.println("Stoped moving");
+
+            // Send drone back on his way
+            commander.moveToLocation(rosier.getLatitude(), rosier.getLongitude(), rosier.getHeight());
+
+            navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.IN_PROGRESS);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.REQUESTED);
+
+            System.out.println("Navigation started");
+
+            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.FLYING);
+
+            System.out.println("Flying");
+
+            // Wait untill navigator has found correct direction
+            new AwaitCond() {
+                @Override
+                protected boolean cond() {
+                    LocationChangedMessage locUpdate = tracker.expectMsgClass(LocationChangedMessage.class);
+                    double distance = initialLocation.distance(locUpdate.getLongitude(), locUpdate.getLatitude());
+                    return distance < initialDistance;
+                }
+            };
+
+            // Check if were getting closer
+            double distance = initialDistance;
+            NavigationStateReason arrived = Await.result(commander.getNavigationStateReason(), Duration.create(1, TimeUnit.SECONDS));
+            while(arrived != NavigationStateReason.FINISHED) {
+
+                LocationChangedMessage locationUpdate  = tracker.expectMsgClass(LocationChangedMessage.class);
+                double newDistance = rosier.distance(locationUpdate.getLongitude(), locationUpdate.getLatitude());
+                assertThat(newDistance).isLessThanOrEqualTo(distance);
+                distance = newDistance;
+                System.out.println("Still " + distance + "m to go.");
+                arrived = Await.result(commander.getNavigationStateReason(), Duration.create(1, TimeUnit.SECONDS));
+            }
+
+            System.out.println("Direction found");
+
+            navState = stateTracker.expectMsgClass(NavigationStateChangedMessage.class);
+            assertThat(navState.getState()).isEqualTo(NavigationState.AVAILABLE);
+            assertThat(navState.getReason()).isEqualTo(NavigationStateReason.FINISHED);
+
+            System.out.println("Finished");
+
+            flyingState = stateTracker.expectMsgClass(FlyingStateChangedMessage.class);
+            assertThat(flyingState.getState()).isEqualTo(FlyingState.HOVERING);
+
+            System.out.println("Hovering");
         }};
     }
 }
