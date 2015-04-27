@@ -8,9 +8,12 @@ import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.*;
 import drones.models.Fleet;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
 import drones.models.scheduler.messages.from.AssignmentStartedMessage;
 import drones.models.scheduler.messages.from.DroneAssignedMessage;
+import drones.models.scheduler.messages.from.DroneUnassignedMessage;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -51,6 +54,15 @@ public class MessageWebSocket extends AbstractActor {
     public MessageWebSocket(final ActorRef out) {
         this.out = out;
 
+        // Scheduler
+        try {
+            Scheduler.subscribe(DroneAssignedMessage.class,out);
+            Scheduler.subscribe(AssignmentStartedMessage.class,out);
+            Scheduler.subscribe(AssignmentCompletedMessage.class,out);
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+
         Fleet.getFleet().subscribe(self());
         UnitPFBuilder<Object> builder = ReceiveBuilder.match(TYPENAMES.get(0)._1, s -> {
             ObjectNode node = Json.newObject();
@@ -84,5 +96,14 @@ public class MessageWebSocket extends AbstractActor {
     public void postStop() throws Exception {
         super.postStop();
         Fleet.getFleet().unsubscribe(self());
+
+        // Scheduler
+        try {
+            Scheduler.unsubscribe(DroneAssignedMessage.class,out);
+            Scheduler.unsubscribe(AssignmentStartedMessage.class,out);
+            Scheduler.unsubscribe(AssignmentCompletedMessage.class,out);
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
     }
 }

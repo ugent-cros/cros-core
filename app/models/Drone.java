@@ -149,7 +149,7 @@ public class Drone extends Model {
         FLYING,
         CHARGING,
         EMERGENCY,
-        DECOMMISSIONED,
+        RETIRED,
         INACTIVE,
         UNREACHABLE,
         UNKNOWN

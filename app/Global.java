@@ -56,9 +56,9 @@ public class Global extends GlobalSettings {
     public void onStart(Application application) {
         super.onStart(application);
         try {
-            Scheduler.start(SimpleScheduler.class);
+            Scheduler.start(AdvancedScheduler.class);
         }catch(SchedulerException ex){
-            Logger.error(ex.toString());
+            Logger.error("Scheduler failed on start.",ex);
         }
     }
 
@@ -68,7 +68,7 @@ public class Global extends GlobalSettings {
         try {
             Scheduler.stop();
         }catch(SchedulerException ex){
-            Logger.error(ex.toString());
+            Logger.error("Scheduler failed on stop.");
         }
     }
 

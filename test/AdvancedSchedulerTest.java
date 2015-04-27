@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Ronald on 18/04/2015.
  */
+@Ignore
 public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
@@ -180,7 +181,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         Assert.assertTrue(length >= 0);
     }
 
-    @Ignore
     @Test
     public void subscriberTest_RequestMessage_ReplyMessage() throws SchedulerException {
         new JavaTestKit(system){
@@ -196,7 +196,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    @Ignore
     @Test
     public void addDrones_FilledDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -225,7 +224,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    @Ignore
     @Test
     public void droneAddRemove_EmptyDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -489,7 +487,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         DroneRemovedMessage A = test.expectMsgClass(LONG_TIMEOUT,DroneRemovedMessage.class);
         drone.refresh();
         Assert.assertTrue("Drone removed", A.getDroneId() == drone.getId());
-        Assert.assertTrue("Drone DECOMMISSIONED",drone.getStatus() == Drone.Status.DECOMMISSIONED);
+        Assert.assertTrue("Drone RETIRED",drone.getStatus() == Drone.Status.RETIRED);
         unsubscribe(test, DroneRemovedMessage.class);
     }
 
@@ -531,6 +529,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         unsubscribe(test, AssignmentStartedMessage.class);
     }
 
+    @Ignore
     @Test
     public void schedule_cancelAssigment_succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -551,7 +550,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                     assertCanceled(this,assignment,drone);
                     assignment.delete();
                 }
-                //removeDrone(this,drone);
+                removeDrone(this,drone);
             }
         };
     }

@@ -18,8 +18,13 @@ public class SchedulerEventBus extends LookupEventBus<SchedulerEvent,ActorRef,Cl
     }
 
     @Override
+    public void publish(SchedulerEvent event) {
+        super.publish(event);
+        Logger.info("Scheduler published " + event.getClass().getSimpleName());
+    }
+
+    @Override
     public void publish(SchedulerEvent event, ActorRef subscriber) {
-        Logger.debug("PUBLISHING: " + event.getClass().getSimpleName());
         subscriber.tell(event, ActorRef.noSender());
     }
 

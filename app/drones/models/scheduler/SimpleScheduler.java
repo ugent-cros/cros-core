@@ -49,7 +49,9 @@ public class SimpleScheduler extends Scheduler {
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
-        return super.initReceivers().match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
+        return super.initReceivers()
+                .match(FlightCompletedMessage.class, m -> receiveFlightCompletedMessage(m))
+                .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
     }
 
     protected void receiveAssignmentMessage(AssignmentMessage message) {
@@ -121,15 +123,6 @@ public class SimpleScheduler extends Scheduler {
         assignment.update();
     }
 
-    protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
-        // Well, this is just a simple scheduler.
-        // There is not much this scheduler can do about this right now
-        // Except updating the database.
-        Drone drone = getDrone(message.getDroneId());
-        drone.setStatus(Drone.Status.EMERGENCY);
-        drone.update();
-    }
-
     protected void assign(Drone drone, Assignment assignment) {
         // Update drone
         drone.setStatus(Drone.Status.FLYING);
@@ -161,7 +154,9 @@ public class SimpleScheduler extends Scheduler {
         while (true) {
             // Provide assignments
             if (queue.isEmpty()) {
-                if (!fetchAssignments()) return; // No more assignments
+                if (!fetchAssignments()) {
+                    return; // No more assignments
+                }
             }
             // Pick drone
             Drone drone = fetchAvailableDrone();
