@@ -7,15 +7,13 @@ import akka.event.LoggingAdapter;
 import com.xuggle.xuggler.*;
 import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.video.IConverter;
-import drones.messages.JPEGFrameMessage;
+import drones.messages.ImageMessage;
 import drones.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 /**
  * Created by brecht on 4/17/15.
@@ -111,7 +109,7 @@ public class ArDrone2Video extends UntypedActor {
 
                             log.debug("[ARDONE2VIDEO] Video image decoded");
 
-                            Object imageMessage = new JPEGFrameMessage(bos.toByteArray());
+                            Object imageMessage = new ImageMessage(bos.toByteArray());
                             listener.tell(imageMessage, getSelf());
                         }
                     }

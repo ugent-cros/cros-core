@@ -106,7 +106,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(NavigationStateChangedMessage.class, s -> setNavigationState(s.getState(), s.getReason())).
                 match(MagnetoCalibrationStateChangedMessage.class, s -> setMagnetoCalibrationState(s.isCalibrationRequired())).
                 match(ConnectionStatusChangedMessage.class, s -> setConnectionStatus(s.isConnected())).
-                match(JPEGFrameMessage.class, s -> setJPEGImage(s.getByteData())).
+                match(ImageMessage.class, s -> setJPEGImage(s.getByteData())).
                 matchAny(o -> log.info("DroneActor unk message recv: [{}]", o.getClass().getCanonicalName())).build());
     }
 
@@ -193,7 +193,7 @@ public abstract class DroneActor extends AbstractActor {
 
     protected void setJPEGImage(byte[] jpegImageData) {
         image.setValue(jpegImageData);
-        eventBus.publish(new DroneEventMessage(new JPEGFrameMessage(jpegImageData)));
+        eventBus.publish(new DroneEventMessage(new ImageMessage(jpegImageData)));
     }
 
     @Override

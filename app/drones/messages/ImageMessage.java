@@ -9,7 +9,7 @@ import java.util.Base64;
 /**
  * Created by brecht on 4/20/15.
  */
-public class JPEGFrameMessage implements Serializable {
+public class ImageMessage implements Serializable {
 
     private byte[] data;
 
@@ -17,7 +17,7 @@ public class JPEGFrameMessage implements Serializable {
      *
      * @param data The image data as a byte array
      */
-    public JPEGFrameMessage(byte[] data) {
+    public ImageMessage(byte[] data) {
         this.data = data;
     }
 

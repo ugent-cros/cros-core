@@ -7,7 +7,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.messages.JPEGFrameMessage;
+import drones.messages.ImageMessage;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
 import models.Drone;
@@ -32,14 +32,14 @@ public class VideoWebSocket extends AbstractActor {
 
         Drone drone = Drone.FIND.byId(droneID);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
-        d.subscribeTopic(self(), JPEGFrameMessage.class);
+        d.subscribeTopic(self(), ImageMessage.class);
 
-        receive(ReceiveBuilder.match(JPEGFrameMessage.class, s -> handleJPEGFrameMessage(s)).build());
+        receive(ReceiveBuilder.match(ImageMessage.class, s -> handleJPEGFrameMessage(s)).build());
 
         log.info("[VIDEOSOCKET] Started (for ID: {})", droneID);
     }
 
-    private void handleJPEGFrameMessage(JPEGFrameMessage s) {
+    private void handleJPEGFrameMessage(ImageMessage s) {
         ObjectNode node = Json.newObject();
         node.put("type", "JPEGFrameChanged");
         node.put("id", sender().path().name().split("-")[1]);
