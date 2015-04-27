@@ -1,9 +1,6 @@
-package drones.protocols;
+package drones.protocols.ardrone3;
 
-import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
-import akka.actor.SupervisorStrategy;
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Udp;
@@ -80,11 +77,23 @@ public class ArDrone3 extends UntypedActor {
         final ActorRef udpMgr = Udp.get(getContext().system()).getManager();
         udpMgr.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(receivingPort)), getSelf());
         log.debug("Listening on [{}]", receivingPort);
+
+        // Request a sender socket
+        udpMgr.tell(UdpMessage.simpleSender(), getSelf());
+    }
+
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
+        }
     }
 
     @Override
     public SupervisorStrategy supervisorStrategy() {
-        return new OneForOneStrategy(10, Duration.create("1 minute"),
+        return new OneForOneStrategy(-1, Duration.create("1 minute"),
                 t -> {
                     log.error(t, "Bepop actor failure caught by supervisor.");
                     System.err.println(t.getMessage());
@@ -113,6 +122,7 @@ public class ArDrone3 extends UntypedActor {
         log.debug("Unbinding ARDrone 3 UDP listener.");
         if (senderRef != null) {
             senderRef.tell(UdpMessage.unbind(), self());
+            senderRef = null;
         }
         getContext().stop(self());
     }
@@ -352,19 +362,25 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
+        if(this.senderAddress != null){
+            log.info("ArDrone3 protocol drone IP information updated: {}", details);
+        }
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
         log.debug("Enabled SEND at protocol level. Sending port=[{}]", details.getSendingPort());
         isOffline = false;
+
+        lastPong = System.currentTimeMillis(); // reset ping timers
     }
 
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof Udp.Bound) {
             log.debug("Socket ARDRone 3.0 bound.");
-            senderRef = getSender();
+            //senderRef = getSender();
 
             // Setup handlers
             getContext().become(ReceiveBuilder
+                    .match(StopMessage.class, s -> stop())
                     .match(String.class, "tick"::equals, s -> tick())
                     .match(Udp.Received.class, s -> {
                         try {
@@ -377,6 +393,7 @@ public class ArDrone3 extends UntypedActor {
                         log.info("UDP unbound received.");
                         getContext().stop(getSelf());
                     })
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> {
                         log.info("ArDrone3 protocol stop received.");
@@ -391,7 +408,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVr()))
-                    .match(FlipCommand.class, s-> handleFlip(s.getFlip()))
+                    .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
                     .match(SetTimeCommand.class, s -> setTime(s.getTime()))
                     .match(SetVideoStreamingStateCommand.class, s -> setVideoStreaming(s.isEnabled()))
@@ -410,6 +427,8 @@ public class ArDrone3 extends UntypedActor {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
             stop();
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             unhandled(msg);
         }
@@ -496,14 +515,14 @@ public class ArDrone3 extends UntypedActor {
                     sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
                 }
             }
-
-            // Reschedule
-            getContext().system().scheduler().scheduleOnce(
-                    Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
-                    getSelf(), "tick", getContext().dispatcher(), null);
         } catch(Exception ex){
             log.warning("Failed to process ArDrone3 timer tick.");
         }
+
+        // Reschedule
+        getContext().system().scheduler().scheduleOnce(
+                Duration.create(TICK_DURATION, TimeUnit.MILLISECONDS),
+                getSelf(), "tick", getContext().dispatcher(), null);
     }
 
 

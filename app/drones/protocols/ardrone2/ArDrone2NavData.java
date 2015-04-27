@@ -28,6 +28,9 @@ public class ArDrone2NavData extends UntypedActor {
     private static final int HEADER_VALUE = 0x55667788;
     private static final int MIN_SIZE = 100;
 
+    // Percentage when battery level is low
+    private static final int BATTERY_LEVEL_LOW = 30;
+
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private ActorRef senderRef;
     private final ActorRef listener;
@@ -208,6 +211,11 @@ public class ArDrone2NavData extends UntypedActor {
 
         Object batteryMessage = new BatteryPercentageChangedMessage((byte) battery);
         listener.tell(batteryMessage, getSelf());
+
+        if(battery < BATTERY_LEVEL_LOW) {
+            Object alertMessage = new AlertStateChangedMessage(AlertState.BATTERY_LOW);
+            listener.tell(alertMessage, getSelf());
+        }
     }
 
     private void flyingStateChanged(byte[] navdata) {

@@ -286,6 +286,11 @@ public class BepopSimulator extends NavigatedDroneActor {
         }
     }
 
+    @Override
+    protected void stop() {
+
+    }
+
     protected void processBatteryLevel(byte percentage) {
 
         if(percentage < batteryLowLevel) {
@@ -454,6 +459,10 @@ public class BepopSimulator extends NavigatedDroneActor {
             case TAKINGOFF:
                 // Hover drone before landing again
                 setFlyingState(FlyingState.HOVERING);
+                // Fall-through
+            case FLYING:
+                // Cancel movement
+                move3d(Futures.promise(), 0, 0, 0, 0);
                 // Fall-through
             case HOVERING:
                 setFlyingState(FlyingState.LANDING);
