@@ -10,7 +10,7 @@ public class RequestMessage extends AbstractFlightControlMessage{
 
     private Long droneId;
 
-    public RequestMessage(ActorRef requester, Location location, RequestType type, Long droneId) {
+    public RequestMessage(ActorRef requester, Location location, AbstractFlightControlMessage.RequestType type, Long droneId) {
         super(requester, location, type);
         this.droneId = droneId;
     }
