@@ -32,26 +32,26 @@ public class ManualDroneController extends Controller {
 
     static {
         COMMANDS = new HashMap<>();
-        COMMANDS.put("flipBack", (c) -> F.Promise.wrap(c.flip(FlipType.BACK)).map(v -> ok()));
-        COMMANDS.put("flipFront", (c) -> F.Promise.wrap(c.flip(FlipType.FRONT)).map(v -> ok()));
-        COMMANDS.put("flipLeft", (c) -> F.Promise.wrap(c.flip(FlipType.LEFT)).map(v -> ok()));
-        COMMANDS.put("flipRight", (c) -> F.Promise.wrap(c.flip(FlipType.RIGHT)).map(v -> ok()));
-        COMMANDS.put("setOutdoor", (c) -> F.Promise.wrap(c.setOutdoor(true)).map(v -> ok()));
-        COMMANDS.put("setIndoor", (c) -> F.Promise.wrap(c.setOutdoor(false)).map(v -> ok()));
-        COMMANDS.put("setHull", (c) -> F.Promise.wrap(c.setHull(true)).map(v -> ok()));
-        COMMANDS.put("setNoHull", (c) -> F.Promise.wrap(c.setHull(false)).map(v -> ok()));
-        COMMANDS.put("flatTrim", (c) -> F.Promise.wrap(c.flatTrim()).map(v -> ok()));
-        COMMANDS.put("takeOff", (c) -> F.Promise.wrap(c.takeOff()).map(v -> ok()));
-        COMMANDS.put("land", (c) -> F.Promise.wrap(c.land()).map(v -> ok()));
-        COMMANDS.put("moveLeft", (c) -> F.Promise.wrap(c.move3d(0, -1, 0, 0)).map(v -> ok()));
-        COMMANDS.put("moveRight", (c) -> F.Promise.wrap(c.move3d(0, 1, 0, 0)).map(v -> ok()));
-        COMMANDS.put("moveUp", (c) -> F.Promise.wrap(c.move3d(0, 0, 1, 0)).map(v -> ok()));
-        COMMANDS.put("moveDown", (c) -> F.Promise.wrap(c.move3d(0, 0, -1, 0)).map(v -> ok()));
-        COMMANDS.put("center", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 0)).map(v -> ok()));
-        COMMANDS.put("moveForward", (c) -> F.Promise.wrap(c.move3d(1, 0, 0, 0)).map(v -> ok()));
-        COMMANDS.put("moveBackward", (c) -> F.Promise.wrap(c.move3d(-1, 0, 0, 0)).map(v -> ok()));
-        COMMANDS.put("rotateLeft", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, -1)).map(v -> ok()));
-        COMMANDS.put("rotateRight", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 1)).map(v -> ok()));
+        COMMANDS.put("flipBack", (c) -> F.Promise.wrap(c.flip(FlipType.BACK)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipFront", (c) -> F.Promise.wrap(c.flip(FlipType.FRONT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipLeft", (c) -> F.Promise.wrap(c.flip(FlipType.LEFT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipRight", (c) -> F.Promise.wrap(c.flip(FlipType.RIGHT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setOutdoor", (c) -> F.Promise.wrap(c.setOutdoor(true)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setIndoor", (c) -> F.Promise.wrap(c.setOutdoor(false)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setHull", (c) -> F.Promise.wrap(c.setHull(true)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setNoHull", (c) -> F.Promise.wrap(c.setHull(false)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flatTrim", (c) -> F.Promise.wrap(c.flatTrim()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("takeOff", (c) -> F.Promise.wrap(c.takeOff()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("land", (c) -> F.Promise.wrap(c.land()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveLeft", (c) -> F.Promise.wrap(c.move3d(0, -1, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveRight", (c) -> F.Promise.wrap(c.move3d(0, 1, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveUp", (c) -> F.Promise.wrap(c.move3d(0, 0, 1, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveDown", (c) -> F.Promise.wrap(c.move3d(0, 0, -1, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("center", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveForward", (c) -> F.Promise.wrap(c.move3d(1, 0, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveBackward", (c) -> F.Promise.wrap(c.move3d(-1, 0, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("rotateLeft", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, -1)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("rotateRight", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 1)).map(v -> ok(Json.newObject())));
     }
 
     public static F.Promise<Result> command(Long id, String command) {
