@@ -9,7 +9,6 @@ import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.PingResult;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.flightcontrol.messages.StopFlightControlMessage;
@@ -19,7 +18,6 @@ import models.*;
 import play.Logger;
 import scala.concurrent.Await;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import java.util.*;
@@ -333,36 +331,22 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         Drone drone = getDrone(message.getDroneId());
         Fleet fleet = Fleet.getFleet();
 
-        // Executor for OnCompletes.
-        ExecutionContextExecutor executor = getContext().dispatcher();
-        // If ping completes
-        OnComplete<PingResult> pingComplete = new OnComplete<PingResult>() {
-            @Override
-            public void onComplete(Throwable failure, PingResult result) throws Throwable {
-                boolean success = (failure == null) && (result == PingResult.OK);
-                if(success){
-                    // Change drone state
-                    drone.setStatus(Drone.Status.AVAILABLE);
-                    drone.update();
-                    // Add drone to the pool
-                    dronePool.add(message.getDroneId());
-                }
-                SchedulerEvent event = new DroneAddedMessage(drone.getId(),success);
-                self().tell(new SchedulerPublishMessage(event),ActorRef.noSender());
-            }
-        };
         if(!fleet.hasCommander(drone)){
+
+            ExecutionContextExecutor executor = getContext().dispatcher();
             OnComplete<DroneCommander> commanderComplete = new OnComplete<DroneCommander>(){
                 @Override
                 public void onComplete(Throwable failure, DroneCommander commander) throws Throwable {
                     boolean success = (failure == null) && (commander != null);
                     if(success){
-                        Future<PingResult> pingFuture = fleet.isReachable(drone);
-                        pingFuture.onComplete(pingComplete,executor);
-                    }else{
-                        SchedulerEvent event = new DroneAddedMessage(drone.getId(),false);
-                        self().tell(new SchedulerPublishMessage(event), ActorRef.noSender());
+                        // Change drone state
+                        drone.setStatus(Drone.Status.AVAILABLE);
+                        drone.update();
+                        // Add drone to the pool
+                        dronePool.add(message.getDroneId());
                     }
+                    SchedulerEvent event = new DroneAddedMessage(drone.getId(), success);
+                    self().tell(new SchedulerPublishMessage(event), ActorRef.noSender());
                 }
             };
             // Create commander
