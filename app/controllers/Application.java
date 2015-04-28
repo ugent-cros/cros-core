@@ -20,9 +20,11 @@ import play.mvc.WebSocket;
 import scala.concurrent.Await;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
+import utilities.VideoWebSocket;
 import utilities.frontendSimulator.NotificationSimulator;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -114,6 +116,8 @@ public class Application extends Controller {
         });
     }
 
+
+
     public static Result subscribeMonitor(long id){
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
@@ -153,12 +157,36 @@ public class Application extends Controller {
         }
     }
 
+    public static WebSocket<String> videoSocket(long id) {
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
+    }
+
+    /**
+     * @TODO remove
+     *
+     * @param id
+     * @return
+     */
+    public static WebSocket<String> videoTestSocket(long id) {
+        return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
+    }
+
     public static Result unsubscribeMonitor(long id){
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
 
         try {
-            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
+            ActorRef r = Await.result(Akka.system().actorSelection("/user/droneVideoMonitor").resolveOne(new Timeout(5, TimeUnit.SECONDS)),
                     new Timeout(5, TimeUnit.SECONDS).duration());
 
             d.unsubscribe(r);
@@ -178,6 +206,16 @@ public class Application extends Controller {
         return F.Promise.wrap(d.getBatteryPercentage()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("batteryPercentage", v);
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> getImage(long id) {
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.getImage()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("image", Base64.getEncoder().encodeToString(v));
             return ok(result);
         });
     }
@@ -347,6 +385,16 @@ public class Application extends Controller {
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.land()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> initVideo(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.initVideo()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             return ok(result);

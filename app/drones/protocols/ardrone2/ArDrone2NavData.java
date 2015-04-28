@@ -1,6 +1,7 @@
 package drones.protocols.ardrone2;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -47,6 +48,9 @@ public class ArDrone2NavData extends UntypedActor {
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
+
+        // Request a sender socket
+        udpManager.tell(UdpMessage.simpleSender(), getSelf());
     }
 
     @Override
@@ -54,15 +58,14 @@ public class ArDrone2NavData extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2NAVDATA] Socket ARDRone 2.0 bound.");
 
-            senderRef = getSender();
-
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Received.class, s -> processRawData(s.data()))
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(StopMessage.class, s -> stop())
                     .matchAny(s -> {
-                        log.info("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
+                        log.error("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
                         unhandled(s);
                     })
                     .build());
@@ -70,10 +73,19 @@ public class ArDrone2NavData extends UntypedActor {
             // Enable nav data
             sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
             parent.tell(new InitNavDataMessage(), getSelf());
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
-            log.info(msg.toString());
-            log.info("[ARDRONE2NAVDATA] Unhandled message received");
+            log.error("[ARDRONE2NAVDATA] Unhandled message received ({})", msg.toString());
             unhandled(msg);
+        }
+    }
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
         }
     }
 
@@ -97,7 +109,7 @@ public class ArDrone2NavData extends UntypedActor {
             senderRef.tell(UdpMessage.send(data, senderAddressNAV), getSelf());
             return true;
         } else {
-            log.info("[ARDRONE2NAVDATA] Sending data failed (senderAddressATC or senderRef is null).");
+            log.error("[ARDRONE2NAVDATA] Sending data failed (senderAddressATC or senderRef is null).");
             return false;
         }
     }
@@ -134,7 +146,6 @@ public class ArDrone2NavData extends UntypedActor {
                 }
 
                 if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
-                    //log.info("Parsing demo data");
                     parseDemoData(navdata);
                 } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
                     parseGPSData(navdata, offset);
@@ -143,7 +154,6 @@ public class ArDrone2NavData extends UntypedActor {
                 offset += optionLen - 4;
 
             }
-
         } else {
             log.info("Packet doesn't contain data");
             parent.tell(new InitNavDataMessage(), getSelf());
@@ -162,23 +172,22 @@ public class ArDrone2NavData extends UntypedActor {
     // @TODO to be tested when GPS module arrives
     private void parseGPSData(byte[] navdata, int offset) {
         int offsetTemp = offset;
-        boolean gpsAvailable =PacketHelper.getInt(navdata, NAV_GPS_DATA_AVAILABLE_OFFSET.getOffset()) == 1;
 
+        double latitude = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 8;
+        double longitude = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 8;
+        double elevation = PacketHelper.getDouble(navdata, offsetTemp);
+        offsetTemp += 16; // Elevation and hdop
+        int dataAvailable = PacketHelper.getInt(navdata, offsetTemp);
+
+        boolean gpsAvailable = dataAvailable == 1;
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
         listener.tell(gpsFixMessage, getSelf());
 
-        if(gpsAvailable) {
-            double latitude = PacketHelper.getDouble(navdata, offsetTemp);
-            offsetTemp += 8;
-            double longitude = PacketHelper.getDouble(navdata, offsetTemp);
-            offsetTemp += 8;
-            double elevation = PacketHelper.getDouble(navdata, offsetTemp);
-            //offsetTemp += 8;
-
-            log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}]", latitude, longitude, elevation);
-            Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
-            listener.tell(locationMessage, getSelf());
-        }
+        log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}], available: {}", latitude, longitude, elevation, gpsAvailable); // @TODO remove
+        Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
+        listener.tell(locationMessage, getSelf());
     }
 
     private void attitudeChanged(byte[] navdata) {
@@ -248,22 +257,17 @@ public class ArDrone2NavData extends UntypedActor {
     private FlyingState parseCtrlState(int state) {
         switch(state) {
             case 2:
-                //log.info("Landed");
                 return FlyingState.LANDED;
             case 3:
-                log.info("Flying");
                 return FlyingState.FLYING;
             case 4:
-                log.info("Hovering");
                 return FlyingState.HOVERING;
             case 6:
-                log.info("Taking off");
                 return FlyingState.TAKINGOFF;
             case 8:
-                log.info("Landing");
                 return FlyingState.LANDING;
             default:
-                log.info("Unknown state discovered");
+                log.error("Unknown state discovered");
                 return null;
         }
     }

@@ -284,6 +284,11 @@ public class Bepop extends NavigatedDroneActor {
     }
 
     @Override
+    protected void initVideo(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
         land(p);
     }
