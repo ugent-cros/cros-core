@@ -269,4 +269,9 @@ public class SimpleControlTower extends ControlTower {
         }
         return index;
     }
+
+    @Override
+    protected void wayPointCompletedMessage(WayPointCompletedMessage m) {
+        reporterRef.tell(m,self());
+    }
 }

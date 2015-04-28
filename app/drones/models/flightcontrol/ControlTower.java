@@ -25,7 +25,8 @@ public abstract class ControlTower extends FlightControl{
                 match(RemoveDroneMessage.class, s -> removeDroneMessage(s)).
                 match(FlightControlExceptionMessage.class, s -> flightControlExceptionMessage(s)).
                 match(FlightCompletedMessage.class, s -> flightCompletedMessage(s)).
-                match(FlightCanceledMessage.class, s -> flightCanceledMessage(s));
+                match(FlightCanceledMessage.class, s -> flightCanceledMessage(s)).
+                match(WayPointCompletedMessage.class, s -> wayPointCompletedMessage(s));
     }
 
     protected abstract void addDroneMessage(AddDroneMessage m);
@@ -38,4 +39,5 @@ public abstract class ControlTower extends FlightControl{
 
     protected abstract void flightCanceledMessage(FlightCanceledMessage m);
 
+    protected abstract void wayPointCompletedMessage(WayPointCompletedMessage m);
 }
