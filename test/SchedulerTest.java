@@ -45,10 +45,9 @@ public class SchedulerTest extends TestSuperclass {
         system = null;
     }
 
-    @Override
+    @Before
     public void before() {
         startFakeApplication();
-        super.before();
     }
 
     @After

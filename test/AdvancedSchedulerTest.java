@@ -2,6 +2,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
+import drones.models.Fleet;
 import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
@@ -108,6 +109,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         JavaTestKit.shutdownActorSystem(system);
         system = null;
         stopFakeApplication();
+    }
+
+    @Before
+    public void before(){
+        if(!setup) {
+            Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, driver);
+            setup = true;
+        }
     }
 
     @After

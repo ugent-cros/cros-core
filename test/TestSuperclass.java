@@ -25,15 +25,7 @@ public class TestSuperclass {
     private static User user;
     public static User getUser() { return user; }
     protected boolean setup = false;
-    protected SimulatorDriver driver = new SimulatorDriver();
-
-    @Before
-    public void before(){
-        if(!setup) {
-            Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,driver);
-            setup = true;
-        }
-    }
+    protected static SimulatorDriver driver = new SimulatorDriver();
 
     public static void startFakeApplication() {
         application = fakeApplication(inMemoryDatabase());
