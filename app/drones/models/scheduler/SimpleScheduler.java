@@ -50,7 +50,6 @@ public class SimpleScheduler extends Scheduler {
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
         return super.initReceivers()
-                .match(FlightCompletedMessage.class, m -> receiveFlightCompletedMessage(m))
                 .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
     }
 

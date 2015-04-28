@@ -1,22 +1,23 @@
 package drones.models.flightcontrol;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
-import drones.models.*;
+import drones.models.DroneCommander;
+import drones.models.FlyingState;
+import drones.models.Location;
+import drones.models.NavigationState;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.models.scheduler.messages.to.FlightCanceledMessage;
+import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import models.Checkpoint;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Sander on 18/03/2015.

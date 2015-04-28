@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Ronald on 10/04/2015.
  */
-public class AdvancedScheduler extends SimpleScheduler implements Comparator<Assignment>{
+public class AdvancedScheduler extends SimpleScheduler implements Comparator<Assignment> {
 
     // Temporary metric in battery percentage per meter.
     // Every meter, this drone uses 0.01% of his total power, so he can fly 10km.
@@ -36,7 +36,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected Map<Long, Flight> flights = new HashMap<>();
 
     public AdvancedScheduler() {
-        queue = new PriorityQueue<>(MAX_QUEUE_SIZE,this);
+        queue = new PriorityQueue<>(MAX_QUEUE_SIZE, this);
     }
 
     @Override
@@ -49,10 +49,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     @Override
     public int compare(Assignment a1, Assignment a2) {
-        if(a1.getPriority() == a2.getPriority()){
-            return Long.compare(a1.getId(),a2.getId());
-        }else{
-            return Integer.compare(a1.getPriority(),a2.getPriority());
+        if (a1.getPriority() == a2.getPriority()) {
+            return Long.compare(a1.getId(), a2.getId());
+        } else {
+            return Integer.compare(a1.getPriority(), a2.getPriority());
         }
     }
 
@@ -81,7 +81,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             // Cancellation
             for (Flight flight : flights.values()) {
                 if (flight.getType() == Flight.Type.ASSIGNMENT) {
-                    self().tell(new CancelAssignmentMessage(flight.getAssignmentId()),self());
+                    self().tell(new CancelAssignmentMessage(flight.getAssignmentId()), self());
                 }
                 if (flight.getType() == Flight.Type.RETURN) {
                     cancelFlight(flight);
@@ -109,7 +109,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void emergency(EmergencyMessage message) {
         long droneId = message.getDroneId();
-        if(flights.containsKey(droneId)) {
+        if (flights.containsKey(droneId)) {
             Drone drone = getDrone(droneId);
             drone.setStatus(Drone.Status.EMERGENCY);
             cancelFlight(flights.get(droneId));
@@ -119,28 +119,28 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void schedule(ScheduleMessage message) {
         // Create second queue for assignments that can't be assigned right now.
-        Queue<Assignment> unassigned = new PriorityQueue<>(MAX_QUEUE_SIZE,this);
+        Queue<Assignment> unassigned = new PriorityQueue<>(MAX_QUEUE_SIZE, this);
         if (queue.isEmpty()) {
             // Provide assignments
             fetchAssignments();
         }
-        while(!queue.isEmpty() && !dronePool.isEmpty()){
+        while (!queue.isEmpty() && !dronePool.isEmpty()) {
             // Remove the assignment from the queue
             Assignment assignment = queue.remove();
             // Pick a drone
             Drone drone = fetchAvailableDrone(assignment);
-            if(drone == null){
+            if (drone == null) {
                 //There is no drone suited for this assignment
                 unassigned.add(assignment);
-            }else{
+            } else {
                 assign(drone, assignment);
             }
         }
         // Refill the queue.
-        if(queue.size() > unassigned.size()){
+        if (queue.size() > unassigned.size()) {
             //
             queue.addAll(unassigned);
-        }else{
+        } else {
             unassigned.addAll(queue);
             queue = unassigned;
         }
@@ -182,7 +182,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             return;
         }
         // Drone returned to base.
-        if(drone.getStatus() == Drone.Status.FLYING){
+        if (drone.getStatus() == Drone.Status.FLYING) {
             dronePool.add(drone.getId());
             drone.setStatus(Drone.Status.AVAILABLE);
             drone.update();
@@ -191,20 +191,21 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             return;
         }
         // Drone remove request
-        if(drone.getStatus() == Drone.Status.RETIRED){
+        if (drone.getStatus() == Drone.Status.RETIRED) {
             removeDrone(drone);
         }
     }
 
     /**
      * Find the closest drone with enough battery to complete the assignment.
+     *
      * @param assignment
      * @return the drone that will complete the assignment
      */
     protected Drone fetchAvailableDrone(Assignment assignment) {
         // Distance to complete the assignment route.
-        double routeLength =  Helper.getRouteLength(assignment);
-        if(Double.isNaN(routeLength)){
+        double routeLength = Helper.getRouteLength(assignment);
+        if (Double.isNaN(routeLength)) {
             // Encountered invalid assignment.
             log.error("[AdvancedScheduler] Encountered invalid assignment route.");
             return null;
@@ -212,9 +213,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
         // Distance to return to base station after assignment completion
         int routeSize = assignment.getRoute().size();
-        Location stopLocation = assignment.getRoute().get(routeSize-1).getLocation();
+        Location stopLocation = assignment.getRoute().get(routeSize - 1).getLocation();
         Basestation station = Helper.closestBaseStation(stopLocation);
-        if(station != null) {
+        if (station != null) {
             // No return station
             routeLength += Helper.distance(stopLocation, station.getLocation());
         }
@@ -229,7 +230,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             Drone drone = getDrone(droneId);
             DroneCommander commander = getCommander(drone);
             Location droneLocation = getDroneLocation(commander);
-            if(droneLocation == null){
+            if (droneLocation == null) {
                 dronePool.remove(drone.getId());
                 drone.setStatus(Drone.Status.UNREACHABLE);
                 drone.update();
@@ -239,9 +240,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
             // Calculate distance to first checkpoint.
             double distance = Helper.distance(droneLocation, startLocation);
-            if(distance < minDistance){
+            if (distance < minDistance) {
                 double totalDistance = distance + routeLength;
-                if(hasSufficientBattery(commander,totalDistance)){
+                if (hasSufficientBattery(commander, totalDistance)) {
                     minDistance = distance;
                     minDrone = drone;
                 }
@@ -252,10 +253,11 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Retrieve location of a drone via his commander.
+     *
      * @param commander
      * @return
      */
-    protected Location getDroneLocation(DroneCommander commander){
+    protected Location getDroneLocation(DroneCommander commander) {
         // Make sure we have a commander
         if (commander == null) {
             log.warning("[AdvancedScheduler] Can't retrieve drone location without commander.");
@@ -274,14 +276,15 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     /**
      * Retrieve the commander for a drone.
      * If no commander was found, the drone will be removed from the drone pool.
+     *
      * @param drone
      * @return
      */
-    protected DroneCommander getCommander(Drone drone){
+    protected DroneCommander getCommander(Drone drone) {
         Fleet fleet = Fleet.getFleet();
-        if(fleet.hasCommander(drone)){
+        if (fleet.hasCommander(drone)) {
             return fleet.getCommanderForDrone(drone);
-        }else{
+        } else {
             log.warning("[AdvancedScheduler] Found drone without commander.");
             return null;
         }
@@ -289,22 +292,23 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Decides if a drone has enough battery power left to fly a certain distance.
+     *
      * @param commander of the drone
-     * @param distance to fly
+     * @param distance  to fly
      * @return true if there's enough battery power left, false otherwise
      * @throws Exception if we failed to retrieve battery status
      */
-    protected boolean hasSufficientBattery(DroneCommander commander, double distance){
+    protected boolean hasSufficientBattery(DroneCommander commander, double distance) {
         // TODO: Have a battery usage approximation for every Dronetype.
         // TODO: Take into account static battery loss and estimated travel time
-        if(commander == null){
+        if (commander == null) {
             log.warning("[AdvancedScheduler] Can't retrieve battery status without commander.");
             return false;
         }
         try {
             int battery = Await.result(commander.getBatteryPercentage(), TIMEOUT);
             return battery > distance * BATTERY_PERCENTAGE_PER_METER;
-        }catch(Exception ex){
+        } catch (Exception ex) {
             log.warning("[AdvancedScheduler] Failed to retrieve battery status.");
             return false;
         }
@@ -331,14 +335,14 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         Drone drone = getDrone(message.getDroneId());
         Fleet fleet = Fleet.getFleet();
 
-        if(!fleet.hasCommander(drone)){
+        if (!fleet.hasCommander(drone)) {
 
             ExecutionContextExecutor executor = getContext().dispatcher();
-            OnComplete<DroneCommander> commanderComplete = new OnComplete<DroneCommander>(){
+            OnComplete<DroneCommander> commanderComplete = new OnComplete<DroneCommander>() {
                 @Override
                 public void onComplete(Throwable failure, DroneCommander commander) throws Throwable {
                     boolean success = (failure == null) && (commander != null);
-                    if(success){
+                    if (success) {
                         // Change drone state
                         drone.setStatus(Drone.Status.AVAILABLE);
                         drone.update();
@@ -377,9 +381,10 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Destroys the associated commander and sets status to INACTIVE.
+     *
      * @param drone
      */
-    protected void removeDrone(Drone drone){
+    protected void removeDrone(Drone drone) {
         // Stop commander
         boolean removed = Fleet.getFleet().stopCommander(drone);
         if (!removed) {
@@ -396,6 +401,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     /**
      * Create a flight associated with an assignment.
      * Also notify subscribers that the assignment has started.
+     *
      * @param drone
      * @param assignment
      */
@@ -419,6 +425,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Create a flight with a drone and the route to fly.
+     *
      * @param droneId
      * @param route
      */
@@ -464,12 +471,12 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             Assignment assignment = getAssignment(assignmentId);
             assignment.setAssignedDrone(null);
             assignment.update();
-            eventBus.publish(new DroneUnassignedMessage(assignmentId,flight.getDroneId()));
+            eventBus.publish(new DroneUnassignedMessage(assignmentId, flight.getDroneId()));
         }
 
         // Handle flightControl
         // TODO: Change this to work with controltower
-        flight.getFlightControl().tell(new StopFlightControlMessage(),self());
+        flight.getFlightControl().tell(new StopFlightControlMessage(), self());
     }
 
     /**
@@ -483,6 +490,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Creates a flight that sends the drone back to the nearest basestation.
+     *
      * @param drone to send back to base
      */
     protected void returnHome(Drone drone) {
@@ -505,7 +513,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         createFlight(drone.getId(), Helper.routeTo(location));
     }
 
-    protected void flightCanceled(FlightCanceledMessage message){
+    protected void flightCanceled(FlightCanceledMessage message) {
         // Retrieve associated flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
@@ -514,7 +522,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
 
         Drone drone = getDrone(message.getDroneId());
-        if(drone.getStatus() == Drone.Status.EMERGENCY){
+        if (drone.getStatus() == Drone.Status.EMERGENCY) {
             // Canceled due to emergency
             eventBus.publish(new DroneFailedMessage(drone.getId()));
             return;
