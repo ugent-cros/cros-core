@@ -265,6 +265,6 @@ public class SimplePilot extends Pilot {
             reporterRef.tell(new FlightCanceledMessage(droneId), self());
         }
         //stop
-        self().tell(PoisonPill.getInstance(), self());
+        getContext().stop(self());
     }
 }
