@@ -13,7 +13,6 @@ import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
 import drones.models.scheduler.messages.from.AssignmentStartedMessage;
 import drones.models.scheduler.messages.from.DroneAssignedMessage;
-import drones.models.scheduler.messages.from.DroneUnassignedMessage;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -56,11 +55,11 @@ public class MessageWebSocket extends AbstractActor {
 
         // Scheduler
         try {
-            Scheduler.subscribe(DroneAssignedMessage.class,out);
-            Scheduler.subscribe(AssignmentStartedMessage.class,out);
-            Scheduler.subscribe(AssignmentCompletedMessage.class,out);
-        } catch (SchedulerException e) {
-            e.printStackTrace();
+            Scheduler.subscribe(DroneAssignedMessage.class, self());
+            Scheduler.subscribe(AssignmentStartedMessage.class, self());
+            Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to subscribe to scheduler.", ex);
         }
 
         Fleet.getFleet().subscribe(self());
@@ -99,11 +98,11 @@ public class MessageWebSocket extends AbstractActor {
 
         // Scheduler
         try {
-            Scheduler.unsubscribe(DroneAssignedMessage.class,out);
-            Scheduler.unsubscribe(AssignmentStartedMessage.class,out);
-            Scheduler.unsubscribe(AssignmentCompletedMessage.class,out);
-        } catch (SchedulerException e) {
-            e.printStackTrace();
+            Scheduler.unsubscribe(DroneAssignedMessage.class, self());
+            Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
+            Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to unsubscribe from scheduler.", ex);
         }
     }
 }
