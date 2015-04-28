@@ -180,10 +180,11 @@ public class SimpleScheduler extends Scheduler {
         // No assignments to fetch
         if (count == 0) return false;
 
-        // Fetch 'count' first assignments with progress = 0, ordered by Id
+        // Fetch 'count' first assignments with progress = 0, ordered by Id and Priority
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("scheduled",false);
+        query.where().eq("scheduled", false);
+        query.orderBy("priority, id");
         List<Assignment> assignments = query.findList();
 
         // Add to queue and set scheduled
