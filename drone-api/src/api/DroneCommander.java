@@ -211,6 +211,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> initVideo() {
+        if(canSend()) {
+            return Patterns.ask(droneActor, new InitVideoRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, system.dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
     public void stop() {
         droneActor.tell(new StopMessage(), ActorRef.noSender());
         shutdown = true;
@@ -346,6 +357,15 @@ public class DroneCommander implements DroneControl, DroneStatus {
                 }
             }, system.dispatcher());
         } else return noDroneConnection();
+    }
+
+    @Override
+    public Future<byte[]> getImage() {
+        return Patterns.ask(droneActor, new PropertyRequestMessage(PropertyType.IMAGE), TIMEOUT).map(new Mapper<Object, byte[]>() {
+            public byte[] apply(Object s) {
+                return (byte[]) ((ExecutionResultMessage) s).getValue();
+            }
+        }, system.dispatcher());
     }
 
     /**

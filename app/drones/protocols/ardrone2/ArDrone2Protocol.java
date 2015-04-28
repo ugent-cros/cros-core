@@ -1,6 +1,7 @@
 package drones.protocols.ardrone2;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -15,6 +16,7 @@ import drones.messages.InitCompletedMessage;
 import drones.messages.InitNavDataMessage;
 import drones.messages.RequestConfigMessage;
 import drones.models.DroneConnectionDetails;
+import drones.models.FlipType;
 import drones.util.ardrone2.PacketCreator;
 import messages.*;
 import navigator.MoveCommand;
@@ -24,6 +26,8 @@ import scala.concurrent.duration.Duration;
 import java.io.Serializable;
 import java.net.*;
 import java.util.concurrent.TimeUnit;
+
+import static drones.models.FlipType.*;
 
 /**
  *
@@ -60,6 +64,7 @@ public class ArDrone2Protocol extends UntypedActor {
     private ActorRef ardrone2ResetWDG;
     private ActorRef ardrone2NavData;
     private ActorRef ardrone2Config;
+    private ActorRef ardrone2Video;
 
     public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
@@ -70,6 +75,9 @@ public class ArDrone2Protocol extends UntypedActor {
         udpManager = Udp.get(getContext().system()).getManager();
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
+        // Request a sender socket
+        udpManager.tell(UdpMessage.simpleSender(), getSelf());
+
         log.info("[ARDRONE2] Starting ARDrone 2.0 Protocol");
     }
 
@@ -78,10 +86,15 @@ public class ArDrone2Protocol extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2] Socket ARDRone 2.0 bound.");
 
-            senderRef = getSender();
             // Setup handlers
             getContext().become(ReceiveBuilder
-                    .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    //.match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
+                    .match(Udp.Unbound.class, s -> {
+                        log.info("UDP unbound received.");
+                        getContext().stop(getSelf());
+                    })
+
+                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitNavDataMessage.class, s -> sendInitNavData())
@@ -99,6 +112,8 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(StopMoveMessage.class, s -> handleStopMove())
                     .match(RequestConfigMessage.class, s -> handleConfigRequest())
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
+                    .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
+                    .match(InitVideoCommand.class, s -> handleInitVideo())
 
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -116,10 +131,71 @@ public class ArDrone2Protocol extends UntypedActor {
         } else if (msg instanceof StopMessage) {
             log.info("[ARDRONE2] Stop message received - ArDrone2 protocol");
             stop();
+        } else if(msg instanceof Udp.SimpleSenderReady){
+            senderRef = sender();
         } else {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+    }
+
+    private void handleInitVideo() {
+        // Video configs
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_CTRL_MODE,
+                Integer.toString(0))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE,
+                Integer.toString(1000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_BITRATE_MAX,
+                Integer.toString(4000))));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CODEC,
+                "0x81")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.VIDEO_CHANNEL,
+                "0")));
+
+        sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
+        sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
+                ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
+
+        // Create config data actor
+        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                () -> new ArDrone2Video(details, listener, getSelf())));
+    }
+
+    @Override
+    public void aroundPostStop() {
+        super.aroundPostStop();
+        if(senderRef != null){
+            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
+        }
+    }
+
+    private void handleFlip(FlipType flip) {
+        ATCommandANIM.AnimationID anim;
+        switch(flip) {
+            case BACK:
+                anim = ATCommandANIM.AnimationID.FLIP_BEHIND;
+                break;
+            case FRONT:
+                anim = ATCommandANIM.AnimationID.FLIP_AHEAD;
+                break;
+            case LEFT:
+                anim = ATCommandANIM.AnimationID.FLIP_LEFT;
+                break;
+            default: // Flip right
+                anim = ATCommandANIM.AnimationID.FLIP_RIGHT;
+                break;
+        }
+
+        sendData(PacketCreator.createPacket(new ATCommandANIM(seq++, anim, 1)));
     }
 
     private void handleMaxTilt(SetMaxTiltCommand s) {
@@ -203,7 +279,7 @@ public class ArDrone2Protocol extends UntypedActor {
         // max 1m/s vertical speed
         sendData(PacketCreator.createPacket(createConfigIDS(seq++)));
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq, ConfigKey.CONTROL_CONTROL_VZ_MAX,
-               Integer.toString(VZ_MAX))));
+                Integer.toString(VZ_MAX))));
 
         // Create watchdog actor
         ardrone2ResetWDG = getContext().actorOf(Props.create(ArDrone2ResetWDG.class,
@@ -288,7 +364,7 @@ public class ArDrone2Protocol extends UntypedActor {
             senderRef.tell(UdpMessage.send(data, senderAddressATC), getSelf());
             return true;
         } else {
-            log.info("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
+            log.error("[ARDRONE2] Sending data failed (senderAddressATC or senderRef is null).");
             return false;
         }
     }

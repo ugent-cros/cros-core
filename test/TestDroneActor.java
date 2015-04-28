@@ -89,6 +89,11 @@ public class TestDroneActor extends DroneActor {
     }
 
     @Override
+    protected void initVideo(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
     protected UnitPFBuilder<Object> createListeners() {
         return null;
     }

@@ -220,14 +220,17 @@ public class DroneController {
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result cameraCapture(Long id) {
+    public static F.Promise<Result> cameraCapture(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        ObjectNode node = Json.newObject();
-        node.put("cameraCapture", "nothing"); // TODO: call cameraCapture
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getImage()).map(image -> {
+            ObjectNode node = Json.newObject();
+            node.put("image", Json.toJson(image));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
     }
 
     @Authentication({User.Role.ADMIN})

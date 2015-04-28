@@ -106,11 +106,23 @@ public interface DroneControl {
     Future<Void> setHull(boolean hull);
 
     /**
+     *
+     * @return An image taken by a camera of the drone
+     */
+    Future<byte[]> getImage();
+
+    /**
      * Performs a flip in the air
      * @param type Direction of the flip
      * @return Promise whether the request was initiated
      */
     Future<Void> flip(FlipType type);
+
+    /**
+     *
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> initVideo();
 
     /**
      * Stops the drone communication
