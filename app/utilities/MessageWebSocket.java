@@ -41,10 +41,6 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
-        TYPENAMES.add(new F.Tuple<>(DroneAssignedMessage.class, "droneAssigned"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentProgressChangedMessage.class, "assignmentProgressChanged"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
 
         IGNORETYPES.add(FlyingStateChangedMessage.class);
         IGNORETYPES.add(NavigationStateChangedMessage.class);
