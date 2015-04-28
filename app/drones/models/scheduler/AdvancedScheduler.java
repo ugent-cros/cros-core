@@ -109,10 +109,19 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void emergency(EmergencyMessage message) {
         long droneId = message.getDroneId();
+        Drone drone = getDrone(droneId);
+        drone.setStatus(Drone.Status.EMERGENCY);
         if (flights.containsKey(droneId)) {
-            Drone drone = getDrone(droneId);
-            drone.setStatus(Drone.Status.EMERGENCY);
             cancelFlight(flights.get(droneId));
+        }else{
+            // No registered flight
+            // Try to land anyway
+            // TODO: Do this elsewhere.
+            Fleet fleet = Fleet.getFleet();
+            if(fleet.hasCommander(drone)){
+                DroneCommander commander = fleet.getCommanderForDrone(drone);
+                commander.land();
+            }
         }
     }
 
