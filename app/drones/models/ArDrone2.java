@@ -7,10 +7,15 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.InitCompletedMessage;
-import drones.messages.StopMessage;
 import drones.protocols.ardrone2.ArDrone2Protocol;
-import drones.util.LocationNavigator;
+import messages.InitCompletedMessage;
+import messages.StopMessage;
+import model.DroneException;
+import model.NavigatedDroneActor;
+import model.properties.FlipType;
+import model.properties.Location;
+import navigator.LocationNavigator;
+import navigator.MoveCommand;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;

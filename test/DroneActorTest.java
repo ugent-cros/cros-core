@@ -1,9 +1,9 @@
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.pattern.Patterns;
-import drones.messages.*;
-import drones.models.*;
-import org.eclipse.jetty.util.thread.Timeout;
+import api.DroneCommander;
+import messages.*;
+import model.properties.*;
 import org.junit.*;
 import play.libs.Akka;
 import scala.concurrent.Await;

@@ -2,7 +2,7 @@ package drones.protocols;
 
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
-import drones.messages.PingMessage;
+import messages.PingMessage;
 import drones.models.PingResult;
 
 import java.net.InetAddress;

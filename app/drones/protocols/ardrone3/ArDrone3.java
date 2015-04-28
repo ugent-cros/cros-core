@@ -11,13 +11,15 @@ import akka.util.ByteString;
 import drones.commands.*;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.messages.ConnectionStatusChangedMessage;
-import drones.messages.StopMessage;
 import drones.models.*;
 import drones.models.ardrone3.*;
 import drones.util.ardrone3.FrameHelper;
 import drones.util.ardrone3.PacketCreator;
 import drones.util.ardrone3.PacketHelper;
+import messages.ConnectionStatusChangedMessage;
+import messages.StopMessage;
+import model.properties.FlipType;
+import navigator.MoveCommand;
 import org.joda.time.DateTime;
 import scala.concurrent.duration.Duration;
 
@@ -25,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 /**
  * Created by Cedric on 3/6/2015.

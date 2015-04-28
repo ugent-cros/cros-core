@@ -7,14 +7,13 @@ import akka.event.LoggingAdapter;
 import akka.io.Inet;
 import akka.io.Tcp;
 import akka.io.TcpMessage;
-import akka.japi.Procedure;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import drones.messages.DroneDiscoveredMessage;
-import drones.messages.StopMessage;
+import messages.DroneDiscoveredMessage;
+import messages.StopMessage;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;

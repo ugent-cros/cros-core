@@ -1,6 +1,5 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import controllers.routes;
 import models.Assignment;
 import models.Checkpoint;
 import org.junit.AfterClass;
@@ -12,6 +11,7 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
+import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;

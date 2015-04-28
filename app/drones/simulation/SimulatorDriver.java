@@ -1,8 +1,8 @@
 package drones.simulation;
 
-import drones.models.DroneActor;
-import drones.models.DroneDriver;
-import drones.models.Location;
+import api.DroneDriver;
+import model.DroneActor;
+import model.properties.Location;
 import models.DroneType;
 
 import java.util.HashSet;

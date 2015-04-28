@@ -1,6 +1,6 @@
 package utilities.frontendSimulator;
 
-import drones.messages.*;
+import messages.*;
 import models.*;
 
 import java.util.List;

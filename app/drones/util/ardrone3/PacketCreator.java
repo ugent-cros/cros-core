@@ -3,17 +3,15 @@ package drones.util.ardrone3;
 import akka.util.ByteStringBuilder;
 import drones.handlers.ardrone3.ArDrone3TypeProcessor;
 import drones.handlers.ardrone3.CommonTypeProcessor;
-import drones.models.FlipType;
 import drones.models.ardrone3.Packet;
 import drones.models.ardrone3.PacketType;
-import org.apache.commons.lang3.CharSet;
+import model.properties.FlipType;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.nio.charset.Charset;
-import java.util.Date;
 
 /**
  * Created by Cedric on 3/8/2015.

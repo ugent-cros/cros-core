@@ -2,7 +2,12 @@ name := """cros-core"""
 
 version := "1.0-SNAPSHOT"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+lazy val droneapi = (project in file("drone-api"))
+
+lazy val root = (project in file("."))
+	.enablePlugins(PlayJava)
+	.aggregate(droneapi)
+	.dependsOn(droneapi % "compile->compile")
 
 scalaVersion := "2.11.1"
 
@@ -31,3 +36,4 @@ jacoco.excludes        in jacoco.Config := Seq(
   "controllers*javascript*",
   "controller*ref*"
 )
+

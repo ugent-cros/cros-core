@@ -2,12 +2,11 @@ package drones.models.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.OnComplete;
 import akka.japi.pf.UnitPFBuilder;
 import akka.util.Timeout;
+import api.DroneCommander;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;

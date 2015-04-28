@@ -1,8 +1,6 @@
 package drones.models.scheduler.messages;
 
-import models.Drone;
-import drones.models.DroneCommander;
-import drones.models.Location;
+import model.properties.Location;
 
 import java.io.Serializable;
 

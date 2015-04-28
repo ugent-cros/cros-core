@@ -1,6 +1,6 @@
 package drones.commands;
 
-import drones.models.FlipType;
+import model.properties.FlipType;
 
 import java.io.Serializable;
 

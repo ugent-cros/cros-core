@@ -1,12 +1,12 @@
 package controllers;
 
 import akka.actor.ActorRef;
+import api.DroneCommander;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;

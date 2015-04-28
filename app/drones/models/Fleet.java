@@ -4,10 +4,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnFailure;
+import akka.pattern.Patterns;
 import akka.util.Timeout;
-import drones.messages.*;
+import api.DroneCommander;
+import api.DroneDriver;
 import drones.protocols.ICMPPing;
 import drones.simulation.SimulatorDriver;
+import messages.*;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
@@ -19,8 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-
-import static akka.pattern.Patterns.ask;
 
 /**
  * Created by Yasser.
@@ -89,7 +90,7 @@ public class Fleet {
             pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");
         }
 
-        return ask(pinger, new PingMessage(droneEntity.getAddress()),
+        return Patterns.ask(pinger, new PingMessage(droneEntity.getAddress()),
                 new Timeout(Duration.create(ICMPPing.PING_TIMEOUT + 1000, TimeUnit.MILLISECONDS)))
                 .map(new Mapper<Object, PingResult>() {
                     public PingResult apply(Object s) {

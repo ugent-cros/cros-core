@@ -1,14 +1,14 @@
 package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
-import drones.messages.*;
-import drones.models.AlertState;
-import drones.models.NavigationState;
-import drones.models.NavigationStateReason;
 import drones.models.ardrone3.CommandProcessor;
-import drones.models.FlyingState;
 import drones.models.ardrone3.Packet;
 import drones.util.ardrone3.FrameHelper;
+import messages.*;
+import model.properties.AlertState;
+import model.properties.FlyingState;
+import model.properties.NavigationState;
+import model.properties.NavigationStateReason;
 
 /**
  * Created by Cedric on 3/8/2015.

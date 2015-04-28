@@ -1,5 +1,7 @@
 package drones.models;
 
+import api.DroneDriver;
+import model.DroneActor;
 import models.DroneType;
 
 import java.util.HashSet;

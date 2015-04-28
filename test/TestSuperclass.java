@@ -1,7 +1,7 @@
 import controllers.SecurityController;
 import models.User;
-
-import play.test.*;
+import play.test.FakeApplication;
+import play.test.FakeRequest;
 
 import static play.test.Helpers.*;
 

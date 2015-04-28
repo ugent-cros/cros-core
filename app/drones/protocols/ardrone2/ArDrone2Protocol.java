@@ -11,9 +11,10 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.commands.ardrone2.atcommand.*;
-import drones.messages.*;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
+import messages.*;
+import navigator.MoveCommand;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
 

@@ -1,8 +1,8 @@
 package drones.handlers.ardrone3;
 
-import drones.messages.MagnetoCalibrationStateChangedMessage;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
+import messages.MagnetoCalibrationStateChangedMessage;
 
 /**
  * Created by Cedric on 4/6/2015.

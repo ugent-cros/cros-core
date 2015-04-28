@@ -9,11 +9,12 @@ import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
-import drones.messages.*;
-import drones.models.AlertState;
 import drones.models.DroneConnectionDetails;
-import drones.models.FlyingState;
 import drones.util.ardrone2.PacketHelper;
+import messages.*;
+import model.properties.AlertState;
+import model.properties.FlyingState;
+
 import java.net.InetSocketAddress;
 
 import static drones.models.ardrone2.NavData.*;

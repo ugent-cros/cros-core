@@ -3,7 +3,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import drones.models.BepopDriver;
 import drones.simulation.SimulatorDriver;
 import models.Drone;
-import controllers.routes;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -12,6 +11,7 @@ import play.libs.Json;
 import play.mvc.Http;
 import play.mvc.Result;
 import utilities.JsonHelper;
+import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;
