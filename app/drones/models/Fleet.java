@@ -8,6 +8,7 @@ import akka.pattern.Patterns;
 import akka.util.Timeout;
 import api.DroneCommander;
 import api.DroneDriver;
+import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
 import drones.simulation.SimulatorDriver;
 import messages.*;

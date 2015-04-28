@@ -12,7 +12,7 @@ import akka.util.ByteString;
 import akka.util.ByteStringBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import messages.DroneDiscoveredMessage;
+import drones.messages.DroneDiscoveredMessage;
 import messages.StopMessage;
 import scala.concurrent.duration.FiniteDuration;
 

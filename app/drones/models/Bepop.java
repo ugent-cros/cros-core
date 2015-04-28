@@ -7,7 +7,7 @@ import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.protocols.ardrone3.ArDrone3;
 import drones.protocols.ardrone3.ArDrone3Discovery;
-import messages.DroneDiscoveredMessage;
+import drones.messages.DroneDiscoveredMessage;
 import messages.StopMessage;
 import model.DroneException;
 import model.NavigatedDroneActor;

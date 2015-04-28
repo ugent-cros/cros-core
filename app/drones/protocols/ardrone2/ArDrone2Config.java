@@ -10,7 +10,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import drones.models.DroneConnectionDetails;
 import messages.ProductVersionChangedMessage;
-import messages.RequestConfigMessage;
+import drones.messages.RequestConfigMessage;
 import messages.StopMessage;
 
 import java.net.InetSocketAddress;

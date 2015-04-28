@@ -9,6 +9,7 @@ import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
+import drones.messages.InitNavDataMessage;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketHelper;
 import messages.*;

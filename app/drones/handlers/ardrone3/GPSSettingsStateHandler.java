@@ -5,7 +5,7 @@ import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
 import drones.util.ardrone3.FrameHelper;
 import messages.GPSFixChangedMessage;
-import messages.HomeChangedMessage;
+import drones.messages.HomeChangedMessage;
 
 /**
  * Created by Cedric on 3/20/2015.

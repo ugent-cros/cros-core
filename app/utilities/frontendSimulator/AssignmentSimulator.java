@@ -1,5 +1,9 @@
 package utilities.frontendSimulator;
 
+import drones.messages.AssignmentCompletedMessage;
+import drones.messages.AssignmentProgressChangedMessage;
+import drones.messages.AssignmentStartedMessage;
+import drones.messages.DroneAssignedMessage;
 import messages.*;
 import models.*;
 

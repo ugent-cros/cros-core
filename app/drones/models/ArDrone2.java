@@ -8,7 +8,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
 import drones.protocols.ardrone2.ArDrone2Protocol;
-import messages.InitCompletedMessage;
+import drones.messages.InitCompletedMessage;
 import messages.StopMessage;
 import model.DroneException;
 import model.NavigatedDroneActor;
