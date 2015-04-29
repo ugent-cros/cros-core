@@ -119,7 +119,7 @@ public class SimpleControlTower extends ControlTower {
                 //start actor simple pilot
                 pilots[i] = getContext().actorOf(
                         Props.create(SimplePilot.class,
-                                () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints())));
+                                () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), cruisingAltitude)));
 
                 if (started) {
                     // add no fly point to pilot

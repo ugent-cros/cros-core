@@ -69,11 +69,8 @@ public abstract class Pilot extends FlightControl{
     }
 
     protected void setCruisingAltitude(SetCruisingAltitudeMessage s){
-        cruisingAltitude = s.getCruisingAltitude();
-        try {
-            Await.ready(dc.setMaxHeight((float) cruisingAltitude), MAX_DURATION_SHORT);
-        } catch (TimeoutException | InterruptedException e) {
-            handleErrorMessage("Failed to set max height after SetCruisingAltitudeMessage");
+        if(blocked){
+            cruisingAltitude = s.getCruisingAltitude();
         }
     }
 
