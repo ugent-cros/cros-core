@@ -292,15 +292,6 @@ public class SimplePilot extends Pilot {
                         return;
                     }
                     waitForGoUpUntilCruisingAltitudeFinished = true;
-                    break;
-                }
-                if(!blocked && waitForGoUpUntilCruisingAltitudeFinished){
-                    waitForGoUpUntilCruisingAltitudeFinished = false;
-                    landed = false;
-                    if(linkedWithControlTower){
-                        reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
-                    }
-                    goToNextWaypoint();
                 }
                 break;
             case EMERGENCY:
@@ -331,7 +322,16 @@ public class SimplePilot extends Pilot {
         if(!blocked && m.getState() == NavigationState.AVAILABLE){
             switch (m.getReason()){
                 case FINISHED:
-                    if(!waitForGoUpUntilCruisingAltitudeFinished && !waitForTakeOffFinished && !waitForLandAfterStopFinished && !waitForLandFinished){
+                    if(waitForGoUpUntilCruisingAltitudeFinished){
+                        waitForGoUpUntilCruisingAltitudeFinished = false;
+                        landed = false;
+                        if(linkedWithControlTower){
+                            reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                        }
+                        goToNextWaypoint();
+                        break;
+                    }
+                    if(!waitForTakeOffFinished && !waitForLandAfterStopFinished && !waitForLandFinished && !waitForGoUpUntilCruisingAltitudeFinished){
                         goToNextWaypoint();
                     }
                     break;

@@ -92,7 +92,7 @@ public class SimplePilotTest extends TestSuperclass {
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue("Check dronelocation: " + d,d < 1000);
+                    assertTrue("Check dronelocation: " + d,d < 50);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -115,7 +115,7 @@ public class SimplePilotTest extends TestSuperclass {
     /**
      * Test if correct request messages are used for landing/takeoff.
      *
-     */
+    */
     @Test
     public void requestMessages() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
@@ -160,4 +160,5 @@ public class SimplePilotTest extends TestSuperclass {
             }
         };
     }
+
 }
