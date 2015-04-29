@@ -7,7 +7,7 @@ import akka.event.LoggingAdapter;
 import com.xuggle.xuggler.*;
 import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.video.IConverter;
-import drones.messages.ImageMessage;
+import messages.ImageMessage;
 import drones.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;

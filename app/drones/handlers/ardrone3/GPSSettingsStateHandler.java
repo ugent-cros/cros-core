@@ -1,11 +1,11 @@
 package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
-import drones.messages.GPSFixChangedMessage;
-import drones.messages.HomeChangedMessage;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
 import drones.util.ardrone3.FrameHelper;
+import messages.GPSFixChangedMessage;
+import drones.messages.HomeChangedMessage;
 
 /**
  * Created by Cedric on 3/20/2015.

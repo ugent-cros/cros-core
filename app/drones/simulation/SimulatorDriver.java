@@ -1,9 +1,9 @@
 package drones.simulation;
 
-import drones.models.DroneActor;
-import drones.models.DroneDriver;
-import drones.models.Location;
-import models.DroneType;
+import api.DroneDriver;
+import api.DroneType;
+import model.DroneActor;
+import model.properties.Location;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,7 +13,17 @@ import java.util.Set;
  */
 public class SimulatorDriver implements DroneDriver {
 
-    public static final DroneType SIMULATOR_TYPE = new DroneType("drones.simulation.DroneActorSimulator", "0.1");
+    public static final DroneType SIMULATOR_TYPE = new DroneType() {
+        @Override
+        public String getType() {
+            return "Bebop simulator";
+        }
+
+        @Override
+        public String getVersionNumber() {
+            return "0.1";
+        }
+    };
 
     private static final Location STERRE = new Location(51.0226, 3.71, 0);
 

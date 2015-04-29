@@ -9,9 +9,9 @@ import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import drones.commands.ardrone2.atcommand.ATCommandCOMWDG;
-import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
 import drones.util.ardrone2.PacketCreator;
+import messages.StopMessage;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
 

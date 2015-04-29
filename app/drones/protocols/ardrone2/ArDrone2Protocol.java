@@ -12,18 +12,20 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
 import drones.commands.*;
 import drones.commands.ardrone2.atcommand.*;
-import drones.messages.*;
+import drones.messages.InitCompletedMessage;
+import drones.messages.InitNavDataMessage;
+import drones.messages.RequestConfigMessage;
 import drones.models.DroneConnectionDetails;
-import drones.models.FlipType;
 import drones.util.ardrone2.PacketCreator;
+import messages.*;
+import model.properties.FlipType;
+import navigator.MoveCommand;
 import play.libs.Akka;
 import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;
 import java.net.*;
 import java.util.concurrent.TimeUnit;
-
-import static drones.models.FlipType.*;
 
 /**
  *

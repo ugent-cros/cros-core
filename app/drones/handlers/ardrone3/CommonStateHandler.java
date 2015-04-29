@@ -1,9 +1,9 @@
 package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
-import drones.messages.BatteryPercentageChangedMessage;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
+import messages.BatteryPercentageChangedMessage;
 
 /**
  * Created by Cedric on 3/8/2015.

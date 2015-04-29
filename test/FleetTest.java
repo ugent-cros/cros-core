@@ -1,15 +1,15 @@
-import drones.models.DroneActor;
-import drones.models.DroneCommander;
-import drones.models.DroneDriver;
+
+import api.DroneCommander;
+import api.DroneDriver;
 import drones.models.Fleet;
 import drones.simulation.SimulatorDriver;
+import model.DroneActor;
 import models.Drone;
 import models.DroneType;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 

@@ -1,10 +1,6 @@
 import controllers.SecurityController;
-import drones.models.Fleet;
 import drones.simulation.SimulatorDriver;
 import models.User;
-
-import org.junit.Before;
-import org.junit.Test;
 import play.test.*;
 
 import static play.test.Helpers.*;

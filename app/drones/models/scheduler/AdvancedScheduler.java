@@ -6,8 +6,8 @@ import akka.dispatch.OnComplete;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import akka.util.Timeout;
+import api.DroneCommander;
 import com.avaje.ebean.Ebean;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
@@ -274,7 +274,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         // Retrieve drone location
         try {
-            drones.models.Location loc = Await.result(commander.getLocation(), TIMEOUT);
+            model.properties.Location loc = Await.result(commander.getLocation(), TIMEOUT);
             return new Location(loc.getLatitude(), loc.getLongitude(), loc.getHeight());
         } catch (Exception ex) {
             log.warning("[AdvancedScheduler] Failed to retrieve drone location.");

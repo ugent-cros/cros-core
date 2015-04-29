@@ -1,9 +1,7 @@
 import akka.japi.pf.UnitPFBuilder;
-import drones.models.DroneActor;
-import drones.models.DroneException;
-import drones.models.FlipType;
-import drones.models.Location;
-import drones.util.LocationNavigator;
+import model.DroneActor;
+import model.DroneException;
+import model.properties.FlipType;
 import scala.concurrent.Promise;
 
 /**

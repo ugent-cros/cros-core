@@ -2,8 +2,8 @@ package drones.models;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
-import drones.messages.SubscribeEventMessage;
-import drones.messages.UnsubscribeEventMessage;
+import messages.SubscribeEventMessage;
+import messages.UnsubscribeEventMessage;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 

@@ -8,10 +8,10 @@ import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
-import drones.messages.ProductVersionChangedMessage;
-import drones.messages.RequestConfigMessage;
-import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
+import messages.ProductVersionChangedMessage;
+import drones.messages.RequestConfigMessage;
+import messages.StopMessage;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;

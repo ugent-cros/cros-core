@@ -1,12 +1,8 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import controllers.routes;
 import drones.models.BepopDriver;
-import models.Assignment;
-import models.Basestation;
-import models.Drone;
-import models.User;
+import models.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -14,6 +10,7 @@ import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Result;
 import utilities.JsonHelper;
+import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,10 +36,10 @@ public class SearchTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Add drones to the database
-        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE,  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
         Ebean.save(testDrones);
         // Add assignments to the database
         testAssignments.add(new Assignment());
