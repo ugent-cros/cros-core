@@ -1,14 +1,15 @@
 package controllers;
 
+import api.DroneCommander;
 import com.fasterxml.jackson.databind.JsonNode;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
-import drones.models.FlipType;
+import model.properties.FlipType;
 import models.Drone;
 import models.User;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Result;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -28,30 +29,54 @@ import java.util.stream.Collectors;
 @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN, User.Role.USER})
 public class ManualDroneController extends Controller {
 
-    private static final Map<String,Function<DroneCommander,F.Promise<Result>>> COMMANDS;
+    private static final Map<String,BiFunction<DroneCommander, Http.Request,F.Promise<Result>>> COMMANDS;
 
     static {
         COMMANDS = new HashMap<>();
-        COMMANDS.put("flipBack", (c) -> F.Promise.wrap(c.flip(FlipType.BACK)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("flipFront", (c) -> F.Promise.wrap(c.flip(FlipType.FRONT)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("flipLeft", (c) -> F.Promise.wrap(c.flip(FlipType.LEFT)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("flipRight", (c) -> F.Promise.wrap(c.flip(FlipType.RIGHT)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("setOutdoor", (c) -> F.Promise.wrap(c.setOutdoor(true)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("setIndoor", (c) -> F.Promise.wrap(c.setOutdoor(false)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("setHull", (c) -> F.Promise.wrap(c.setHull(true)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("setNoHull", (c) -> F.Promise.wrap(c.setHull(false)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("flatTrim", (c) -> F.Promise.wrap(c.flatTrim()).map(v -> ok(Json.newObject())));
-        COMMANDS.put("takeOff", (c) -> F.Promise.wrap(c.takeOff()).map(v -> ok(Json.newObject())));
-        COMMANDS.put("land", (c) -> F.Promise.wrap(c.land()).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveLeft", (c) -> F.Promise.wrap(c.move3d(0, -1, 0, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveRight", (c) -> F.Promise.wrap(c.move3d(0, 1, 0, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveUp", (c) -> F.Promise.wrap(c.move3d(0, 0, 1, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveDown", (c) -> F.Promise.wrap(c.move3d(0, 0, -1, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("center", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveForward", (c) -> F.Promise.wrap(c.move3d(1, 0, 0, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("moveBackward", (c) -> F.Promise.wrap(c.move3d(-1, 0, 0, 0)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("rotateLeft", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, -1)).map(v -> ok(Json.newObject())));
-        COMMANDS.put("rotateRight", (c) -> F.Promise.wrap(c.move3d(0, 0, 0, 1)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipBack", (c,request) -> F.Promise.wrap(c.flip(FlipType.BACK)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipFront", (c,request) -> F.Promise.wrap(c.flip(FlipType.FRONT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipLeft", (c,request) -> F.Promise.wrap(c.flip(FlipType.LEFT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flipRight", (c,request) -> F.Promise.wrap(c.flip(FlipType.RIGHT)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setOutdoor", (c,request) -> F.Promise.wrap(c.setOutdoor(true)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setIndoor", (c,request) -> F.Promise.wrap(c.setOutdoor(false)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setHull", (c,request) -> F.Promise.wrap(c.setHull(true)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("setNoHull", (c,request) -> F.Promise.wrap(c.setHull(false)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("flatTrim", (c,request) -> F.Promise.wrap(c.flatTrim()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("takeOff", (c,request) -> F.Promise.wrap(c.takeOff()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("land", (c,request) -> F.Promise.wrap(c.land()).map(v -> ok(Json.newObject())));
+        COMMANDS.put("center", (c,request) -> F.Promise.wrap(c.move3d(0, 0, 0, 0)).map(v -> ok(Json.newObject())));
+        COMMANDS.put("moveLeft", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, -speed, 0, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("moveRight", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, speed, 0, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("moveUp", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, 0, speed, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("moveDown", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, 0, -speed, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("moveForward", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(speed, 0, 0, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("moveBackward", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(-speed, 0, 0, 0)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("rotateLeft", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, 0, 0, -speed)).map(v -> ok(Json.newObject()));
+        });
+        COMMANDS.put("rotateRight", (c,request) -> {
+            float speed = Float.parseFloat(request.queryString().get("speed")[0]);
+            return F.Promise.wrap(c.move3d(0, 0, 0, speed)).map(v -> ok(Json.newObject()));
+        });
     }
 
     public static F.Promise<Result> command(Long id, String command) {
@@ -60,11 +85,13 @@ public class ManualDroneController extends Controller {
         if (drone.getStatus() != Drone.Status.MANUAL_CONTROL)
             return F.Promise.pure(forbidden(Json.toJson("you can only control a drone which is in manual control mode.")));
 
+
+
         if (!COMMANDS.containsKey(command))
             return F.Promise.pure(badRequest(Json.toJson("unknown command")));
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
-        return COMMANDS.get(command).apply(commander);
+        return COMMANDS.get(command).apply(commander,request());
     }
 
     public static F.Promise<Result> setManual(Long id) {
@@ -76,10 +103,9 @@ public class ManualDroneController extends Controller {
     }
 
     private static F.Promise<Result> setMode(Drone drone, Drone.Status status) {
-        if (drone.getStatus() == Drone.Status.CHARGING || drone.getStatus() == Drone.Status.DECOMMISSIONED ||
-                drone.getStatus() == Drone.Status.EMERGENCY_LANDED || drone.getStatus() == Drone.Status.MISSING_DRIVER ||
-                drone.getStatus() == Drone.Status.UNAVAILABLE || drone.getStatus() == Drone.Status.UNKNOWN ||
-                drone.getStatus() == Drone.Status.UNREACHABLE)
+        if (drone.getStatus() == Drone.Status.CHARGING || drone.getStatus() == Drone.Status.RETIRED ||
+                drone.getStatus() == Drone.Status.EMERGENCY || drone.getStatus() == Drone.Status.UNKNOWN ||
+                drone.getStatus() == Drone.Status.UNREACHABLE || drone.getStatus() == Drone.Status.INACTIVE)
             return F.Promise.pure(forbidden(Json.toJson("you cannot set control mode of a drone with status " + drone.getStatus().toString() + ".")));
 
         if (drone.getStatus() == status)
