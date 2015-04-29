@@ -36,10 +36,10 @@ public class SearchTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Add drones to the database
-        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
         Ebean.save(testDrones);
         // Add assignments to the database
         testAssignments.add(new Assignment());

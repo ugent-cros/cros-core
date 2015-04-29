@@ -6,7 +6,6 @@ import api.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
-import drones.simulation.BepopSimulator;
 import model.properties.FlyingState;
 import model.properties.Location;
 import models.Checkpoint;
@@ -16,6 +15,7 @@ import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import simulator.BepopSimulator;
 
 import java.util.ArrayList;
 import java.util.List;

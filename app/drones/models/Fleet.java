@@ -11,13 +11,13 @@ import api.DroneCommander;
 import api.DroneDriver;
 import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
-import drones.simulation.SimulatorDriver;
 import messages.*;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import simulator.SimulatorDriver;
 
 import java.util.HashMap;
 import java.util.Map;

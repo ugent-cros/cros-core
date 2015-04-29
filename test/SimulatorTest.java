@@ -3,8 +3,6 @@ import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import api.DroneCommander;
-import drones.simulation.BepopSimulator;
-import drones.simulation.SimulatorDriver;
 import messages.*;
 import model.properties.*;
 import org.junit.AfterClass;
@@ -13,6 +11,7 @@ import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import simulator.BepopSimulator;
 
 import java.util.concurrent.TimeUnit;
 

@@ -2,7 +2,6 @@
 import api.DroneCommander;
 import api.DroneDriver;
 import drones.models.Fleet;
-import drones.simulation.SimulatorDriver;
 import model.DroneActor;
 import models.Drone;
 import models.DroneType;
@@ -12,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
+import simulator.SimulatorDriver;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -38,8 +38,8 @@ public class FleetTest extends TestSuperclass {
         }
 
         @Override
-        public Set<DroneType> supportedTypes() {
-            Set<DroneType> types = new HashSet<>();
+        public Set<api.DroneType> supportedTypes() {
+            Set<api.DroneType> types = new HashSet<>();
             types.add(supportedType);
             return types;
         }
@@ -110,7 +110,7 @@ public class FleetTest extends TestSuperclass {
 
     @Test
     public void fleet_stops_drone_actor() throws Exception {
-        Drone drone = new Drone("FleetTestDrone10", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        Drone drone = new Drone("FleetTestDrone10", Drone.Status.AVAILABLE, new DroneType(SimulatorDriver.SIMULATOR_TYPE), "x");
         drone.save();
 
         DroneCommander cmd = Await.result(Fleet.getFleet().createCommanderForDrone(drone), TIMEOUT);
@@ -185,7 +185,7 @@ public class FleetTest extends TestSuperclass {
 
         //TODO: later an exception instead maybe?
         DroneType type = new DroneType("RegTest6", "1");
-        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, type, "x");
+        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, new DroneType(type), "x");
         drone.save();
 
         Fleet f = Fleet.getFleet();
@@ -198,7 +198,7 @@ public class FleetTest extends TestSuperclass {
 
         //TODO: later an exception instead maybe?
         DroneType type = new DroneType("RegTest6", "1");
-        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, type, "x");
+        Drone drone = new Drone("FleetTestDrone6", Drone.Status.AVAILABLE, new DroneType(type), "x");
         drone.save();
 
         Fleet f = Fleet.getFleet();
@@ -211,7 +211,7 @@ public class FleetTest extends TestSuperclass {
         Fleet f = Fleet.getFleet();
 
         // Use simulator driver for this test: should be registered in beforeclass method
-        Drone drone = new Drone("FleetTestDrone7", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        Drone drone = new Drone("FleetTestDrone7", Drone.Status.AVAILABLE, new DroneType(SimulatorDriver.SIMULATOR_TYPE), "x");
         drone.save();
 
         DroneCommander cmd = Await.result(f.createCommanderForDrone(drone), TIMEOUT);
@@ -224,7 +224,7 @@ public class FleetTest extends TestSuperclass {
         Fleet f = Fleet.getFleet();
 
         // Use simulator driver for this test: should be registered in beforeclass method
-        Drone drone = new Drone("FleetTestDrone8", Drone.Status.AVAILABLE, SimulatorDriver.SIMULATOR_TYPE, "x");
+        Drone drone = new Drone("FleetTestDrone8", Drone.Status.AVAILABLE, new DroneType(SimulatorDriver.SIMULATOR_TYPE), "x");
         drone.save();
 
         // TODO: rethink desired behavior: do we want 2 commanders for the same drone?
