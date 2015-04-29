@@ -189,7 +189,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         Assert.assertTrue(length >= 0);
     }
 
-    @Ignore
     @Test
     public void subscriberTest_RequestMessage_ReplyMessage() throws SchedulerException {
         new JavaTestKit(system){
@@ -205,13 +204,12 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    @Ignore
     @Test
     public void addDrones_FilledDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
             {
-                Scheduler.subscribe(DroneAddedMessage.class, getRef());
-                Scheduler.subscribe(DroneRemovedMessage.class, getRef());
+                subscribe(this, DroneAddedMessage.class);
+                subscribe(this, DroneRemovedMessage.class);
 
                 // Add drones to the database.
                 List<Drone> drones = createTestDrones(10);
@@ -220,16 +218,23 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 for(int i = 0; i < drones.size(); i++){
                     DroneAddedMessage message = expectMsgClass(DroneAddedMessage.class);
                     Assert.assertTrue("Drone added successfully",message.isSuccess());
+                    Drone drone = Drone.FIND.byId(message.getDroneId());
+                    Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
                 }
 
-                // Check drones
-                drones = Drone.FIND.all();
+                // Remove drones from DB
                 for(Drone drone : drones){
-                    Assert.assertTrue("Drone status AVAILABLE",drone.getStatus() == Drone.Status.AVAILABLE);
                     Scheduler.removeDrone(drone.getId());
                 }
                 // Removed drone messages
-                receiveN(drones.size());
+                for(int i = 0; i < drones.size(); i++){
+                    DroneRemovedMessage message = expectMsgClass(DroneRemovedMessage.class);
+                    Drone drone = Drone.FIND.byId(message.getDroneId());
+                    Assert.assertTrue("Drone status INACTIVE",drone.getStatus() == Drone.Status.INACTIVE);
+                }
+
+                unsubscribe(this, DroneAddedMessage.class);
+                unsubscribe(this, DroneRemovedMessage.class);
             }
         };
     }

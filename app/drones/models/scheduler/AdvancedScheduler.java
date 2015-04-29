@@ -353,6 +353,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                     boolean success = (failure == null) && (commander != null);
                     if (success) {
                         // Change drone state
+                        drone.refresh();
                         drone.setStatus(Drone.Status.AVAILABLE);
                         drone.update();
                         // Add drone to the pool
@@ -476,11 +477,13 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         }
         // Handle associated assignment
         if (flight.getType() == Flight.Type.ASSIGNMENT) {
-            long assignmentId = flight.getAssignmentId();
-            Assignment assignment = getAssignment(assignmentId);
-            assignment.setAssignedDrone(null);
-            assignment.update();
-            eventBus.publish(new DroneUnassignedMessage(assignmentId, flight.getDroneId()));
+            Assignment assignment = getAssignment(flight.getAssignmentId());
+            if (assignment != null) {
+                // Assignment still exists
+                assignment.setAssignedDrone(null);
+                assignment.update();
+                eventBus.publish(new DroneUnassignedMessage(assignment.getId(), flight.getDroneId()));
+            }
         }
 
         // Handle flightControl
