@@ -1,7 +1,7 @@
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.SimpleScheduler;
 import play.Application;
 import play.GlobalSettings;
 import play.Logger;
@@ -55,9 +55,10 @@ public class Global extends GlobalSettings {
     public void onStart(Application application) {
         super.onStart(application);
         try {
-            Scheduler.start(SimpleScheduler.class);
+            Scheduler.start(AdvancedScheduler.class);
+            Scheduler.addDrones();
         }catch(SchedulerException ex){
-            Logger.error(ex.toString());
+            Logger.error("Scheduler failed on start.",ex);
         }
     }
 
@@ -67,7 +68,7 @@ public class Global extends GlobalSettings {
         try {
             Scheduler.stop();
         }catch(SchedulerException ex){
-            Logger.error(ex.toString());
+            Logger.error("Scheduler failed on stop.");
         }
     }
 

@@ -1,6 +1,7 @@
 package drones.protocols;
 
 import akka.actor.AbstractActor;
+import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
 import drones.messages.PingMessage;
 import drones.models.PingResult;
@@ -16,9 +17,11 @@ public class ICMPPing extends AbstractActor {
 
     public ICMPPing(){
         receive(ReceiveBuilder.match(PingMessage.class, s -> {
-            String[] splitted = s.getIp().split(".");
-            if(splitted.length != 4)
-                sender().tell(new akka.actor.Status.Failure(new IllegalArgumentException("IP address is in wrong format.")), self());
+            String[] splitted = s.getIp().split("\\.");
+            if(splitted.length != 4) {
+                sender().tell(new Status.Failure(new IllegalArgumentException("IP address is in wrong format.")), self());
+                return;
+            }
 
             byte[] nums = new byte[4];
             for(int i = 0; i < 4; i++){

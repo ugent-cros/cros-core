@@ -83,13 +83,7 @@ public class FleetTest extends TestSuperclass {
 
     @BeforeClass
     public static void setup() {
-
         startFakeApplication();
-
-        // Check if simulator driver is registered, if not register
-        if (!Fleet.registeredDrivers().containsKey(SimulatorDriver.SIMULATOR_TYPE)) {
-            Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE, new SimulatorDriver());
-        }
     }
 
     @AfterClass

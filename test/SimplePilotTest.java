@@ -5,7 +5,7 @@ import akka.testkit.JavaTestKit;
 import api.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.simulation.BepopSimulator;
 import model.properties.FlyingState;
 import model.properties.Location;
@@ -82,7 +82,7 @@ public class SimplePilotTest extends TestSuperclass {
 
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, DroneArrivalMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
 
                 //check if on destination
                 Location droneLocation;
@@ -136,8 +136,8 @@ public class SimplePilotTest extends TestSuperclass {
                 Location tmp = new Location(destination.getLocation().getLatitude(),destination.getLocation().getLongitude(),destination.getLocation().getAltitude());
                 simplePilot.tell(new RequestForLandingGrantedMessage(simplePilot,tmp),getRef());
 
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,LandingCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,LandingCompletedMessage.class);
             }
         };
     }

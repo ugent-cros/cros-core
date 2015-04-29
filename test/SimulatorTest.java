@@ -23,12 +23,11 @@ import static org.fest.assertions.Assertions.assertThat;
  */
 public class SimulatorTest extends TestSuperclass {
 
-    static SimulatorDriver driver = new SimulatorDriver();
     static ActorSystem system;
 
     @BeforeClass
     public static void setup() {
-        driver.topSpeed = 500; //10m/s
+        driver.setTopSpeed(500); // 500 m/s
         startFakeApplication();
         system = ActorSystem.create();
     }
