@@ -1,6 +1,6 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import drones.ardrone3.BepopDriver;
+import drones.ardrone3.BebopDriver;
 import models.Drone;
 import models.DroneType;
 import org.junit.AfterClass;
@@ -34,10 +34,10 @@ public class DroneControllerTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Add drones to the database
-        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE),  "x.x.x.x"));
         Ebean.save(testDrones);
     }
 
@@ -110,7 +110,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
     public void update_AuthorizedRequestWithValidId_DroneUpdated() {
-        Drone d = new Drone("test1", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE), "address1");
+        Drone d = new Drone("test1", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE), "address1");
         d.save();
         d.setName("test2");
         d.setAddress("address2");
@@ -133,7 +133,7 @@ public class DroneControllerTest extends TestSuperclass {
 
     @Test
      public void delete_AuthorizedRequestWithValidId_DroneDeleted() {
-        Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE),  "x.x.x.x");
+        Drone droneToBeRemoved = new Drone("remove this drone", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE),  "x.x.x.x");
         droneToBeRemoved.save();
 
         callAction(routes.ref.DroneController.delete(droneToBeRemoved.getId()),

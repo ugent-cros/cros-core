@@ -7,7 +7,7 @@ import api.DroneCommander;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.ardrone2.ArDrone2Driver;
-import drones.ardrone3.BepopDriver;
+import drones.ardrone3.BebopDriver;
 import drones.models.Fleet;
 import messages.BatteryPercentageChangedMessage;
 import model.DroneMonitor;
@@ -104,7 +104,7 @@ public class Application extends Controller {
     public static F.Promise<Result> initDrone(String ip, boolean bebop) {
         Drone droneEntity;
         if(bebop) {
-            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE), ip);
+            droneEntity = new Drone("bebop", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE), ip);
         } else {
             droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ip);
         }

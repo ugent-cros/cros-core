@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Cedric on 3/8/2015.
  */
-public class Bepop extends NavigatedDroneActor {
+public class Bebop extends NavigatedDroneActor {
 
     private static final int RECONNECT_MAX_BACKOFF = 32; // max delay before reconnect
 
@@ -48,7 +48,7 @@ public class Bepop extends NavigatedDroneActor {
     private int d2cPort;
 
     //TODO: use configuration class to pass here
-    public Bepop(int d2cPort, String ip, boolean indoor, boolean hull) {
+    public Bebop(int d2cPort, String ip, boolean indoor, boolean hull) {
         this.hull = hull;
         this.d2cPort = d2cPort;
         this.ip = ip;
@@ -170,10 +170,10 @@ public class Bepop extends NavigatedDroneActor {
 
                 //TODO: dispose each time when udp bound is fixed
                 protocol = getContext().actorOf(Props.create(ArDrone3.class,
-                        () -> new ArDrone3(d2cPort, Bepop.this.self())), "protocol"); // Initialize listening already before broadcasting itself
+                        () -> new ArDrone3(d2cPort, Bebop.this.self())), "protocol"); // Initialize listening already before broadcasting itself
 
                 discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                        () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)), "discovery");
+                        () -> new ArDrone3Discovery(ip, Bebop.this.self(), d2cPort)), "discovery");
             }
         }
     }
@@ -199,7 +199,7 @@ public class Bepop extends NavigatedDroneActor {
 
             // Initiate new discovery
             discoveryProtocol = getContext().actorOf(Props.create(ArDrone3Discovery.class,
-                    () -> new ArDrone3Discovery(ip, Bepop.this.self(), d2cPort)), "discovery");
+                    () -> new ArDrone3Discovery(ip, Bebop.this.self(), d2cPort)), "discovery");
         }
     }
 

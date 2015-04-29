@@ -1,7 +1,6 @@
 package drones.ardrone3;
 
 import api.DroneDriver;
-import drones.ardrone3.Bepop;
 import model.DroneActor;
 import api.DroneType;
 
@@ -11,9 +10,9 @@ import java.util.Set;
 /**
  * Created by yasser on 17/03/15.
  */
-public class BepopDriver implements DroneDriver {
+public class BebopDriver implements DroneDriver {
 
-    public static final DroneType BEPOP_TYPE = new DroneType() {
+    public static final DroneType BEBOP_TYPE = new DroneType() {
         @Override
         public String getType() {
             return "ARDrone3";
@@ -31,18 +30,18 @@ public class BepopDriver implements DroneDriver {
     public Set<DroneType> supportedTypes() {
 
         Set<DroneType> supportedTypes = new HashSet<>();
-        supportedTypes.add(BEPOP_TYPE);
+        supportedTypes.add(BEBOP_TYPE);
         return supportedTypes;
     }
 
     @Override
-    public Class<Bepop> getActorClass() {
-        return Bepop.class;
+    public Class<Bebop> getActorClass() {
+        return Bebop.class;
     }
 
     @Override
     public <T extends DroneActor> T createActor(String droneAddress) {
         // TODO: set indoor, hull property to true
-        return (T) new Bepop(nextd2cPort++, droneAddress, true, true);
+        return (T) new Bebop(nextd2cPort++, droneAddress, true, true);
     }
 }

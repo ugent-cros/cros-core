@@ -10,7 +10,7 @@ import akka.util.Timeout;
 import api.DroneCommander;
 import api.DroneDriver;
 import drones.ardrone2.ArDrone2Driver;
-import drones.ardrone3.BepopDriver;
+import drones.ardrone3.BebopDriver;
 import drones.messages.PingMessage;
 import drones.shared.models.PingResult;
 import drones.shared.protocols.ICMPPing;
@@ -56,8 +56,8 @@ public class Fleet {
 
     static {
 
-        BepopDriver bepopDriver = new BepopDriver();
-        registerDriver(new DroneType(BepopDriver.BEPOP_TYPE), bepopDriver);
+        BebopDriver bebopDriver = new BebopDriver();
+        registerDriver(new DroneType(BebopDriver.BEBOP_TYPE), bebopDriver);
 
         ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
         registerDriver(new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ardrone2Driver);

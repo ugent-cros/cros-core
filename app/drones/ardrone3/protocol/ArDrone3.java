@@ -96,7 +96,7 @@ public class ArDrone3 extends UntypedActor {
     public SupervisorStrategy supervisorStrategy() {
         return new OneForOneStrategy(-1, Duration.create("1 minute"),
                 t -> {
-                    log.error(t, "Bepop actor failure caught by supervisor.");
+                    log.error(t, "Bebop actor failure caught by supervisor.");
                     System.err.println(t.getMessage());
                     return SupervisorStrategy.resume(); // Continue on all exceptions!
                 });
