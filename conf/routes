@@ -51,6 +51,7 @@ GET            /drones/:id/location                  controllers.DroneController
 GET            /drones/:id/speed                     controllers.DroneController.speed(id: Long)
 GET            /drones/:id/rotation                  controllers.DroneController.rotation(id: Long)
 GET            /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
+GET            /drones/:id/initVideo                 controllers.DroneController.initVideo(id: Long)
 GET            /drones/:id/video                     controllers.DroneController.videoSocket(id: Long)
 
 POST           /login                                controllers.SecurityController.login()

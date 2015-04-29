@@ -323,6 +323,7 @@ public class DroneController {
         links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).absoluteURL(request())));
         links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).absoluteURL(request())));
         links.add(new ControllerHelper.Link("videoSocket", controllers.routes.DroneController.videoSocket(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("initVideo", controllers.routes.DroneController.initVideo(id).absoluteURL(request())));
         return links;
     }
 }
