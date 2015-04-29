@@ -6,13 +6,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import akka.actor.ActorRef;
-import drones.messages.FlyingStateChangedMessage;
-import drones.messages.LocationChangedMessage;
-import drones.messages.NavigationStateChangedMessage;
-import drones.models.*;
+import api.DroneCommander;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.models.scheduler.messages.to.FlightCanceledMessage;
+import messages.FlyingStateChangedMessage;
+import messages.LocationChangedMessage;
+import messages.NavigationStateChangedMessage;
+import model.properties.Location;
+import model.properties.NavigationState;
 import models.Checkpoint;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
@@ -56,7 +58,7 @@ public class SimplePilot extends Pilot {
 
     //Buffer when waiting for takeoff or landed to send the completed message
     private RequestMessage requestMessageBuffer;
-    
+
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the startFlightControlMessage message.
      * @param droneId                  Drone to control.

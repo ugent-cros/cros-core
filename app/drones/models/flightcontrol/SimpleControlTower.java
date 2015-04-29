@@ -2,10 +2,10 @@ package drones.models.flightcontrol;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import drones.models.Location;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
+import model.properties.Location;
 
 import java.util.ArrayList;
 import java.util.Arrays;

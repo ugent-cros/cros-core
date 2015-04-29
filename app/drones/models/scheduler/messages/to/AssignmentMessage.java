@@ -7,6 +7,7 @@ import java.io.Serializable;
 /**
  * Created by Ronald on 18/03/2015.
  */
+@Deprecated
 public class AssignmentMessage implements Serializable{
 
     private long assignmentId;

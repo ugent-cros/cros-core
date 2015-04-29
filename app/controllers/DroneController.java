@@ -1,12 +1,12 @@
 package controllers;
 
 import akka.actor.ActorRef;
+import api.DroneCommander;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
@@ -107,7 +107,13 @@ public class DroneController {
         Drone drone = form.get();
         drone.save();
 
-        return F.Promise.wrap(Fleet.getFleet().createCommanderForDrone(drone)).map(v -> created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
+        try {
+            Scheduler.addDrone(drone.getId());
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to add drone to scheduler.",ex);
+        }
+
+        return F.Promise.pure(created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
 
     @Authentication({User.Role.ADMIN})
@@ -116,7 +122,7 @@ public class DroneController {
         if (drone == null)
             return notFound();
         if (drone.getStatus() != Drone.Status.AVAILABLE)
-            return badRequest("cannot update drone which is in flight.");
+            return badRequest(Json.toJson("cannot update drone which is in flight."));
 
         JsonNode body = request().body().asJson();
         JsonNode strippedBody;
@@ -141,8 +147,13 @@ public class DroneController {
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static F.Promise<Result> location(Long id) {
         Drone drone = Drone.FIND.byId(id);
-        if (drone == null)
+        if (drone == null) {
             return F.Promise.pure(notFound());
+        }
+        if(!Fleet.getFleet().hasCommander(drone)){
+            // TODO: Handle when a drone has no commander (yet).
+            return F.Promise.pure(notFound());
+        }
 
         DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(commander.getLocation()).flatMap(v -> F.Promise.wrap(commander.getAltitude()).map(altitude ->  {
@@ -220,14 +231,17 @@ public class DroneController {
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
-    public static Result cameraCapture(Long id) {
+    public static F.Promise<Result> cameraCapture(Long id) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
-            return notFound();
+            return F.Promise.pure(notFound());
 
-        ObjectNode node = Json.newObject();
-        node.put("cameraCapture", "nothing"); // TODO: call cameraCapture
-        return ok(JsonHelper.addRootElement(node, Drone.class));
+        DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(commander.getImage()).map(image -> {
+            ObjectNode node = Json.newObject();
+            node.put("image", Json.toJson(image));
+            return ok(JsonHelper.addRootElement(node, Drone.class));
+        });
     }
 
     @Authentication({User.Role.ADMIN})

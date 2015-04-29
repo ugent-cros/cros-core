@@ -4,23 +4,26 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
+import akka.dispatch.OnFailure;
+import akka.pattern.Patterns;
 import akka.util.Timeout;
-import drones.messages.*;
+import api.DroneCommander;
+import api.DroneDriver;
+import drones.messages.PingMessage;
 import drones.protocols.ICMPPing;
-import drones.simulation.SimulatorDriver;
+import messages.*;
 import models.Drone;
 import models.DroneType;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import simulator.SimulatorDriver;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-
-import static akka.pattern.Patterns.ask;
 
 /**
  * Created by Yasser.
@@ -51,13 +54,13 @@ public class Fleet {
     static {
 
         BepopDriver bepopDriver = new BepopDriver();
-        registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
+        registerDriver(new DroneType(BepopDriver.BEPOP_TYPE), bepopDriver);
 
         ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
-        registerDriver(ArDrone2Driver.ARDRONE2_TYPE, ardrone2Driver);
+        registerDriver(new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ardrone2Driver);
 
         SimulatorDriver simulatorDriver = new SimulatorDriver();
-        registerDriver(SimulatorDriver.SIMULATOR_TYPE, simulatorDriver);
+        registerDriver(new DroneType(SimulatorDriver.SIMULATOR_TYPE), simulatorDriver);
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
 
@@ -98,7 +101,7 @@ public class Fleet {
             pinger = Akka.system().actorOf(Props.create(ICMPPing.class), "pinger");
         }
 
-        return ask(pinger, new PingMessage(droneEntity.getAddress()),
+        return Patterns.ask(pinger, new PingMessage(droneEntity.getAddress()),
                 new Timeout(Duration.create(ICMPPing.PING_TIMEOUT + 1000, TimeUnit.MILLISECONDS)))
                 .map(new Mapper<Object, PingResult>() {
                     public PingResult apply(Object s) {
@@ -108,7 +111,7 @@ public class Fleet {
     }
 
     private void registerFleetBus(DroneCommander cmd){
-        cmd.subscribeTopics(fleetBus, new Class[] {
+        cmd.subscribeTopics(fleetBus, new Class[]{
                 LocationChangedMessage.class,
                 BatteryPercentageChangedMessage.class,
                 ConnectionStatusChangedMessage.class,
@@ -144,13 +147,35 @@ public class Fleet {
                 Props.create(driver.getActorClass(),
                         () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
         DroneCommander commander = new DroneCommander(droneActor);
-        return commander.init().map(new Mapper<Void, DroneCommander>() {
+        Future<Void> f = commander.init();
+        f.onFailure(new OnFailure(){
+            @Override
+            public void onFailure(Throwable failure) throws Throwable {
+                commander.stop(); // Stop commander when init fails
+            }
+        }, Akka.system().dispatcher());
+        return f.map(new Mapper<Void, DroneCommander>() {
             public DroneCommander apply(Void s) {
                 registerFleetBus(commander);
                 drones.put(droneEntity.getId(), commander);
                 return commander;
             }
         }, Akka.system().dispatcher());
+    }
+
+    public void shutdown(){
+        for(DroneCommander cmd : drones.values()){
+            cmd.stop();
+        }
+        drones.clear();
+    }
+
+    public boolean stopCommander(Drone droneEntity){
+        DroneCommander cmd = drones.remove(droneEntity.getId());
+        if(cmd != null){
+            cmd.stop();
+            return true;
+        } else return false;
     }
 
     public boolean hasCommander(Drone droneEntity) {

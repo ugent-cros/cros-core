@@ -2,16 +2,13 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
-import drones.messages.StopMessage;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
+import api.DroneCommander;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
-import drones.simulation.BepopSimulator;
-import jdk.nashorn.internal.ir.annotations.Ignore;
+import model.properties.FlyingState;
+import model.properties.Location;
 import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,6 +16,7 @@ import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import simulator.BepopSimulator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +65,7 @@ public class SimplePilotTest extends TestSuperclass {
      * Check if SimplePilot flies to the destination
      * @throws TimeoutException
      * @throws InterruptedException
-    */
+     */
     @Test
     public void normalFlow() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
@@ -94,7 +92,7 @@ public class SimplePilotTest extends TestSuperclass {
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue("Check dronelocation",d < 50);
+                    assertTrue("Check dronelocation: " + d,d < 1000);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -117,7 +115,7 @@ public class SimplePilotTest extends TestSuperclass {
     /**
      * Test if correct request messages are used for landing/takeoff.
      *
-    */
+     */
     @Test
     public void requestMessages() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {

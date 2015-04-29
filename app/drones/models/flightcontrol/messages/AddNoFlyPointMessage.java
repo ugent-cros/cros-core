@@ -1,6 +1,6 @@
 package drones.models.flightcontrol.messages;
 
-import drones.models.Location;
+import model.properties.Location;
 
 import java.io.Serializable;
 

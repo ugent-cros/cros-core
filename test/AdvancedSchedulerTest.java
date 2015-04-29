@@ -2,17 +2,18 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
+import drones.models.Fleet;
 import drones.models.scheduler.AdvancedScheduler;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.*;
 import drones.models.scheduler.messages.to.SchedulerRequestMessage;
-import drones.simulation.SimulatorDriver;
 import models.*;
 import org.junit.*;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import simulator.SimulatorDriver;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Ronald on 18/04/2015.
  */
+@Ignore
 public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
@@ -109,6 +111,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         stopFakeApplication();
     }
 
+    @Before
+    public void before(){
+        if(!setup) {
+            Fleet.registerDriver(new DroneType(SimulatorDriver.SIMULATOR_TYPE), driver);
+            setup = true;
+        }
+    }
+
     @After
     public void after(){
         // Clean DB
@@ -119,7 +129,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     private Drone createDrone(Location location) throws SchedulerException{
         driver.setStartLocation(Helper.entityToDroneLocation(location));
-        Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
+        Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,new DroneType(new DroneType(SimulatorDriver.SIMULATOR_TYPE)),"0.0.0.0");
         drone.save();
         Scheduler.addDrone(drone.getId());
         return drone;
@@ -128,7 +138,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     private List<Drone> createTestDrones(int number){
         List<Drone> drones = new ArrayList<>();
         for(int i = 0; i < number; i++){
-            drones.add(new Drone("TestDrone" + i, Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0"));
+            drones.add(new Drone("TestDrone" + i, Drone.Status.UNKNOWN,new DroneType(new DroneType(SimulatorDriver.SIMULATOR_TYPE)),"0.0.0.0"));
         }
         Ebean.save(drones);
         return drones;
@@ -195,7 +205,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    @Ignore
     @Test
     public void addDrones_FilledDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -224,7 +233,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
-    @Ignore
     @Test
     public void droneAddRemove_EmptyDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -488,7 +496,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         DroneRemovedMessage A = test.expectMsgClass(LONG_TIMEOUT,DroneRemovedMessage.class);
         drone.refresh();
         Assert.assertTrue("Drone removed", A.getDroneId() == drone.getId());
-        Assert.assertTrue("Drone DECOMMISSIONED",drone.getStatus() == Drone.Status.DECOMMISSIONED);
+        Assert.assertTrue("Drone RETIRED",drone.getStatus() == Drone.Status.RETIRED);
         unsubscribe(test, DroneRemovedMessage.class);
     }
 
@@ -513,29 +521,24 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     public void assertScheduled(JavaTestKit test, Assignment assignment, Drone drone) throws SchedulerException{
         subscribe(test, DroneAssignedMessage.class);
         subscribe(test,AssignmentStartedMessage.class);
-
-        subscribe(test,SchedulerReplyMessage.class);
-        Scheduler.getScheduler().tell(new SchedulerRequestMessage(), test.getRef());
-        test.expectMsgClass(SchedulerReplyMessage.class);
-        unsubscribe(test,SchedulerReplyMessage.class);
-
         Scheduler.schedule();
-//        DroneAssignedMessage A = test.expectMsgClass(LONG_TIMEOUT, DroneAssignedMessage.class);
-//        assignment.refresh();
-//        drone.refresh();
-//        Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
-//        Assert.assertTrue("Assignment assigned", A.getAssignmentId() == assignment.getId());
-//        Assert.assertTrue("Drone assigned", A.getDroneId() == drone.getId());
-//        Assert.assertTrue("Assignment drone", drone.equals(assignment.getAssignedDrone()));
-//        AssignmentStartedMessage B = test.expectMsgClass(AssignmentStartedMessage.class);
-//        assignment.refresh();
-//        drone.refresh();
-//        Assert.assertTrue("Assignment started",B.getAssignmentId() == assignment.getId());
-//        Assert.assertTrue("Drone FLYING",drone.getStatus() == Drone.Status.FLYING);
+        DroneAssignedMessage A = test.expectMsgClass(LONG_TIMEOUT, DroneAssignedMessage.class);
+        assignment.refresh();
+        drone.refresh();
+        Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
+        Assert.assertTrue("Assignment assigned", A.getAssignmentId() == assignment.getId());
+        Assert.assertTrue("Drone assigned", A.getDroneId() == drone.getId());
+        Assert.assertTrue("Assignment drone", drone.equals(assignment.getAssignedDrone()));
+        AssignmentStartedMessage B = test.expectMsgClass(AssignmentStartedMessage.class);
+        assignment.refresh();
+        drone.refresh();
+        Assert.assertTrue("Assignment started",B.getAssignmentId() == assignment.getId());
+        Assert.assertTrue("Drone FLYING",drone.getStatus() == Drone.Status.FLYING);
         unsubscribe(test, DroneAssignedMessage.class);
         unsubscribe(test, AssignmentStartedMessage.class);
     }
 
+    @Ignore
     @Test
     public void schedule_cancelAssigment_succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -556,7 +559,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                     assertCanceled(this,assignment,drone);
                     assignment.delete();
                 }
-                //removeDrone(this,drone);
+                removeDrone(this,drone);
             }
         };
     }

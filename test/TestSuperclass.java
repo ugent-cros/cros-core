@@ -1,11 +1,7 @@
 import controllers.SecurityController;
-import drones.models.Fleet;
-import drones.simulation.SimulatorDriver;
 import models.User;
-
-import org.junit.Before;
-import org.junit.Test;
 import play.test.*;
+import simulator.SimulatorDriver;
 
 import static play.test.Helpers.*;
 
@@ -25,15 +21,7 @@ public class TestSuperclass {
     private static User user;
     public static User getUser() { return user; }
     protected boolean setup = false;
-    protected SimulatorDriver driver = new SimulatorDriver();
-
-    @Before
-    public void before(){
-        if(!setup) {
-            Fleet.registerDriver(SimulatorDriver.SIMULATOR_TYPE,driver);
-            setup = true;
-        }
-    }
+    protected static SimulatorDriver driver = new SimulatorDriver();
 
     public static void startFakeApplication() {
         application = fakeApplication(inMemoryDatabase());

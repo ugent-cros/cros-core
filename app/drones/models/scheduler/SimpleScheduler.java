@@ -4,9 +4,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.UnitPFBuilder;
 import akka.util.Timeout;
+import api.DroneCommander;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
@@ -49,7 +49,8 @@ public class SimpleScheduler extends Scheduler {
 
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
-        return super.initReceivers().match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
+        return super.initReceivers()
+                .match(AssignmentMessage.class, m -> receiveAssignmentMessage(m));
     }
 
     protected void receiveAssignmentMessage(AssignmentMessage message) {
@@ -121,15 +122,6 @@ public class SimpleScheduler extends Scheduler {
         assignment.update();
     }
 
-    protected void receiveDroneBatteryMessage(DroneBatteryMessage message) {
-        // Well, this is just a simple scheduler.
-        // There is not much this scheduler can do about this right now
-        // Except updating the database.
-        Drone drone = getDrone(message.getDroneId());
-        drone.setStatus(Drone.Status.EMERGENCY);
-        drone.update();
-    }
-
     protected void assign(Drone drone, Assignment assignment) {
         // Update drone
         drone.setStatus(Drone.Status.FLYING);
@@ -161,7 +153,9 @@ public class SimpleScheduler extends Scheduler {
         while (true) {
             // Provide assignments
             if (queue.isEmpty()) {
-                if (!fetchAssignments()) return; // No more assignments
+                if (!fetchAssignments()) {
+                    return; // No more assignments
+                }
             }
             // Pick drone
             Drone drone = fetchAvailableDrone();
@@ -185,10 +179,11 @@ public class SimpleScheduler extends Scheduler {
         // No assignments to fetch
         if (count == 0) return false;
 
-        // Fetch 'count' first assignments with progress = 0, ordered by Id
+        // Fetch 'count' first assignments with progress = 0, ordered by Id and Priority
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
         query.setMaxRows(count);
-        query.where().eq("scheduled",false);
+        query.where().eq("scheduled", false);
+        query.orderBy("priority, id");
         List<Assignment> assignments = query.findList();
 
         // Add to queue and set scheduled

@@ -3,6 +3,7 @@ package drones.models.scheduler;
 import akka.actor.ActorRef;
 import akka.event.japi.LookupEventBus;
 import drones.models.scheduler.messages.from.SchedulerEvent;
+import play.Logger;
 
 import java.lang.invoke.MethodHandles;
 
@@ -14,6 +15,12 @@ public class SchedulerEventBus extends LookupEventBus<SchedulerEvent,ActorRef,Cl
     @Override
     public int mapSize() {
         return 32;
+    }
+
+    @Override
+    public void publish(SchedulerEvent event) {
+        super.publish(event);
+        Logger.info("Scheduler published " + event.getClass().getSimpleName());
     }
 
     @Override

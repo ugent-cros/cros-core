@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Sander on 16/03/2015.
- * <p>
+ *
  * Flight control for the drones.
  */
 public abstract class FlightControl extends AbstractActor {

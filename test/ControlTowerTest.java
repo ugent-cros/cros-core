@@ -2,25 +2,24 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
+import api.DroneCommander;
 import com.avaje.ebean.Ebean;
-import drones.models.DroneCommander;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimpleControlTower;
 import drones.models.flightcontrol.messages.*;
 import drones.models.scheduler.Helper;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
-import drones.simulation.SimulatorDriver;
 import models.Checkpoint;
 import models.Drone;
+import models.DroneType;
 import org.junit.*;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import simulator.SimulatorDriver;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Sander on 15/04/2015.
@@ -43,17 +42,17 @@ public class ControlTowerTest extends TestSuperclass {
 
         //add drones
         driver.setStartLocation(Helper.entityToDroneLocation(DRONE1));
-        Drone drone1 = new Drone("TestDrone1", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
+        Drone drone1 = new Drone("TestDrone1", Drone.Status.UNKNOWN, new DroneType(SimulatorDriver.SIMULATOR_TYPE),"0.0.0.0");
         drone1.save();
         drones.add(drone1);
         droneCommanders.add(Await.result(fleet.createCommanderForDrone(drone1), MAX_DURATION_MESSAGE));
         driver.setStartLocation(Helper.entityToDroneLocation(DRONE2));
-        Drone drone2 = new Drone("TestDrone2", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
+        Drone drone2 = new Drone("TestDrone2", Drone.Status.UNKNOWN, new DroneType(SimulatorDriver.SIMULATOR_TYPE),"0.0.0.0");
         drone2.save();
         drones.add(drone2);
         droneCommanders.add(Await.result(fleet.createCommanderForDrone(drone2), MAX_DURATION_MESSAGE));
         driver.setStartLocation(Helper.entityToDroneLocation(DRONE3));
-        Drone drone3 = new Drone("TestDrone3", Drone.Status.UNKNOWN,SimulatorDriver.SIMULATOR_TYPE,"0.0.0.0");
+        Drone drone3 = new Drone("TestDrone3", Drone.Status.UNKNOWN, new DroneType(SimulatorDriver.SIMULATOR_TYPE),"0.0.0.0");
         drone3.save();
         drones.add(drone3);
         droneCommanders.add(Await.result(fleet.createCommanderForDrone(drone3), MAX_DURATION_MESSAGE));
@@ -63,6 +62,14 @@ public class ControlTowerTest extends TestSuperclass {
     public static void setup() throws Exception {
         startFakeApplication();
         system = ActorSystem.create();
+    }
+
+    @Before
+    public void before(){
+        if(!setup) {
+            Fleet.registerDriver(new DroneType(SimulatorDriver.SIMULATOR_TYPE), driver);
+            setup = true;
+        }
     }
 
     @After
