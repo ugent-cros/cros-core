@@ -32,7 +32,6 @@ GET            /unsubscribe                          controllers.Application.uns
 GET            /testSocket                           controllers.Application.testSocket()
 GET            /socket                               controllers.Application.socket()
 GET            /videoSocket                          controllers.Application.videoSocket(id: Long)
-GET            /videoTestSocket                      controllers.Application.videoTestSocket(id: Long)
 
 
 # Drone REST calls
@@ -52,6 +51,7 @@ GET            /drones/:id/location                  controllers.DroneController
 GET            /drones/:id/speed                     controllers.DroneController.speed(id: Long)
 GET            /drones/:id/rotation                  controllers.DroneController.rotation(id: Long)
 GET            /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
+GET            /drones/:id/video                     controllers.DroneController.videoSocket(id: Long)
 
 POST           /login                                controllers.SecurityController.login()
 

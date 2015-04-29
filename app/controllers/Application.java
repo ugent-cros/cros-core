@@ -173,16 +173,6 @@ public class Application extends Controller {
         }
     }
 
-    /**
-     * @TODO remove
-     *
-     * @param id
-     * @return
-     */
-    public static WebSocket<String> videoTestSocket(long id) {
-        return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
-    }
-
     public static Result unsubscribeMonitor(long id){
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
