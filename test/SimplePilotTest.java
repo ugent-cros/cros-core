@@ -2,6 +2,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
+import drones.messages.StopMessage;
 import drones.models.DroneCommander;
 import drones.models.FlyingState;
 import drones.models.Location;
@@ -84,9 +85,7 @@ public class SimplePilotTest extends TestSuperclass {
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
                 expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
-                System.out.println("test ok1");
                 expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
-                System.out.println("test ok2");
                 expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
 
                 //check if on destination
@@ -106,6 +105,8 @@ public class SimplePilotTest extends TestSuperclass {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                simplePilot.tell(new StopMessage(),getRef());
             }
         };
     }
@@ -151,6 +152,8 @@ public class SimplePilotTest extends TestSuperclass {
 
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
+
+                simplePilot.tell(new StopMessage(),getRef());
             }
         };
     }

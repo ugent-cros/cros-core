@@ -42,8 +42,20 @@ public class SimplePilot extends Pilot {
 
     private boolean landed = true;
 
-    //True if the drone has taken off and is waiting to fly to the first wayPoint
-    private boolean waitForFirstWayPoint = false;
+    //True if the drone has taken off and is waiting to go up until cruising altitude
+    private boolean waitForTakeOffFinished = false;
+
+    //True is the drone is going up until cruising altitude and will wait to fly to the first wayPoint
+    private boolean waitForGoUpUntilCruisingAltitudeFinished = false;
+
+    //True if pilot is waiting for landing completed
+    private boolean waitForLandFinished = false;
+
+    //True if pilot is waiting for landing  when een stopMessage has send
+    private boolean waitForLandAfterStopFinished = false;
+
+    //Buffer when waiting for takeoff or landed to send the completed message
+    private RequestMessage requestMessageBuffer;
     
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the startFlightControlMessage message.
@@ -110,9 +122,17 @@ public class SimplePilot extends Pilot {
                 handleErrorMessage("Could no land drone after stop message");
                 return;
             }
+            waitForLandAfterStopFinished = true;
+        } else {
+            stop();
         }
+
+    }
+
+    private void stop(){
         blocked = true;
         reporterRef.tell(new FlightCanceledMessage(droneId), self());
+        dc.unsubscribe(self());
         //stop
         getContext().stop(self());
     }
@@ -162,9 +182,7 @@ public class SimplePilot extends Pilot {
                     handleErrorMessage("Could no land drone after internal land command");
                     return;
                 }
-                blocked = true;
-                landed = true;
-                reporterRef.tell(new FlightCompletedMessage(droneId,actualLocation),self());
+                waitForLandFinished = true;
             }
         }
     }
@@ -180,8 +198,7 @@ public class SimplePilot extends Pilot {
                     handleErrorMessage("Could no take off drone after internal takeoff command");
                     return;
                 }
-                landed = false;
-                waitForFirstWayPoint = true;
+                waitForTakeOffFinished = true;
             }
         }
     }
@@ -210,10 +227,8 @@ public class SimplePilot extends Pilot {
                     handleErrorMessage("Could no land drone after internal land command");
                     return;
                 }
-                blocked = true;
-                landed = true;
-                reporterRef.tell(new CompletedMessage(m.getRequestMessage()), self());
-                reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
+                waitForLandFinished = true;
+                requestMessageBuffer = m.getRequestMessage();
                 break;
             case TAKEOFF:
                 try {
@@ -222,16 +237,8 @@ public class SimplePilot extends Pilot {
                     handleErrorMessage("Could no take off drone after internal takeoff command");
                     return;
                 }
-                landed = false;
-                //go up until cruising altitude
-                try {
-                    Await.ready(dc.moveToLocation(actualLocation.getLatitude(), actualLocation.getLongitude(), cruisingAltitude), MAX_DURATION_LONG);
-                } catch (TimeoutException | InterruptedException e) {
-                    handleErrorMessage("Could no take off to cruising altitude after internal takeoff command");
-                    return;
-                }
-                waitForFirstWayPoint = true;
-                reporterRef.tell(new CompletedMessage(m.getRequestMessage()), self());
+                waitForTakeOffFinished = true;
+                requestMessageBuffer = m.getRequestMessage();
                 break;
             default:
                 log.warning("No handler for: [{}]", m.getRequestMessage().getType());
@@ -245,7 +252,8 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        if (!blocked) {
+        System.err.println("Location: " + m.getLongitude() + ", " + m.getLatitude() + ", " + m.getGpsHeight());
+        if (!blocked && !waitForLandFinished && !waitForTakeOffFinished && !waitForGoUpUntilCruisingAltitudeFinished) {
             actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
             for (RequestMessage r : evacuationPoints) {
                 if (actualLocation.distance(r.getLocation()) > EVACUATION_RANGE) {
@@ -272,8 +280,24 @@ public class SimplePilot extends Pilot {
     protected void flyingStateChanged(FlyingStateChangedMessage m) {
         switch (m.getState()){
             case HOVERING:
-                if(!blocked && waitForFirstWayPoint){
-                    waitForFirstWayPoint = false;
+                if(!blocked && waitForTakeOffFinished) {
+                    waitForTakeOffFinished = false;
+                    //go up until cruising altitude
+                    try {
+                        Await.ready(dc.moveToLocation(actualLocation.getLatitude(), actualLocation.getLongitude(), cruisingAltitude), MAX_DURATION_LONG);
+                    } catch (TimeoutException | InterruptedException e) {
+                        handleErrorMessage("Could no send takeoff command  to cruising altitude");
+                        return;
+                    }
+                    waitForGoUpUntilCruisingAltitudeFinished = true;
+                    break;
+                }
+                if(!blocked && waitForGoUpUntilCruisingAltitudeFinished){
+                    waitForGoUpUntilCruisingAltitudeFinished = false;
+                    landed = false;
+                    if(linkedWithControlTower){
+                        reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                    }
                     goToNextWaypoint();
                 }
                 break;
@@ -281,6 +305,20 @@ public class SimplePilot extends Pilot {
                 handleErrorMessage("Drone in emergency");
                 break;
             case LANDED:
+                if(!blocked && waitForLandFinished){
+                    waitForLandFinished = false;
+                    landed = true;
+                    blocked = true;
+                    if(linkedWithControlTower){
+                        reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                    }
+                    reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
+                    return;
+                }
+                if(!blocked && waitForLandAfterStopFinished){
+                    stop();
+                    return;
+                }
                 blocked = true;
                 break;
         }
@@ -291,7 +329,9 @@ public class SimplePilot extends Pilot {
         if(!blocked && m.getState() == NavigationState.AVAILABLE){
             switch (m.getReason()){
                 case FINISHED:
-                    goToNextWaypoint();
+                    if(!waitForGoUpUntilCruisingAltitudeFinished && !waitForTakeOffFinished && !waitForLandAfterStopFinished && !waitForLandFinished){
+                        goToNextWaypoint();
+                    }
                     break;
                 case STOPPED:
                     handleErrorMessage("Navigation has stopped.");
