@@ -41,6 +41,9 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
+        TYPENAMES.add(new F.Tuple<>(DroneAssignedMessage.class, "droneAssigned"));
+        TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
+        TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
 
         IGNORETYPES.add(FlyingStateChangedMessage.class);
         IGNORETYPES.add(NavigationStateChangedMessage.class);
@@ -62,7 +65,7 @@ public class MessageWebSocket extends AbstractActor {
         UnitPFBuilder<Object> builder = ReceiveBuilder.match(TYPENAMES.get(0)._1, s -> {
             ObjectNode node = Json.newObject();
             node.put("type", TYPENAMES.get(0)._2);
-            node.put("id", sender().path().name().split("-")[1]); // todo: set to correct id
+            node.put("id", sender().path().name().split("-")[1]);
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
         });
@@ -72,11 +75,35 @@ public class MessageWebSocket extends AbstractActor {
             builder = builder.match(TYPENAMES.get(index)._1, s -> {
                 ObjectNode node = Json.newObject();
                 node.put("type", TYPENAMES.get(index)._2);
-                node.put("id", sender().path().name().split("-")[1]); // todo: set to correct id
+                node.put("id", sender().path().name().split("-")[1]);
                 node.put("value", Json.toJson(s));
                 out.tell(node.toString(), self());
             });
         }
+
+        builder.match(DroneAssignedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentCompletedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentStartedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
 
         for (int i = 0; i < IGNORETYPES.size(); ++i)
             builder = builder.match(IGNORETYPES.get(i), s -> {});
