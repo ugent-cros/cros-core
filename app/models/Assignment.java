@@ -35,6 +35,9 @@ public class Assignment extends Model {
     private List<Checkpoint> route;
 
     @Constraints.Required
+    private boolean scheduled;
+
+    @Constraints.Required
     private int progress;
 
     @JsonView(JsonHelper.Summary.class)
@@ -58,6 +61,7 @@ public class Assignment extends Model {
     public Assignment() {
         priority = 0;
         progress = 0;
+        scheduled = false;
     }
 
     public Long getId() {
@@ -88,6 +92,14 @@ public class Assignment extends Model {
 
     public void setPriority(int priority) {
         this.priority = priority;
+    }
+
+    public boolean isScheduled(){
+        return scheduled;
+    }
+
+    public void setScheduled(boolean scheduled){
+        this.scheduled = scheduled;
     }
 
     public User getCreator() {

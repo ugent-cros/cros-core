@@ -308,7 +308,7 @@ public class BepopSimulator extends NavigatedDroneActor {
                 /*
                 tellSelf(new LandRequestMessage());
                 tellSelf(new NavigationStateChangedMessage(
-                        NavigationState.UNAVAILABLE,
+                        NavigationState.FLYING,
                         NavigationStateReason.BATTERY_LOW));
                 */
             }

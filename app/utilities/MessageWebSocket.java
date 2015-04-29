@@ -8,6 +8,11 @@ import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import drones.messages.*;
 import drones.models.Fleet;
+import drones.models.scheduler.Scheduler;
+import drones.models.scheduler.SchedulerException;
+import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.models.scheduler.messages.from.AssignmentStartedMessage;
+import drones.models.scheduler.messages.from.DroneAssignedMessage;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -36,10 +41,6 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
-        TYPENAMES.add(new F.Tuple<>(DroneAssignedMessage.class, "droneAssigned"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentProgressChangedMessage.class, "assignmentProgressChanged"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
 
         IGNORETYPES.add(FlyingStateChangedMessage.class);
         IGNORETYPES.add(NavigationStateChangedMessage.class);
@@ -47,6 +48,15 @@ public class MessageWebSocket extends AbstractActor {
 
     public MessageWebSocket(final ActorRef out) {
         this.out = out;
+
+        // Scheduler
+        try {
+            Scheduler.subscribe(DroneAssignedMessage.class, self());
+            Scheduler.subscribe(AssignmentStartedMessage.class, self());
+            Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to subscribe to scheduler.", ex);
+        }
 
         Fleet.getFleet().subscribe(self());
         UnitPFBuilder<Object> builder = ReceiveBuilder.match(TYPENAMES.get(0)._1, s -> {
@@ -81,5 +91,14 @@ public class MessageWebSocket extends AbstractActor {
     public void postStop() throws Exception {
         super.postStop();
         Fleet.getFleet().unsubscribe(self());
+
+        // Scheduler
+        try {
+            Scheduler.unsubscribe(DroneAssignedMessage.class, self());
+            Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
+            Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to unsubscribe from scheduler.", ex);
+        }
     }
 }

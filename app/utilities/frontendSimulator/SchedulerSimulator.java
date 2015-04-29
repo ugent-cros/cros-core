@@ -49,7 +49,7 @@ public class SchedulerSimulator implements Runnable {
                     }
                     if(run) {
                         // Update drone
-                        availableDrone.setStatus(Drone.Status.UNAVAILABLE);
+                        availableDrone.setStatus(Drone.Status.FLYING);
                         availableDrone.update();
                         // Update assignment
                         assignment.setAssignedDrone(availableDrone);

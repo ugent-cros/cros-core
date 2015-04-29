@@ -1,21 +1,23 @@
 package drones.models.flightcontrol;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-
 import akka.actor.ActorRef;
 import akka.dispatch.OnSuccess;
 import drones.messages.FlyingStateChangedMessage;
 import drones.messages.LocationChangedMessage;
 import drones.messages.NavigationStateChangedMessage;
-import drones.models.*;
+import drones.models.DroneCommander;
+import drones.models.FlyingState;
+import drones.models.Location;
+import drones.models.NavigationState;
 import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
+import drones.models.scheduler.messages.to.FlightCanceledMessage;
+import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import models.Checkpoint;
-import models.Drone;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -77,10 +79,10 @@ public class SimplePilot extends Pilot {
             cruisingAltitude = DEFAULT_ALTITUDE;
         }
         try {
-            Await.ready(dc.setMaxHeight(4), Duration.create(10,"seconds"));
+            Await.ready(dc.setMaxHeight(4), Duration.create(10, "seconds"));
             start = true;
             takeOff();
-        } catch (InterruptedException | TimeoutException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -106,7 +108,7 @@ public class SimplePilot extends Pilot {
                 @Override
                 public void onSuccess(Void result) throws Throwable {
                     start = false;
-                    reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                    reporterRef.tell(new FlightCompletedMessage(droneId,actualLocation),self());
                 }
             }, getContext().system().dispatcher());
         }
@@ -162,7 +164,7 @@ public class SimplePilot extends Pilot {
             public void onSuccess(Void result) throws Throwable {
                 start = false;
                 reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new DroneArrivalMessage(droneId, actualLocation), self());
+                reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
             }
         }, getContext().system().dispatcher());
     }
@@ -250,5 +252,20 @@ public class SimplePilot extends Pilot {
             }
 
         }
+    }
+
+    @Override
+    protected void stopFlightControlMessage(StopFlightControlMessage m) {
+        if (actualWaypoint != waypoints.size()){
+            try {
+                Await.ready(dc.land(), Duration.create(2, "seconds"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                //TO DO add exception
+            }
+            reporterRef.tell(new FlightCanceledMessage(droneId), self());
+        }
+        //stop
+        getContext().stop(self());
     }
 }
