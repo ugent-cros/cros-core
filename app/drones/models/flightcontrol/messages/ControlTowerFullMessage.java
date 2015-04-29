@@ -5,9 +5,9 @@ package drones.models.flightcontrol.messages;
  */
 public class ControlTowerFullMessage {
 
-    private AddDroneMessage m;
+    private AddFlightMessage m;
 
-    public ControlTowerFullMessage(AddDroneMessage m) {
+    public ControlTowerFullMessage(AddFlightMessage m) {
         this.m = m;
     }
 }

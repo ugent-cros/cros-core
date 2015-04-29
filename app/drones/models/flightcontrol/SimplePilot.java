@@ -131,8 +131,8 @@ public class SimplePilot extends Pilot {
 
     private void stop(){
         blocked = true;
-        reporterRef.tell(new FlightCanceledMessage(droneId), self());
         dc.unsubscribe(self());
+        reporterRef.tell(new FlightCanceledMessage(droneId), self());
         //stop
         getContext().stop(self());
     }
@@ -252,7 +252,7 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        System.err.println("Location: " + m.getLongitude() + ", " + m.getLatitude() + ", " + m.getGpsHeight());
+        //System.err.println("Location: " + m.getLongitude() + ", " + m.getLatitude() + ", " + m.getGpsHeight());
         if (!blocked && !waitForLandFinished && !waitForTakeOffFinished && !waitForGoUpUntilCruisingAltitudeFinished) {
             actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
             for (RequestMessage r : evacuationPoints) {

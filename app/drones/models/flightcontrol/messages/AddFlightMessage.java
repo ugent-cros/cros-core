@@ -7,11 +7,11 @@ import java.util.List;
 /**
  * Created by Sander on 26/03/2015.
  */
-public class AddDroneMessage extends AbstractIdFlightControlMessage{
+public class AddFlightMessage extends AbstractIdFlightControlMessage{
 
     private List<Checkpoint> waypoints;
 
-    public AddDroneMessage(Long id, List<Checkpoint> waypoints) {
+    public AddFlightMessage(Long id, List<Checkpoint> waypoints) {
         super(id);
         this.waypoints = waypoints;
     }

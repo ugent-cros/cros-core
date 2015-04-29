@@ -8,6 +8,7 @@ import drones.models.FlyingState;
 import drones.models.Location;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.*;
+import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import drones.simulation.BepopSimulator;
 import jdk.nashorn.internal.ir.annotations.Ignore;
@@ -106,7 +107,9 @@ public class SimplePilotTest extends TestSuperclass {
                     e.printStackTrace();
                 }
 
-                simplePilot.tell(new StopMessage(),getRef());
+                simplePilot.tell(new StopFlightControlMessage(),getRef());
+
+                expectMsgClass(MAX_DURATION_MESSAGE, FlightCanceledMessage.class);
             }
         };
     }
@@ -153,7 +156,9 @@ public class SimplePilotTest extends TestSuperclass {
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
 
-                simplePilot.tell(new StopMessage(),getRef());
+                simplePilot.tell(new StopFlightControlMessage(),getRef());
+
+                expectMsgClass(MAX_DURATION_MESSAGE, FlightCanceledMessage.class);
             }
         };
     }
