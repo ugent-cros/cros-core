@@ -1,19 +1,19 @@
-package drones.simulation;
+package simulator;
 
+import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.dispatch.Futures;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import drones.simulation.messages.ResetMovementMessage;
-import drones.simulation.messages.SetConnectionLostMessage;
-import drones.simulation.messages.SetCrashedMessage;
+import simulator.messages.ResetMovementMessage;
+import simulator.messages.SetConnectionLostMessage;
+import simulator.messages.SetCrashedMessage;
 import messages.BatteryPercentageChangedMessage;
 import model.DroneException;
 import model.DroneVersion;
 import model.NavigatedDroneActor;
 import model.properties.*;
 import navigator.LocationNavigator;
-import play.libs.Akka;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit;
  * Created by yasser on 25/03/15.
  */
 public class BepopSimulator extends NavigatedDroneActor {
+
+    private static final ActorSystem system = ActorSystem.create("BebopSimulator");
 
     private static class StepSimulationMessage implements Serializable {
         private FiniteDuration timeStep;
@@ -387,12 +389,12 @@ public class BepopSimulator extends NavigatedDroneActor {
         eventBus.setPublishDisabled(false);
 
         // Schedule drones.simulation loop
-        simulationTick = Akka.system().scheduler().schedule(
+        simulationTick = system.scheduler().schedule(
                 simulationTimeStep,
                 simulationTimeStep,
                 self(),
                 new StepSimulationMessage(simulationTimeStep),
-                Akka.system().dispatcher(),
+                system.dispatcher(),
                 self());
 
         initialized = true;
@@ -519,11 +521,11 @@ public class BepopSimulator extends NavigatedDroneActor {
         setRotation(new Rotation(roll, pitch, yaw));
 
         // After a 1.5 second: the rotation should be set back to normal
-        resetDefaultMovement = Akka.system().scheduler().scheduleOnce(
+        resetDefaultMovement = system.scheduler().scheduleOnce(
                 Duration.create(1500, TimeUnit.MILLISECONDS),   // At least 1 simulation step will have executed
                 self(),
                 new ResetMovementMessage(),
-                Akka.system().dispatcher(),
+                system.dispatcher(),
                 self()
         );
 

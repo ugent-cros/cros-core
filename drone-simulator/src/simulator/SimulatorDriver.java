@@ -1,4 +1,4 @@
-package drones.simulation;
+package simulator;
 
 import api.DroneDriver;
 import api.DroneType;

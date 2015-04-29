@@ -1,7 +1,7 @@
 import controllers.SecurityController;
-import drones.simulation.SimulatorDriver;
 import models.User;
 import play.test.*;
+import simulator.SimulatorDriver;
 
 import static play.test.Helpers.*;
 

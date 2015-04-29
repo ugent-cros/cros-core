@@ -1,25 +1,11 @@
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
-import api.DroneCommander;
-import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.SimpleScheduler;
-import drones.models.scheduler.messages.to.AssignmentMessage;
-import drones.models.scheduler.messages.to.EmergencyMessage;
-import drones.simulation.SimulatorDriver;
-import model.properties.FlyingState;
-import models.Assignment;
-import models.Checkpoint;
-import models.Drone;
 import org.junit.*;
-import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
