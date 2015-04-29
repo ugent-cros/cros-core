@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Ronald on 18/04/2015.
  */
+@Ignore
 public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
