@@ -1,8 +1,8 @@
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
-import drones.models.scheduler.Scheduler;
-import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.SimpleScheduler;
+import drones.scheduler.Scheduler;
+import drones.scheduler.SchedulerException;
+import drones.scheduler.SimpleScheduler;
 import org.junit.*;
 import scala.concurrent.duration.Duration;
 

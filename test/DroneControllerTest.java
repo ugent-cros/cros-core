@@ -1,6 +1,6 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import drones.models.BepopDriver;
+import drones.ardrone3.BepopDriver;
 import models.Drone;
 import models.DroneType;
 import org.junit.AfterClass;
@@ -12,7 +12,6 @@ import play.mvc.Http;
 import play.mvc.Result;
 import simulator.SimulatorDriver;
 import utilities.JsonHelper;
-import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;

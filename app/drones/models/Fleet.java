@@ -9,8 +9,11 @@ import akka.pattern.Patterns;
 import akka.util.Timeout;
 import api.DroneCommander;
 import api.DroneDriver;
+import drones.ardrone2.ArDrone2Driver;
+import drones.ardrone3.BepopDriver;
 import drones.messages.PingMessage;
-import drones.protocols.ICMPPing;
+import drones.shared.models.PingResult;
+import drones.shared.protocols.ICMPPing;
 import messages.*;
 import models.Drone;
 import models.DroneType;
@@ -148,7 +151,7 @@ public class Fleet {
                         () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
         DroneCommander commander = new DroneCommander(droneActor);
         Future<Void> f = commander.init();
-        f.onFailure(new OnFailure(){
+        f.onFailure(new OnFailure() {
             @Override
             public void onFailure(Throwable failure) throws Throwable {
                 commander.stop(); // Stop commander when init fails

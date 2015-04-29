@@ -1,7 +1,7 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.BepopDriver;
+import drones.ardrone3.BepopDriver;
 import models.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -10,7 +10,6 @@ import org.junit.Test;
 import play.libs.Json;
 import play.mvc.Result;
 import utilities.JsonHelper;
-import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;

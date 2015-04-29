@@ -1,4 +1,4 @@
-import drones.util.ardrone3.PacketCreator;
+import drones.ardrone3.util.PacketCreator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
