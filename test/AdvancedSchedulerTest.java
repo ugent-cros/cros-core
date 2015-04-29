@@ -128,7 +128,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     private Drone createDrone(Location location) throws SchedulerException{
         driver.setStartLocation(Helper.entityToDroneLocation(location));
-        Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,new DroneType(new DroneType(SimulatorDriver.SIMULATOR_TYPE)),"0.0.0.0");
+        Drone drone = new Drone("TestDrone", Drone.Status.UNKNOWN,new DroneType(SimulatorDriver.SIMULATOR_TYPE),"0.0.0.0");
         drone.save();
         Scheduler.addDrone(drone.getId());
         return drone;
@@ -137,7 +137,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     private List<Drone> createTestDrones(int number){
         List<Drone> drones = new ArrayList<>();
         for(int i = 0; i < number; i++){
-            drones.add(new Drone("TestDrone" + i, Drone.Status.UNKNOWN,new DroneType(new DroneType(SimulatorDriver.SIMULATOR_TYPE)),"0.0.0.0"));
+            drones.add(new Drone("TestDrone" + i, Drone.Status.UNKNOWN,new DroneType(SimulatorDriver.SIMULATOR_TYPE),"0.0.0.0"));
         }
         Ebean.save(drones);
         return drones;
