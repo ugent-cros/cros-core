@@ -12,10 +12,7 @@ import drones.models.Fleet;
 import messages.BatteryPercentageChangedMessage;
 import model.DroneMonitor;
 import model.properties.FlipType;
-import models.Assignment;
-import models.Basestation;
-import models.Drone;
-import models.User;
+import models.*;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
@@ -107,9 +104,9 @@ public class Application extends Controller {
     public static F.Promise<Result> initDrone(String ip, boolean bebop) {
         Drone droneEntity;
         if(bebop) {
-            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, BepopDriver.BEPOP_TYPE, ip);
+            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE), ip);
         } else {
-            droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, ArDrone2Driver.ARDRONE2_TYPE, ip);
+            droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ip);
         }
         droneEntity.save();
 

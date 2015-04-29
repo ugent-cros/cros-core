@@ -54,13 +54,13 @@ public class Fleet {
     static {
 
         BepopDriver bepopDriver = new BepopDriver();
-        registerDriver(BepopDriver.BEPOP_TYPE, bepopDriver);
+        registerDriver(new DroneType(BepopDriver.BEPOP_TYPE), bepopDriver);
 
         ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
-        registerDriver(ArDrone2Driver.ARDRONE2_TYPE, ardrone2Driver);
+        registerDriver(new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ardrone2Driver);
 
         SimulatorDriver simulatorDriver = new SimulatorDriver();
-        registerDriver(SimulatorDriver.SIMULATOR_TYPE, simulatorDriver);
+        registerDriver(new DroneType(SimulatorDriver.SIMULATOR_TYPE), simulatorDriver);
         // TODO: do this dynamically by scanning all classes extending DroneActor for factory property
     }
 

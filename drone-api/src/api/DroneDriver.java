@@ -1,7 +1,6 @@
 package api;
 
 import model.DroneActor;
-import models.DroneType;
 
 import java.util.Set;
 
