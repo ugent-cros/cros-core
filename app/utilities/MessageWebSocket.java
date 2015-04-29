@@ -41,9 +41,6 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
-        TYPENAMES.add(new F.Tuple<>(DroneAssignedMessage.class, "droneAssigned"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentStartedMessage.class, "assignmentStarted"));
-        TYPENAMES.add(new F.Tuple<>(AssignmentCompletedMessage.class, "assignmentCompleted"));
 
         IGNORETYPES.add(FlyingStateChangedMessage.class);
         IGNORETYPES.add(NavigationStateChangedMessage.class);
@@ -83,7 +80,7 @@ public class MessageWebSocket extends AbstractActor {
 
         builder.match(DroneAssignedMessage.class, s -> {
             ObjectNode node = Json.newObject();
-            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("type", "droneAssigned");
             node.put("id", s.getAssignmentId());
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
@@ -91,7 +88,7 @@ public class MessageWebSocket extends AbstractActor {
 
         builder.match(AssignmentCompletedMessage.class, s -> {
             ObjectNode node = Json.newObject();
-            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("type", "assignmentCompleted");
             node.put("id", s.getAssignmentId());
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
@@ -99,7 +96,7 @@ public class MessageWebSocket extends AbstractActor {
 
         builder.match(AssignmentStartedMessage.class, s -> {
             ObjectNode node = Json.newObject();
-            node.put("type", TYPENAMES.get(TYPENAMES.indexOf(s.getClass()))._2);
+            node.put("type", "assignmentStarted");
             node.put("id", s.getAssignmentId());
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
