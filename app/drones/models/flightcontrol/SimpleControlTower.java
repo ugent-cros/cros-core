@@ -7,10 +7,7 @@ import drones.models.scheduler.messages.to.FlightCanceledMessage;
 import drones.models.scheduler.messages.to.FlightCompletedMessage;
 import model.properties.Location;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * Simple Control Tower
@@ -36,7 +33,7 @@ public class SimpleControlTower extends ControlTower {
     //List of current noFlyPoints of all SimplePilots
     private List<Location> noFlyPoints = new ArrayList<>();
     //HashMap to count how many pilots already granted the request
-    private HashMap<RequestMessage, List<Long>> requestGrantedCount = new HashMap<>();
+    private Map<RequestMessage, List<Long>> requestGrantedCount = new HashMap<>();
 
     private boolean started = false;
 
