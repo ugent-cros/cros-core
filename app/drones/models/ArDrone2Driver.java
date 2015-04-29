@@ -1,6 +1,8 @@
 package drones.models;
 
-import models.DroneType;
+import api.DroneDriver;
+import model.DroneActor;
+import api.DroneType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,7 +12,17 @@ import java.util.Set;
  */
 public class ArDrone2Driver implements DroneDriver {
 
-    public static final DroneType ARDRONE2_TYPE = new DroneType("ARDrone2", "ARDrone2");
+    public static final DroneType ARDRONE2_TYPE = new DroneType() {
+        @Override
+        public String getType() {
+            return "ARDrone2";
+        }
+
+        @Override
+        public String getVersionNumber() {
+            return "ARDrone2";
+        }
+    };
 
     @Override
     public Set<DroneType> supportedTypes() {

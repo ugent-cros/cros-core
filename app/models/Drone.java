@@ -51,7 +51,7 @@ public class Drone extends Model {
 
     // setting default values
     public Drone() {
-        status = Status.AVAILABLE;
+        status = Status.UNKNOWN;
     }
 
     public Drone(String name, Status status, DroneType droneType, String address) {
@@ -146,12 +146,11 @@ public class Drone extends Model {
 
     public enum Status{
         AVAILABLE,
-        UNAVAILABLE,
-        IN_FLIGHT,
+        FLYING,
         CHARGING,
-        EMERGENCY_LANDED,
-        DECOMMISSIONED,
-        MISSING_DRIVER,
+        EMERGENCY,
+        RETIRED,
+        INACTIVE,
         UNREACHABLE,
         MANUAL_CONTROL,
         UNKNOWN

@@ -1,7 +1,7 @@
-import drones.commands.MoveCommand;
-import drones.models.Location;
-import drones.models.NavigationState;
-import drones.util.LocationNavigator;
+
+import model.properties.Location;
+import navigator.LocationNavigator;
+import navigator.MoveCommand;
 import org.junit.Assert;
 import org.junit.Test;
 

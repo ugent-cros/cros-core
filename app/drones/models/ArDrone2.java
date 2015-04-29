@@ -7,9 +7,15 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import drones.commands.*;
-import drones.messages.InitCompletedMessage;
 import drones.protocols.ardrone2.ArDrone2Protocol;
-import drones.util.LocationNavigator;
+import drones.messages.InitCompletedMessage;
+import messages.StopMessage;
+import model.DroneException;
+import model.NavigatedDroneActor;
+import model.properties.FlipType;
+import model.properties.Location;
+import navigator.LocationNavigator;
+import navigator.MoveCommand;
 import scala.concurrent.Promise;
 
 import java.io.Serializable;
@@ -38,6 +44,14 @@ public class ArDrone2 extends NavigatedDroneActor {
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
                 2f, 30f, 1f);
+    }
+
+    @Override
+    protected void stop() {
+        if (protocol != null) {
+            protocol.tell(new StopMessage(), self());
+            protocol = null;
+        }
     }
 
     @Override
@@ -123,7 +137,12 @@ public class ArDrone2 extends NavigatedDroneActor {
 
     @Override
     protected void flip(Promise<Void> p, FlipType type) {
-        p.failure(new DroneException("Not implemented yet."));
+        sendCommand(p, new FlipCommand(type));
+    }
+
+    @Override
+    protected void initVideo(Promise<Void> p) {
+        sendCommand(p, new InitVideoCommand());
     }
 
     private void sendCommand(Promise<Void> p, Serializable command) {

@@ -1,7 +1,6 @@
 import drones.util.ardrone3.PacketCreator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.ISODateTimeFormat;
 import org.junit.Assert;
 import org.junit.Test;
 

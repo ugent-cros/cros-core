@@ -1,6 +1,10 @@
 package utilities.frontendSimulator;
 
+import messages.*;
 import drones.messages.*;
+import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.models.scheduler.messages.from.AssignmentStartedMessage;
+import drones.models.scheduler.messages.from.DroneAssignedMessage;
 import models.*;
 
 import java.util.List;
@@ -29,7 +33,7 @@ public class AssignmentSimulator implements Runnable {
         try {
             assignment = initAssigment(assignment);
             notificationSimulator.sendMessage("droneAssigned", assignment.getId(),
-                    new DroneAssignedMessage(drone.getId()));
+                    new DroneAssignedMessage(assignment.getId(),drone.getId()));
             Thread.sleep(2000);
             int current = 0;
             Checkpoint currentCheckpoint = assignment.getRoute().get(current);
@@ -39,7 +43,7 @@ public class AssignmentSimulator implements Runnable {
                             currentLocation.getLatitude(),
                             currentLocation.getAltitude()));
             notificationSimulator.sendMessage("assignmentStarted", assignment.getId(),
-                    new AssignmentStartedMessage());
+                    new AssignmentStartedMessage(assignment.getId()));
             while (run) {
                 // Wait seconds
                 try {
@@ -120,7 +124,7 @@ public class AssignmentSimulator implements Runnable {
 
         if(assignment.getProgress() == assignment.getRoute().size() && run) {
             notificationSimulator.sendMessage("assignmentCompleted", assignment.getId(),
-                    new AssignmentCompletedMessage());
+                    new AssignmentCompletedMessage(assignment.getId()));
             drone.setStatus(Drone.Status.AVAILABLE);
             drone.update();
             run = false;

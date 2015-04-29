@@ -48,6 +48,11 @@ public class Checkpoint extends Model {
         this.waitingTime = waitingTime;
     }
 
+    public Checkpoint(Location location){
+        this.setLocation(location);
+        this.waitingTime = 0;
+    }
+
     public Long getId() {
         return id;
     }

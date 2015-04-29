@@ -1,11 +1,10 @@
 package drones.handlers.ardrone3;
 
 import akka.util.ByteIterator;
-import drones.messages.BatteryPercentageChangedMessage;
-import drones.messages.ProductVersionChangedMessage;
 import drones.models.ardrone3.CommandProcessor;
 import drones.models.ardrone3.Packet;
 import drones.util.ardrone3.PacketHelper;
+import messages.ProductVersionChangedMessage;
 
 /**
  * Created by Cedric on 3/10/2015.

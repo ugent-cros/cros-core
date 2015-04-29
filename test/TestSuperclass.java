@@ -1,7 +1,7 @@
 import controllers.SecurityController;
 import models.User;
-
 import play.test.*;
+import simulator.SimulatorDriver;
 
 import static play.test.Helpers.*;
 
@@ -20,6 +20,8 @@ public class TestSuperclass {
 
     private static User user;
     public static User getUser() { return user; }
+    protected boolean setup = false;
+    protected static SimulatorDriver driver = new SimulatorDriver();
 
     public static void startFakeApplication() {
         application = fakeApplication(inMemoryDatabase());

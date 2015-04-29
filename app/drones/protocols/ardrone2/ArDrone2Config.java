@@ -8,10 +8,10 @@ import akka.io.Tcp;
 import akka.io.TcpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
-import drones.messages.ProductVersionChangedMessage;
-import drones.messages.RequestConfigMessage;
-import drones.messages.StopMessage;
 import drones.models.DroneConnectionDetails;
+import messages.ProductVersionChangedMessage;
+import drones.messages.RequestConfigMessage;
+import messages.StopMessage;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -118,6 +118,8 @@ public class ArDrone2Config extends UntypedActor {
                         case GEN_NUM_VERSION_MB:
                             hardwareVersion = value;
                             break;
+                        default:
+                            break;
                     }
                 }
             } else {
@@ -132,7 +134,7 @@ public class ArDrone2Config extends UntypedActor {
 
     private ConfigKey getConfigValue(String configValue) {
         for(ConfigKey key : ConfigKey.values()) {
-            if(key.getKey().toLowerCase().equals(configValue.toLowerCase())) {
+            if(key.getKey().equalsIgnoreCase(configValue)) {
                 return key;
             }
         }

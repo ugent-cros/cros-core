@@ -1,6 +1,8 @@
 package drones.models;
 
-import models.DroneType;
+import api.DroneDriver;
+import model.DroneActor;
+import api.DroneType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,7 +12,17 @@ import java.util.Set;
  */
 public class BepopDriver implements DroneDriver {
 
-    public static final DroneType BEPOP_TYPE = new DroneType("ARDrone3", "Bepop");
+    public static final DroneType BEPOP_TYPE = new DroneType() {
+        @Override
+        public String getType() {
+            return "ARDrone3";
+        }
+
+        @Override
+        public String getVersionNumber() {
+            return "Bebop";
+        }
+    };
 
     private int nextd2cPort = 54321;
 
