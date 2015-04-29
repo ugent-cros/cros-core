@@ -90,6 +90,20 @@ public class DroneController {
         return ok(JsonHelper.createJsonNode(drone, getAllLinks(id), Drone.class));
     }
 
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> initVideo(long id){
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.initVideo()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
     public static WebSocket<String> videoSocket(long id) {
         String[] tokens = request().queryString().get("authToken");
 
