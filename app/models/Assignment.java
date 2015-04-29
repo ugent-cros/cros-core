@@ -49,7 +49,7 @@ public class Assignment extends Model {
     private User creator;
 
     @JsonView(JsonHelper.Summary.class)
-    @OneToOne
+    @OneToOne(optional = true)
     private Drone assignedDrone;
 
     public Assignment(List<Checkpoint> route, User creator) {

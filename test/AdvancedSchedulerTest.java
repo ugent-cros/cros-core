@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Ronald on 18/04/2015.
  */
-@Ignore
 public class AdvancedSchedulerTest extends TestSuperclass {
 
     private static ActorSystem system;
@@ -190,6 +189,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         Assert.assertTrue(length >= 0);
     }
 
+    @Ignore
     @Test
     public void subscriberTest_RequestMessage_ReplyMessage() throws SchedulerException {
         new JavaTestKit(system){
@@ -205,6 +205,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
+    @Ignore
     @Test
     public void addDrones_FilledDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -233,6 +234,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         };
     }
 
+    @Ignore
     @Test
     public void droneAddRemove_EmptyDB_Succeeds() throws SchedulerException{
         new JavaTestKit(system){
@@ -470,7 +472,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
     public Assignment createAssignment(Location location) throws SchedulerException{
         Assignment assignment = new Assignment(Helper.routeTo(location),getUser());
         assignment.save();
-        Scheduler.schedule();
         return assignment;
     }
 
@@ -492,11 +493,11 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     public void removeDrone(JavaTestKit test, Drone drone) throws SchedulerException{
         subscribe(test, DroneRemovedMessage.class);
-        Scheduler.addDrone(drone.getId());
+        Scheduler.removeDrone(drone.getId());
         DroneRemovedMessage A = test.expectMsgClass(LONG_TIMEOUT,DroneRemovedMessage.class);
         drone.refresh();
         Assert.assertTrue("Drone removed", A.getDroneId() == drone.getId());
-        Assert.assertTrue("Drone RETIRED",drone.getStatus() == Drone.Status.RETIRED);
+        Assert.assertTrue("Drone INACTIVE",drone.getStatus() == Drone.Status.INACTIVE);
         unsubscribe(test, DroneRemovedMessage.class);
     }
 
@@ -520,9 +521,9 @@ public class AdvancedSchedulerTest extends TestSuperclass {
 
     public void assertScheduled(JavaTestKit test, Assignment assignment, Drone drone) throws SchedulerException{
         subscribe(test, DroneAssignedMessage.class);
-        subscribe(test,AssignmentStartedMessage.class);
+        subscribe(test, AssignmentStartedMessage.class);
         Scheduler.schedule();
-        DroneAssignedMessage A = test.expectMsgClass(LONG_TIMEOUT, DroneAssignedMessage.class);
+        DroneAssignedMessage A = test.expectMsgClass(DroneAssignedMessage.class);
         assignment.refresh();
         drone.refresh();
         Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
@@ -538,7 +539,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         unsubscribe(test, AssignmentStartedMessage.class);
     }
 
-    @Ignore
     @Test
     public void schedule_cancelAssigment_succeeds() throws SchedulerException{
         new JavaTestKit(system){

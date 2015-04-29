@@ -371,20 +371,21 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected void removeDrone(RemoveDroneMessage message) {
         long droneId = message.getDroneId();
         if (dronePool.contains(droneId)) {
-            // Drone present in drone pool is safe to remove.
+            // Save to remove
             dronePool.remove(droneId);
             Drone drone = getDrone(droneId);
             removeDrone(drone);
         }
-        if (flights.containsKey(droneId)) {
-            // Drone is busy with assignment, so cancel the flight.
-            cancelFlight(droneId);
-            // Decommission the drone
+        Flight flight = flights.get(droneId);
+        if (flight != null) {
+            // Retire drone
             Drone drone = getDrone(droneId);
             drone.setStatus(Drone.Status.RETIRED);
             drone.update();
-            // Send the drone home
-            returnHome(drone);
+            if(flight.getType() == Flight.Type.ASSIGNMENT) {
+                // Cancel flight
+                cancelFlight(flight);
+            }
         }
     }
 
@@ -473,10 +474,9 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             log.warning("[Advanced Scheduler] Tried to cancel nonexistent flight.");
             return;
         }
-        // Handle assignment victim
-        long assignmentId = flight.getAssignmentId();
-        // Check if this flight is associated with an actual assignment
-        if (assignmentId > Flight.NO_ASSIGNMENT_ID) {
+        // Handle associated assignment
+        if (flight.getType() == Flight.Type.ASSIGNMENT) {
+            long assignmentId = flight.getAssignmentId();
             Assignment assignment = getAssignment(assignmentId);
             assignment.setAssignedDrone(null);
             assignment.update();
