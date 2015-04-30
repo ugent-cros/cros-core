@@ -194,7 +194,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // Drone returned to base.
         if (drone.getStatus() == Drone.Status.FLYING) {
             dronePool.add(drone.getId());
-            updateDroneStatus(drone,Drone.Status.AVAILABLE);
+            updateDroneStatus(drone, Drone.Status.AVAILABLE);
             // Schedule, assignments may be waiting.
             self().tell(new ScheduleMessage(), self());
             return;
@@ -420,7 +420,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // Record flight
         Flight flight = new Flight(droneId, assignment.getId(), pilot);
         flights.put(droneId, flight);
-        updateDroneStatus(drone,Drone.Status.FLYING);
+        updateDroneStatus(drone, Drone.Status.FLYING);
         // Start flying
         pilot.tell(new StartFlightControlMessage(), self());
         // Publish
@@ -443,7 +443,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         // Record flight
         Flight flight = new Flight(droneId, pilot);
         flights.put(droneId, flight);
-        updateDroneStatus(drone,Drone.Status.FLYING);
+        updateDroneStatus(drone, Drone.Status.FLYING);
         // Start flying
         pilot.tell(new StartFlightControlMessage(), self());
     }
@@ -535,7 +535,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected void updateDroneStatus(Drone drone, Drone.Status status){
         drone.setStatus(status);
         drone.update();
-        eventBus.publish(new DroneStatusMessage(drone.getId(),status));
+        eventBus.publish(new DroneStatusMessage(drone.getId(), status));
     }
 
     /**
