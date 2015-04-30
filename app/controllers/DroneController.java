@@ -21,9 +21,11 @@ import play.libs.F;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Result;
+import play.mvc.WebSocket;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
+import utilities.VideoWebSocket;
 import utilities.annotations.Authentication;
 
 import java.util.ArrayList;
@@ -86,6 +88,38 @@ public class DroneController {
             return notFound();
 
         return ok(JsonHelper.createJsonNode(drone, getAllLinks(id), Drone.class));
+    }
+
+    @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
+    public static F.Promise<Result> initVideo(long id){
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
+
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.initVideo()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static WebSocket<String> videoSocket(long id) {
+        String[] tokens = request().queryString().get("authToken");
+
+        if (tokens == null || tokens.length != 1 || tokens[0] == null)
+            return WebSocket.reject(unauthorized());
+
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return WebSocket.reject(notFound(Json.toJson("no drone found with this id")));
+
+        User u = models.User.findByAuthToken(tokens[0]);
+        if (u != null) {
+            return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
+        } else {
+            return WebSocket.reject(unauthorized());
+        }
     }
 
     @Authentication({User.Role.ADMIN})
@@ -278,7 +312,6 @@ public class DroneController {
     }
 
     private static final List<ControllerHelper.Link> getAllLinks(long id) {
-        // TODO: add links when available
         List<ControllerHelper.Link> links = new ArrayList<>();
         links.add(new ControllerHelper.Link("self", controllers.routes.DroneController.get(id).absoluteURL(request())));
         links.add(new ControllerHelper.Link("connection", controllers.routes.DroneController.testConnection(id).absoluteURL(request())));
@@ -289,6 +322,8 @@ public class DroneController {
         links.add(new ControllerHelper.Link("speed", controllers.routes.DroneController.speed(id).absoluteURL(request())));
         links.add(new ControllerHelper.Link("rotation", controllers.routes.DroneController.rotation(id).absoluteURL(request())));
         links.add(new ControllerHelper.Link("altitude", controllers.routes.DroneController.altitude(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("videoSocket", controllers.routes.DroneController.videoSocket(id).absoluteURL(request())));
+        links.add(new ControllerHelper.Link("initVideo", controllers.routes.DroneController.initVideo(id).absoluteURL(request())));
         return links;
     }
 }
