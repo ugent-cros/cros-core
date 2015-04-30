@@ -149,9 +149,8 @@ public abstract class Scheduler extends AbstractActor {
         ActorRef scheduler = getScheduler();
         List<Drone> drones = Drone.FIND.all();
         for (Drone drone : drones) {
-            if (drone.getStatus() == Drone.Status.AVAILABLE) {
-                scheduler.tell(new AddDroneMessage(drone.getId()), ActorRef.noSender());
-            }
+            // TODO: Make sure MANUAL_CONTROL drones aren't added.
+            scheduler.tell(new AddDroneMessage(drone.getId()), ActorRef.noSender());
         }
     }
 
