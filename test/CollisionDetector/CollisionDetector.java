@@ -4,8 +4,8 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import api.DroneCommander;
-import model.properties.Location;
+import droneapi.api.DroneCommander;
+import droneapi.model.properties.Location;
 
 import java.util.HashMap;
 import java.util.List;

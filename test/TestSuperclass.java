@@ -5,6 +5,8 @@ import simulator.SimulatorDriver;
 
 import static play.test.Helpers.*;
 
+import controllers.*;
+
 /**
  * Created by Benjamin on 4/03/2015.
  */

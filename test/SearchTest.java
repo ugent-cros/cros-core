@@ -1,22 +1,23 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.BepopDriver;
 import models.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import parrot.ardrone3.BebopDriver;
 import play.libs.Json;
 import play.mvc.Result;
 import utilities.JsonHelper;
-import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
+
+import controllers.*;
 
 /**
  * Created by matthias on 19/03/2015.
@@ -36,10 +37,10 @@ public class SearchTest extends TestSuperclass {
 
     private static void initialiseDatabase() {
         // Add drones to the database
-        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
-        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(new DroneType(BepopDriver.BEPOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone1", Drone.Status.AVAILABLE, new DroneType(new DroneType(BebopDriver.BEBOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone2", Drone.Status.AVAILABLE, new DroneType(new DroneType(BebopDriver.BEBOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone3", Drone.Status.AVAILABLE, new DroneType(new DroneType(BebopDriver.BEBOP_TYPE)),  "x.x.x.x"));
+        testDrones.add(new Drone("testdrone4", Drone.Status.AVAILABLE, new DroneType(new DroneType(BebopDriver.BEBOP_TYPE)),  "x.x.x.x"));
         Ebean.save(testDrones);
         // Add assignments to the database
         testAssignments.add(new Assignment());

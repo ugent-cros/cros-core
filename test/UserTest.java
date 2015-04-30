@@ -24,6 +24,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
 import static utilities.JsonHelper.removeRootElement;
 
+import controllers.*;
+
 /**
  * Created by yasser on 4/03/15.
  */

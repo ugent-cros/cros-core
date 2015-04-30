@@ -1,7 +1,7 @@
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.scheduler.AdvancedScheduler;
-import drones.models.scheduler.Scheduler;
-import drones.models.scheduler.SchedulerException;
+import drones.scheduler.AdvancedScheduler;
+import drones.scheduler.Scheduler;
+import drones.scheduler.SchedulerException;
 import play.Application;
 import play.GlobalSettings;
 import play.Logger;

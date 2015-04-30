@@ -1,8 +1,8 @@
 package CollisionDetector;
 
-import api.DroneCommander;
-import messages.LocationChangedMessage;
-import model.properties.Location;
+import droneapi.api.DroneCommander;
+import droneapi.messages.LocationChangedMessage;
+import droneapi.model.properties.Location;
 
 import java.io.Serializable;
 

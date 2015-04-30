@@ -19,6 +19,8 @@ import java.util.List;
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
 
+import controllers.*;
+
 /**
  * Created by Benjamin on 5/03/2015.
  */

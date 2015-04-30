@@ -3,12 +3,12 @@ import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
 import com.avaje.ebean.Ebean;
 import drones.models.Fleet;
-import drones.models.scheduler.AdvancedScheduler;
-import drones.models.scheduler.Helper;
-import drones.models.scheduler.Scheduler;
-import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.messages.from.*;
-import drones.models.scheduler.messages.to.SchedulerRequestMessage;
+import drones.scheduler.AdvancedScheduler;
+import drones.scheduler.Helper;
+import drones.scheduler.Scheduler;
+import drones.scheduler.SchedulerException;
+import drones.scheduler.messages.from.*;
+import drones.scheduler.messages.to.SchedulerRequestMessage;
 import models.*;
 import org.junit.*;
 import scala.concurrent.duration.Duration;
@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import controllers.*;
 
 /**
  * Created by Ronald on 18/04/2015.

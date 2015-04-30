@@ -1,9 +1,9 @@
 package controllers;
 
-import api.DroneCommander;
 import com.fasterxml.jackson.databind.JsonNode;
+import droneapi.api.DroneCommander;
+import droneapi.model.properties.FlipType;
 import drones.models.Fleet;
-import model.properties.FlipType;
 import models.Drone;
 import models.User;
 import play.libs.F;

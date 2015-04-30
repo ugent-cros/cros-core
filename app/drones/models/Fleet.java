@@ -7,13 +7,16 @@ import akka.dispatch.Mapper;
 import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
-import api.DroneCommander;
-import api.DroneDriver;
-import drones.messages.PingMessage;
-import drones.protocols.ICMPPing;
-import messages.*;
+import droneapi.api.DroneCommander;
+import droneapi.api.DroneDriver;
+import droneapi.messages.*;
 import models.Drone;
 import models.DroneType;
+import parrot.ardrone2.ArDrone2Driver;
+import parrot.ardrone3.BebopDriver;
+import parrot.messages.PingMessage;
+import parrot.shared.models.PingResult;
+import parrot.shared.protocols.ICMPPing;
 import play.libs.Akka;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -53,8 +56,8 @@ public class Fleet {
 
     static {
 
-        BepopDriver bepopDriver = new BepopDriver();
-        registerDriver(new DroneType(BepopDriver.BEPOP_TYPE), bepopDriver);
+        BebopDriver bebopDriver = new BebopDriver();
+        registerDriver(new DroneType(BebopDriver.BEBOP_TYPE), bebopDriver);
 
         ArDrone2Driver ardrone2Driver = new ArDrone2Driver();
         registerDriver(new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ardrone2Driver);
@@ -148,7 +151,7 @@ public class Fleet {
                         () -> driver.createActor(droneEntity.getAddress())), String.format("droneactor-%d", droneEntity.getId()));
         DroneCommander commander = new DroneCommander(droneActor);
         Future<Void> f = commander.init();
-        f.onFailure(new OnFailure(){
+        f.onFailure(new OnFailure() {
             @Override
             public void onFailure(Throwable failure) throws Throwable {
                 commander.stop(); // Stop commander when init fails
