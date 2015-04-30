@@ -1,4 +1,4 @@
-package drones.models;
+package droneapi.model.properties;
 
 import java.io.Serializable;
 

@@ -1,6 +1,6 @@
 package droneapi.api;
 
-import droneapi.model.DroneVersion;
+import droneapi.model.properties.DroneVersion;
 import droneapi.model.properties.*;
 import scala.concurrent.Future;
 

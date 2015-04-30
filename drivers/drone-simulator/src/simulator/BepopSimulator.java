@@ -10,7 +10,7 @@ import simulator.messages.SetConnectionLostMessage;
 import simulator.messages.SetCrashedMessage;
 import droneapi.messages.BatteryPercentageChangedMessage;
 import droneapi.model.DroneException;
-import droneapi.model.DroneVersion;
+import droneapi.model.properties.DroneVersion;
 import droneapi.model.NavigatedDroneActor;
 import droneapi.model.properties.*;
 import droneapi.navigator.LocationNavigator;

@@ -8,7 +8,7 @@ import akka.pattern.Patterns;
 import akka.util.Timeout;
 import droneapi.messages.*;
 import droneapi.model.DroneException;
-import droneapi.model.DroneVersion;
+import droneapi.model.properties.DroneVersion;
 import droneapi.model.properties.*;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
