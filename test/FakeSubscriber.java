@@ -4,6 +4,8 @@ import messages.StopMessage;
 
 import java.io.Serializable;
 
+import controllers.*;
+
 /**
  * Created by Cedric on 4/2/2015.
  */

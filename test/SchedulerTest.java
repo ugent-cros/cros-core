@@ -8,6 +8,8 @@ import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
 
+import controllers.*;
+
 /**
  * Created by Ronald on 6/04/2015.
  */

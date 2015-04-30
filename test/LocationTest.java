@@ -2,6 +2,8 @@ import model.properties.Location;
 import org.junit.Assert;
 import org.junit.Test;
 
+import controllers.*;
+
 /**
  * Created by Cedric on 4/2/2015.
  */

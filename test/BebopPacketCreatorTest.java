@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import java.util.TimeZone;
 
+import controllers.*;
+
 /**
  * Created by Cedric on 4/6/2015.
  */

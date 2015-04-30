@@ -23,6 +23,8 @@ import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertTrue;
 
+import controllers.*;
+
 /**
  * Created by Sander on 5/04/2015.
  */

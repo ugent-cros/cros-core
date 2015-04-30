@@ -5,6 +5,8 @@ import navigator.MoveCommand;
 import org.junit.Assert;
 import org.junit.Test;
 
+import controllers.*;
+
 /**
  * Created by Cedric on 4/5/2015.
  */

@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
+import controllers.*;
+
 /**
  * Created by yasser on 7/04/15.
  */
