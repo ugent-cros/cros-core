@@ -1,7 +1,7 @@
 package utilities.frontendSimulator;
 
 import messages.*;
-import drones.messages.*;
+import parrot.messages.*;
 import drones.scheduler.messages.from.AssignmentCompletedMessage;
 import drones.scheduler.messages.from.AssignmentStartedMessage;
 import drones.scheduler.messages.from.DroneAssignedMessage;
