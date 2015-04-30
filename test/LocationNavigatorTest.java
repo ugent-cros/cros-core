@@ -1,11 +1,9 @@
 
-import model.properties.Location;
-import navigator.LocationNavigator;
-import navigator.MoveCommand;
+import droneapi.model.properties.Location;
+import droneapi.navigator.LocationNavigator;
+import droneapi.navigator.MoveCommand;
 import org.junit.Assert;
 import org.junit.Test;
-
-import controllers.*;
 
 /**
  * Created by Cedric on 4/5/2015.

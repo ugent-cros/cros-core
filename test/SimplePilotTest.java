@@ -2,12 +2,12 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
-import api.DroneCommander;
+import droneapi.api.DroneCommander;
 import drones.flightcontrol.SimplePilot;
 import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCompletedMessage;
-import model.properties.FlyingState;
-import model.properties.Location;
+import droneapi.model.properties.FlyingState;
+import droneapi.model.properties.Location;
 import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertTrue;
-
-import controllers.*;
 
 /**
  * Created by Sander on 5/04/2015.

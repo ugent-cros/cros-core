@@ -2,9 +2,9 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
-import api.DroneCommander;
-import messages.*;
-import model.properties.*;
+import droneapi.api.DroneCommander;
+import droneapi.messages.*;
+import droneapi.model.properties.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,8 +16,6 @@ import simulator.BepopSimulator;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
-
-import controllers.*;
 
 /**
  * Created by yasser on 13/04/15.

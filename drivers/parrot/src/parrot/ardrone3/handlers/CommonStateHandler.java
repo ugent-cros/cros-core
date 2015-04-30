@@ -3,7 +3,7 @@ package parrot.ardrone3.handlers;
 import akka.util.ByteIterator;
 import parrot.ardrone3.models.CommandProcessor;
 import parrot.ardrone3.models.Packet;
-import messages.BatteryPercentageChangedMessage;
+import droneapi.messages.BatteryPercentageChangedMessage;
 
 /**
  * Created by Cedric on 3/8/2015.

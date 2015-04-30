@@ -1,8 +1,8 @@
 
-import api.DroneCommander;
-import api.DroneDriver;
+import droneapi.api.DroneCommander;
+import droneapi.api.DroneDriver;
 import drones.models.Fleet;
-import model.DroneActor;
+import droneapi.model.DroneActor;
 import models.Drone;
 import models.DroneType;
 import org.junit.AfterClass;
@@ -19,8 +19,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
-
-import controllers.*;
 
 /**
  * Created by yasser on 7/04/15.
@@ -40,8 +38,8 @@ public class FleetTest extends TestSuperclass {
         }
 
         @Override
-        public Set<api.DroneType> supportedTypes() {
-            Set<api.DroneType> types = new HashSet<>();
+        public Set<droneapi.api.DroneType> supportedTypes() {
+            Set<droneapi.api.DroneType> types = new HashSet<>();
             types.add(supportedType);
             return types;
         }

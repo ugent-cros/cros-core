@@ -11,9 +11,9 @@ import akka.util.ByteString;
 import parrot.ardrone2.util.ConfigKey;
 import parrot.ardrone2.util.DefaultPorts;
 import parrot.shared.models.DroneConnectionDetails;
-import messages.ProductVersionChangedMessage;
+import droneapi.messages.ProductVersionChangedMessage;
 import parrot.messages.RequestConfigMessage;
-import messages.StopMessage;
+import droneapi.messages.StopMessage;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;

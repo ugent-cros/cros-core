@@ -1,7 +1,7 @@
 package drones.flightcontrol.messages;
 
 import akka.actor.ActorRef;
-import model.properties.Location;
+import droneapi.model.properties.Location;
 
 import java.io.Serializable;
 

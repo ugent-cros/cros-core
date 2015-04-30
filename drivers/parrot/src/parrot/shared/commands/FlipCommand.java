@@ -1,6 +1,6 @@
 package parrot.shared.commands;
 
-import model.properties.FlipType;
+import droneapi.model.properties.FlipType;
 
 import java.io.Serializable;
 

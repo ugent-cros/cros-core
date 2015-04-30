@@ -5,7 +5,7 @@ import parrot.ardrone3.handlers.ArDrone3TypeProcessor;
 import parrot.ardrone3.handlers.CommonTypeProcessor;
 import parrot.ardrone3.models.Packet;
 import parrot.ardrone3.models.PacketType;
-import model.properties.FlipType;
+import droneapi.model.properties.FlipType;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;

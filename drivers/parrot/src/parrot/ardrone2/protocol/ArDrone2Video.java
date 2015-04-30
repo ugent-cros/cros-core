@@ -9,7 +9,7 @@ import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.video.IConverter;
 import parrot.ardrone2.util.DefaultPorts;
 import parrot.ardrone2.util.XugglerException;
-import messages.ImageMessage;
+import droneapi.messages.ImageMessage;
 import parrot.shared.models.DroneConnectionDetails;
 
 import javax.imageio.ImageIO;

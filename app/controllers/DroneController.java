@@ -1,7 +1,7 @@
 package controllers;
 
 import akka.actor.ActorRef;
-import api.DroneCommander;
+import droneapi.api.DroneCommander;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;

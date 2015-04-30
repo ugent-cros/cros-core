@@ -2,7 +2,7 @@ package parrot.ardrone3.handlers;
 
 import parrot.ardrone3.models.CommandProcessor;
 import parrot.ardrone3.models.Packet;
-import messages.MagnetoCalibrationStateChangedMessage;
+import droneapi.messages.MagnetoCalibrationStateChangedMessage;
 
 /**
  * Created by Cedric on 4/6/2015.

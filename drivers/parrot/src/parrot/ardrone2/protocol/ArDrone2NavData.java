@@ -14,9 +14,9 @@ import parrot.ardrone2.util.DefaultPorts;
 import parrot.messages.InitNavDataMessage;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.ardrone2.util.PacketHelper;
-import messages.*;
-import model.properties.AlertState;
-import model.properties.FlyingState;
+import droneapi.messages.*;
+import droneapi.model.properties.AlertState;
+import droneapi.model.properties.FlyingState;
 
 import java.net.InetSocketAddress;
 

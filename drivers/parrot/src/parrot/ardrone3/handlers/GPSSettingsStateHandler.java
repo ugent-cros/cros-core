@@ -4,7 +4,7 @@ import akka.util.ByteIterator;
 import parrot.ardrone3.models.CommandProcessor;
 import parrot.ardrone3.models.Packet;
 import parrot.ardrone3.util.FrameHelper;
-import messages.GPSFixChangedMessage;
+import droneapi.messages.GPSFixChangedMessage;
 import parrot.messages.HomeChangedMessage;
 
 /**

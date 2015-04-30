@@ -2,7 +2,7 @@ package drones.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
-import api.DroneCommander;
+import droneapi.api.DroneCommander;
 import drones.models.Fleet;
 import drones.flightcontrol.messages.StartFlightControlMessage;
 import drones.flightcontrol.messages.StopFlightControlMessage;

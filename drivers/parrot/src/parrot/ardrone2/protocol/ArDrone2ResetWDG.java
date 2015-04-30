@@ -12,7 +12,7 @@ import parrot.ardrone2.util.DefaultPorts;
 import parrot.ardrone2.commands.ATCommandCOMWDG;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.ardrone2.util.PacketCreator;
-import messages.StopMessage;
+import droneapi.messages.StopMessage;
 import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;

@@ -1,10 +1,8 @@
 import akka.japi.pf.UnitPFBuilder;
-import model.DroneActor;
-import model.DroneException;
-import model.properties.FlipType;
+import droneapi.model.DroneActor;
+import droneapi.model.DroneException;
+import droneapi.model.properties.FlipType;
 import scala.concurrent.Promise;
-
-import controllers.*;
 
 /**
  * Created by Cedric on 4/2/2015.

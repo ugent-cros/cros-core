@@ -1,9 +1,9 @@
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.pattern.Patterns;
-import api.DroneCommander;
-import messages.*;
-import model.properties.*;
+import droneapi.api.DroneCommander;
+import droneapi.messages.*;
+import droneapi.model.properties.*;
 import org.junit.*;
 import play.libs.Akka;
 import scala.concurrent.Await;
@@ -12,9 +12,6 @@ import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-
-import controllers.*;
 
 /**
  * Created by Cedric on 4/2/2015.

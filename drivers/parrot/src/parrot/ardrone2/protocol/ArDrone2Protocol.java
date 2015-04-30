@@ -19,9 +19,9 @@ import parrot.messages.RequestConfigMessage;
 import parrot.shared.commands.*;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.ardrone2.util.PacketCreator;
-import messages.*;
-import model.properties.FlipType;
-import navigator.MoveCommand;
+import droneapi.messages.*;
+import droneapi.model.properties.FlipType;
+import droneapi.navigator.MoveCommand;
 import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;

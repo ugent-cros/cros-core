@@ -4,7 +4,7 @@ import akka.util.ByteIterator;
 import parrot.ardrone3.models.CommandProcessor;
 import parrot.ardrone3.models.Packet;
 import parrot.ardrone3.util.PacketHelper;
-import messages.ProductVersionChangedMessage;
+import droneapi.messages.ProductVersionChangedMessage;
 
 /**
  * Created by Cedric on 3/10/2015.

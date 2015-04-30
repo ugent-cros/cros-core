@@ -100,8 +100,8 @@ public class Helper {
      * @param location
      * @return a drone location
      */
-    public static model.properties.Location entityToDroneLocation(Location location){
-        return new model.properties.Location(location.getLatitude(),location.getLongitude(),location.getAltitude());
+    public static droneapi.model.properties.Location entityToDroneLocation(Location location){
+        return new droneapi.model.properties.Location(location.getLatitude(),location.getLongitude(),location.getAltitude());
     }
 
     /**
@@ -109,7 +109,7 @@ public class Helper {
      * @param location
      * @return an entity location
      */
-    public static Location droneToEntityLocation(model.properties.Location location){
+    public static Location droneToEntityLocation(droneapi.model.properties.Location location){
         return new Location(location.getLatitude(),location.getLongitude(),location.getHeight());
     }
 }

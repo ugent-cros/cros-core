@@ -3,12 +3,12 @@ package drones.flightcontrol;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
-import api.DroneCommander;
+import droneapi.api.DroneCommander;
 import drones.models.Fleet;
 import drones.flightcontrol.messages.SetCruisingAltitudeMessage;
-import messages.FlyingStateChangedMessage;
-import messages.LocationChangedMessage;
-import messages.NavigationStateChangedMessage;
+import droneapi.messages.FlyingStateChangedMessage;
+import droneapi.messages.LocationChangedMessage;
+import droneapi.messages.NavigationStateChangedMessage;
 import models.Drone;
 
 /**

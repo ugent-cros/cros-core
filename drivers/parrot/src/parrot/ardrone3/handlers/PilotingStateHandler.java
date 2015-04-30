@@ -4,11 +4,11 @@ import akka.util.ByteIterator;
 import parrot.ardrone3.models.CommandProcessor;
 import parrot.ardrone3.models.Packet;
 import parrot.ardrone3.util.FrameHelper;
-import messages.*;
-import model.properties.AlertState;
-import model.properties.FlyingState;
-import model.properties.NavigationState;
-import model.properties.NavigationStateReason;
+import droneapi.messages.*;
+import droneapi.model.properties.AlertState;
+import droneapi.model.properties.FlyingState;
+import droneapi.model.properties.NavigationState;
+import droneapi.model.properties.NavigationStateReason;
 
 /**
  * Created by Cedric on 3/8/2015.

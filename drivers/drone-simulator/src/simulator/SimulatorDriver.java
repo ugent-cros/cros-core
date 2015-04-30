@@ -1,9 +1,9 @@
 package simulator;
 
-import api.DroneDriver;
-import api.DroneType;
-import model.DroneActor;
-import model.properties.Location;
+import droneapi.api.DroneDriver;
+import droneapi.api.DroneType;
+import droneapi.model.DroneActor;
+import droneapi.model.properties.Location;
 
 import java.util.HashSet;
 import java.util.Set;

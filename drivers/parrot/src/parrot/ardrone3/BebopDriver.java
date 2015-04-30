@@ -1,8 +1,8 @@
 package parrot.ardrone3;
 
-import api.DroneDriver;
-import model.DroneActor;
-import api.DroneType;
+import droneapi.api.DroneDriver;
+import droneapi.model.DroneActor;
+import droneapi.api.DroneType;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -1,7 +1,7 @@
 package drones.flightcontrol.messages;
 
 import akka.actor.ActorRef;
-import model.properties.Location;
+import droneapi.model.properties.Location;
 
 /**
  * Created by Sander on 23/03/2015.

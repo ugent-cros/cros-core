@@ -16,10 +16,10 @@ import parrot.ardrone3.util.PacketCreator;
 import parrot.ardrone3.util.PacketHelper;
 import parrot.shared.commands.*;
 import parrot.shared.models.DroneConnectionDetails;
-import messages.ConnectionStatusChangedMessage;
-import messages.StopMessage;
-import model.properties.FlipType;
-import navigator.MoveCommand;
+import droneapi.messages.ConnectionStatusChangedMessage;
+import droneapi.messages.StopMessage;
+import droneapi.model.properties.FlipType;
+import droneapi.navigator.MoveCommand;
 import org.joda.time.DateTime;
 import scala.concurrent.duration.Duration;
 
