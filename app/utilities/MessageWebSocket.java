@@ -6,13 +6,14 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import messages.*;
 import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.models.scheduler.messages.from.AssignmentProgressedMessage;
 import drones.models.scheduler.messages.from.AssignmentStartedMessage;
 import drones.models.scheduler.messages.from.DroneAssignedMessage;
+import messages.*;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -54,6 +55,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.subscribe(DroneAssignedMessage.class, self());
             Scheduler.subscribe(AssignmentStartedMessage.class, self());
             Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.subscribe(AssignmentProgressedMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to subscribe to scheduler.", ex);
         }
@@ -121,6 +123,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.unsubscribe(DroneAssignedMessage.class, self());
             Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
             Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.unsubscribe(AssignmentProgressedMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to unsubscribe from scheduler.", ex);
         }
