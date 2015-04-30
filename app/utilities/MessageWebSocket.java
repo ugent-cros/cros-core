@@ -7,6 +7,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import droneapi.messages.*;
+import drones.scheduler.messages.from.DroneStatusMessage;
 import drones.models.Fleet;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
@@ -54,6 +55,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.subscribe(DroneAssignedMessage.class, self());
             Scheduler.subscribe(AssignmentStartedMessage.class, self());
             Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.subscribe(DroneStatusMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to subscribe to scheduler.", ex);
         }
@@ -121,6 +123,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.unsubscribe(DroneAssignedMessage.class, self());
             Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
             Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.unsubscribe(DroneStatusMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to unsubscribe from scheduler.", ex);
         }
