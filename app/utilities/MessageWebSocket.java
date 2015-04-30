@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import drones.models.scheduler.messages.from.DroneStatusMessage;
 import messages.*;
 import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
@@ -54,6 +55,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.subscribe(DroneAssignedMessage.class, self());
             Scheduler.subscribe(AssignmentStartedMessage.class, self());
             Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.subscribe(DroneStatusMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to subscribe to scheduler.", ex);
         }
@@ -62,7 +64,7 @@ public class MessageWebSocket extends AbstractActor {
         UnitPFBuilder<Object> builder = ReceiveBuilder.match(TYPENAMES.get(0)._1, s -> {
             ObjectNode node = Json.newObject();
             node.put("type", TYPENAMES.get(0)._2);
-            node.put("id", sender().path().name().split("-")[1]); // todo: set to correct id
+            node.put("id", sender().path().name().split("-")[1]);
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
         });
@@ -72,11 +74,35 @@ public class MessageWebSocket extends AbstractActor {
             builder = builder.match(TYPENAMES.get(index)._1, s -> {
                 ObjectNode node = Json.newObject();
                 node.put("type", TYPENAMES.get(index)._2);
-                node.put("id", sender().path().name().split("-")[1]); // todo: set to correct id
+                node.put("id", sender().path().name().split("-")[1]);
                 node.put("value", Json.toJson(s));
                 out.tell(node.toString(), self());
             });
         }
+
+        builder.match(DroneAssignedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "droneAssigned");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentCompletedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentCompleted");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentStartedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentStarted");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
 
         for (int i = 0; i < IGNORETYPES.size(); ++i)
             builder = builder.match(IGNORETYPES.get(i), s -> {});
@@ -97,6 +123,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.unsubscribe(DroneAssignedMessage.class, self());
             Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
             Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+            Scheduler.unsubscribe(DroneStatusMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to unsubscribe from scheduler.", ex);
         }
