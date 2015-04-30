@@ -106,6 +106,22 @@ public class MessageWebSocket extends AbstractActor {
             out.tell(node.toString(), self());
         });
 
+        builder.match(AssignmentProgressedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentProgressed");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(DroneStatusMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "droneStatusChanged");
+            node.put("id", s.getDroneId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
         for (int i = 0; i < IGNORETYPES.size(); ++i)
             builder = builder.match(IGNORETYPES.get(i), s -> {});
 
