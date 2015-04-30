@@ -2,6 +2,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import droneapi.api.DroneCommander;
 import droneapi.messages.*;
 import droneapi.model.properties.*;

@@ -1,8 +1,8 @@
 package utilities.frontendSimulator;
 
-import droneapi.messages.*;
-import parrot.messages.*;
+import droneapi.messages.LocationChangedMessage;
 import drones.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.scheduler.messages.from.AssignmentProgressedMessage;
 import drones.scheduler.messages.from.AssignmentStartedMessage;
 import drones.scheduler.messages.from.DroneAssignedMessage;
 import models.*;
@@ -130,8 +130,8 @@ public class AssignmentSimulator implements Runnable {
             run = false;
         }
         else {
-            notificationSimulator.sendMessage("assignmentProgressChanged", assignment.getId(),
-                    new AssignmentProgressChangedMessage(assignment.getProgress()));
+            notificationSimulator.sendMessage("assignmentProgressed", assignment.getId(),
+                    new AssignmentProgressedMessage(assignment.getId(),assignment.getProgress()));
         }
     }
 }

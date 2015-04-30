@@ -1,15 +1,13 @@
 package drones.flightcontrol;
 
 import akka.actor.ActorRef;
-import akka.dispatch.OnSuccess;
 import droneapi.api.DroneCommander;
-import drones.flightcontrol.messages.*;
 import droneapi.messages.FlyingStateChangedMessage;
 import droneapi.messages.LocationChangedMessage;
 import droneapi.messages.NavigationStateChangedMessage;
-import droneapi.model.properties.FlyingState;
 import droneapi.model.properties.Location;
 import droneapi.model.properties.NavigationState;
+import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
 import models.Checkpoint;
@@ -18,255 +16,360 @@ import scala.concurrent.duration.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by Sander on 18/03/2015.
  *
- * Pilot class to fly with the drone to its destination via the waypoints.
+ * Pilot class to fly with the drone to its destination via the wayPoints.
  * He lands on the last item in the list.
  */
 public class SimplePilot extends Pilot {
 
     private Location actualLocation;
 
-    private List<Checkpoint> waypoints;
-    private int actualWaypoint = -1;
+    private List<Checkpoint> wayPoints;
+    private int actualWayPoint = -1;
 
     //List of points where the drone cannot fly
     private List<Location> noFlyPoints = new ArrayList<>();
-    //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a land.
-    private List<LocationMessage> evacuationPoints = new ArrayList<>();
+    //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a landing or take off.
+    private List<RequestMessage> evacuationPoints = new ArrayList<>();
 
     //Range around a no fly point where the drone cannot fly.
-    private static final int NO_FY_RANGE = 4;
+    private static final int NO_FY_RANGE = 15;
     //Range around a evacuation point where the drone should be evacuated.
-    private static final int EVACUATION_RANGE = 6;
+    private static final int EVACUATION_RANGE = 10;
 
-    private boolean waitForTakeOffDone = false;
-    private boolean start = false;
+    private boolean landed = true;
 
-    
+    //True if the drone has taken off and is waiting to go up until cruising altitude
+    private boolean waitForTakeOffFinished = false;
+
+    //True is the drone is going up until cruising altitude and will wait to fly to the first wayPoint
+    private boolean waitForGoUpUntilCruisingAltitudeFinished = false;
+
+    //True if pilot is waiting for landing completed
+    private boolean waitForLandFinished = false;
+
+    //True if pilot is waiting for landing  when een stopMessage has send
+    private boolean waitForLandAfterStopFinished = false;
+
+    //Buffer when waiting for takeoff or landed to send the completed message
+    private RequestMessage requestMessageBuffer;
+
     /**
-     * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the start message.
+     * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the startFlightControlMessage message.
      * @param droneId                  Drone to control.
      * @param linkedWithControlTower True if connected to ControlTower
-     * @param waypoints              Route to fly, the drone will land on the last item
+     * @param wayPoints              Route to fly, the drone will land on the last item
      */
-    public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, droneId, linkedWithControlTower);
 
-        if (waypoints.size() < 1) {
+        if (wayPoints.isEmpty()) {
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
         }
-        this.waypoints = waypoints;
+        this.wayPoints = wayPoints;
+    }
+
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude) {
+        this(reporterRef,droneId,linkedWithControlTower,wayPoints);
+        this.cruisingAltitude = cruisingAltitude;
+    }
+
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude, List<Location> noFlyPoints) {
+        this(reporterRef,droneId,linkedWithControlTower,wayPoints, cruisingAltitude);
+        this.cruisingAltitude = cruisingAltitude;
+        this.noFlyPoints = new ArrayList<>(noFlyPoints);
     }
 
     /**
      * Use only for testing!
      */
-    public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> waypoints) {
+    public SimplePilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, dc, linkedWithControlTower);
 
-        if (waypoints.size() < 1) {
+        if (wayPoints.isEmpty()) {
             throw new IllegalArgumentException("Waypoints must contain at least 1 element");
         }
-        this.waypoints = waypoints;
+        this.wayPoints = wayPoints;
     }
 
     @Override
-    public void start() {
-        if (cruisingAltitude == 0) {
-            cruisingAltitude = DEFAULT_ALTITUDE;
-        }
+    public void startFlightControlMessage() {
+        //Check if navigationState is "AVAILABLE"
         try {
-            Await.ready(dc.setMaxHeight(4), Duration.create(10, "seconds"));
-            start = true;
-            takeOff();
+            NavigationState m = Await.result(dc.getNavigationState(), MAX_DURATION_SHORT);
+            if(m != NavigationState.AVAILABLE){
+                handleErrorMessage("Can not start because NavigationState is not \"AVAILABLE\".");
+                return;
+            }
+            actualLocation = Await.result(dc.getLocation(), MAX_DURATION_SHORT);
         } catch (Exception e) {
-            e.printStackTrace();
+            handleErrorMessage("Error while getting NavigationState after start");
+            return;
         }
+
+        if (Double.doubleToRawLongBits(cruisingAltitude) == 0) {
+            cruisingAltitude = DEFAULT_ALTITUDE;
+            try {
+                Await.ready(dc.setMaxHeight((float) cruisingAltitude), MAX_DURATION_SHORT);
+            } catch (TimeoutException | InterruptedException e) {
+                handleErrorMessage("Failed to set max height after SetCruisingAltitudeMessage");
+                return;
+            }
+        }
+        blocked = false;
+        takeOff();
+    }
+
+    @Override
+    protected void stopFlightControlMessage(StopFlightControlMessage m) {
+        if(!landed){
+            try {
+                Await.ready(dc.land(), MAX_DURATION_LONG);
+                landed = true;
+            } catch (TimeoutException | InterruptedException e) {
+                handleErrorMessage("Could no land drone after stop message");
+                return;
+            }
+            waitForLandAfterStopFinished = true;
+        } else {
+            stop();
+        }
+
+    }
+
+    private void stop(){
+        blocked = true;
+        dc.unsubscribe(self());
+        reporterRef.tell(new FlightCanceledMessage(droneId), self());
+        //stop
+        getContext().stop(self());
     }
 
     protected void goToNextWaypoint() {
-        if (actualWaypoint >= 0) {
-            if (actualWaypoint == waypoints.size()) {
+        if (!blocked) {
+            actualWayPoint++;
+            if (actualWayPoint == 0){
+                models.Location newLocation = wayPoints.get(actualWayPoint).getLocation();
+                dc.moveToLocation(newLocation.getLatitude(), newLocation.getLongitude(), cruisingAltitude);
+            } else {
+                //wait at wayPoint
+                getContext().system().scheduler().scheduleOnce(Duration.create(wayPoints.get(actualWayPoint - 1).getWaitingTime(), TimeUnit.SECONDS),
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                self().tell(new WaitAtWayPointCompletedMessage(),self());                                    }
+                        }, getContext().system().dispatcher());
+            }
+        }
+
+    }
+
+    @Override
+    protected void waitAtWayPointCompletedMessage(WaitAtWayPointCompletedMessage m) {
+        if(!blocked){
+            reporterRef.tell(new WayPointCompletedMessage(droneId, actualWayPoint -1), self());
+            if (actualWayPoint == wayPoints.size()) {
                 //arrived at destination => land
                 land();
             } else {
-                models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
-                dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
+                //fly to next wayPoint
+                models.Location newLocation = wayPoints.get(actualWayPoint).getLocation();
+                dc.moveToLocation(newLocation.getLatitude(), newLocation.getLongitude(), cruisingAltitude);
             }
         }
     }
 
     private void land() {
-        if (linkedWithControlTower) {
-            reporterRef.tell(new RequestForLandingMessage(self(), actualLocation), self());
-        } else {
-            dc.land().onSuccess(new OnSuccess<Void>() {
-
-                @Override
-                public void onSuccess(Void result) throws Throwable {
-                    start = false;
-                    reporterRef.tell(new FlightCompletedMessage(droneId,actualLocation),self());
+        if(!blocked){
+            if(linkedWithControlTower){
+                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.LANDING, droneId),self());
+            } else {
+                try {
+                    Await.ready(dc.land(), MAX_DURATION_LONG);
+                } catch (TimeoutException | InterruptedException e) {
+                    handleErrorMessage("Could no land drone after internal land command");
+                    return;
                 }
-            }, getContext().system().dispatcher());
+                waitForLandFinished = true;
+            }
         }
+    }
+
+    private void takeOff() {
+        if(!blocked){
+            if(linkedWithControlTower){
+                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.TAKEOFF, droneId),self());
+            } else {
+                try {
+                    Await.ready(dc.takeOff(), MAX_DURATION_LONG);
+                } catch (TimeoutException | InterruptedException e) {
+                    handleErrorMessage("Could no take off drone after internal takeoff command");
+                    return;
+                }
+                waitForTakeOffFinished = true;
+            }
+        }
+    }
+
+    /**
+     * Handles a RequestMessage of a other drone. A RequestMessage is send when a drone wants to land or to take off.
+     */
+    @Override
+    protected void requestMessage(RequestMessage m) {
+        if(blocked){
+            noFlyPoints.add(m.getLocation());
+        } else {
+            if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
+                evacuationPoints.add(m);
+            } else {
+                noFlyPoints.add(m.getLocation());
+                reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
+            }
+        }
+    }
+
+    /**
+     * Handles a RequestGrantedMessage. A RequestGrantedMessage is send to a class as a reply on a RequestMessage.
+     */
+    @Override
+    protected void requestGrantedMessage(RequestGrantedMessage m) {
+        switch (m.getRequestMessage().getType()) {
+            case LANDING:
+                try {
+                    Await.ready(dc.land(), MAX_DURATION_LONG);
+                } catch (TimeoutException | InterruptedException e) {
+                    handleErrorMessage("Could no land drone after internal land command");
+                    return;
+                }
+                waitForLandFinished = true;
+                requestMessageBuffer = m.getRequestMessage();
+                break;
+            case TAKEOFF:
+                try {
+                    Await.ready(dc.takeOff(), MAX_DURATION_LONG);
+                } catch (TimeoutException | InterruptedException e) {
+                    handleErrorMessage("Could no take off drone after internal takeoff command");
+                    return;
+                }
+                waitForTakeOffFinished = true;
+                requestMessageBuffer = m.getRequestMessage();
+                break;
+            default:
+                log.warning("No handler for: [{}]", m.getRequestMessage().getType());
+        }
+    }
+
+    /**
+     * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
+     */
+    @Override
+    protected void completedMessage(CompletedMessage m) {
+        noFlyPoints.remove(m.getLocation());
     }
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        if(start){
+        if (!blocked && !waitForLandFinished && !waitForTakeOffFinished && !waitForGoUpUntilCruisingAltitudeFinished) {
             actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
-            for (LocationMessage l : evacuationPoints) {
-                if (actualLocation.distance(l.getLocation()) > EVACUATION_RANGE) {
-
-                    evacuationPoints.remove(l);
-                    noFlyPoints.add(l.getLocation());
-                    switch (l.getType()) {
-                        case LANDING:
-                            reporterRef.tell(new RequestForLandingGrantedMessage(l.getRequestor(), l.getLocation()), self());
-                            break;
-                        case TAKEOFF:
-                            reporterRef.tell(new RequestForTakeOffGrantedMessage(l.getRequestor(), l.getLocation()), self());
-                            break;
-                        default:
-                            log.debug("Unsupported type");
-                    }
-
+            for (RequestMessage r : evacuationPoints) {
+                if (actualLocation.distance(r.getLocation()) > EVACUATION_RANGE) {
+                    evacuationPoints.remove(r);
+                    noFlyPoints.add(r.getLocation());
+                    reporterRef.tell(new RequestGrantedMessage(droneId,r),self());
                 }
             }
             for (Location l : noFlyPoints) {
                 if (actualLocation.distance(l) < NO_FY_RANGE) {
                     //stop with flying
-                    dc.cancelMoveToLocation();
+                    try {
+                        Await.ready(dc.cancelMoveToLocation(), MAX_DURATION_SHORT);
+                    } catch (TimeoutException | InterruptedException e) {
+                        handleErrorMessage("Cannot cancelMoveToLocation, the drones will probably collide!!!");
+                    }
                 }
             }
         }
 
-    }
-
-    @Override
-    protected void requestForLandingMessage(RequestForLandingMessage m) {
-        if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
-            evacuationPoints.add(m);
-        } else {
-            noFlyPoints.add(m.getLocation());
-            reporterRef.tell(new RequestForLandingGrantedMessage(m.getRequestor(), m.getLocation()), self());
-        }
-    }
-
-    @Override
-    protected void requestForLandingGrantedMessage(RequestForLandingGrantedMessage m) {
-        dc.land().onSuccess(new OnSuccess<Void>() {
-
-            @Override
-            public void onSuccess(Void result) throws Throwable {
-                start = false;
-                reporterRef.tell(new LandingCompletedMessage(m.getRequestor(), m.getLocation()), self());
-                reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
-            }
-        }, getContext().system().dispatcher());
-    }
-
-    @Override
-    protected void landingCompletedMessage(LandingCompletedMessage m) {
-        completedMessage(m);
-    }
-
-    private void completedMessage(LocationMessage m) {
-        noFlyPoints.remove(m.getLocation());
-
-        //try to fly further
-        for (Location l : noFlyPoints) {
-            if (actualLocation.distance(l) < NO_FY_RANGE) {
-                return;
-            }
-        }
-
-        //allowed to continue flying
-        models.Location waypoint = waypoints.get(actualWaypoint).getLocation();
-        dc.moveToLocation(waypoint.getLatitude(), waypoint.getLongitude(), cruisingAltitude);
-    }
-
-    @Override
-    protected void requestForTakeOffMessage(RequestForTakeOffMessage m) {
-        if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
-            evacuationPoints.add(m);
-        } else {
-            noFlyPoints.add(m.getLocation());
-            reporterRef.tell(new RequestForTakeOffGrantedMessage(m.getRequestor(), m.getLocation()), self());
-        }
-    }
-
-    @Override
-    protected void requestForTakeOffGrantedMessage(RequestForTakeOffGrantedMessage m) {
-        //TO DO on failure
-        dc.takeOff().onSuccess(new OnSuccess<Void>() {
-            @Override
-            public void onSuccess(Void result) throws Throwable {
-                reporterRef.tell(new TakeOffCompletedMessage(m.getRequestor(), m.getLocation()), self());
-            }
-        }, getContext().system().dispatcher());
-    }
-
-    @Override
-    protected void takeOffCompletedMessage(TakeOffCompletedMessage m) {
-        completedMessage(m);
-    }
-
-    private void takeOff() {
-        if (linkedWithControlTower) {
-            reporterRef.tell(new RequestForTakeOffMessage(self(), actualLocation), self());
-        } else {
-            dc.takeOff().onSuccess(new OnSuccess<Void>() {
-                @Override
-                public void onSuccess(Void result) throws Throwable {
-                }
-            }, getContext().system().dispatcher());
-        }
-
-        waitForTakeOffDone = true;
     }
 
     @Override
     protected void flyingStateChanged(FlyingStateChangedMessage m) {
-        if(start && waitForTakeOffDone && m.getState() == FlyingState.HOVERING){
-            waitForTakeOffDone = false;
-            actualWaypoint++;
-            goToNextWaypoint();
+        switch (m.getState()){
+            case HOVERING:
+                if(!blocked && waitForTakeOffFinished) {
+                    waitForTakeOffFinished = false;
+                    //go up until cruising altitude
+                    try {
+                        Await.ready(dc.moveToLocation(actualLocation.getLatitude(), actualLocation.getLongitude(), cruisingAltitude), MAX_DURATION_LONG);
+                    } catch (TimeoutException | InterruptedException e) {
+                        handleErrorMessage("Could no send takeoff command  to cruising altitude");
+                        return;
+                    }
+                    waitForGoUpUntilCruisingAltitudeFinished = true;
+                }
+                break;
+            case EMERGENCY:
+                handleErrorMessage("Drone in emergency");
+                landed = true;
+                break;
+            case LANDED:
+                if(!blocked && waitForLandFinished){
+                    waitForLandFinished = false;
+                    landed = true;
+                    blocked = true;
+                    if(linkedWithControlTower){
+                        reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                    }
+                    reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
+                    return;
+                }
+                if(!blocked && waitForLandAfterStopFinished){
+                    stop();
+                    return;
+                }
+                landed = true;
+                blocked = true;
+                break;
         }
     }
 
     @Override
     protected void navigationStateChanged(NavigationStateChangedMessage m) {
-        if(start && m.getState() == NavigationState.AVAILABLE){
+        if(!blocked && m.getState() == NavigationState.AVAILABLE){
             switch (m.getReason()){
                 case FINISHED:
-                    //TO DO wait at checkpoint
-                    actualWaypoint++;
-                    goToNextWaypoint();
+                    if(waitForGoUpUntilCruisingAltitudeFinished){
+                        waitForGoUpUntilCruisingAltitudeFinished = false;
+                        landed = false;
+                        if(linkedWithControlTower){
+                            reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                        }
+                        goToNextWaypoint();
+                        break;
+                    }
+                    if(!waitForTakeOffFinished && !waitForLandAfterStopFinished && !waitForLandFinished && !waitForGoUpUntilCruisingAltitudeFinished){
+                        goToNextWaypoint();
+                    }
                     break;
                 case STOPPED:
-                    start = false;
+                    handleErrorMessage("Navigation has stopped.");
             }
 
         }
     }
 
     @Override
-    protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        if (actualWaypoint != waypoints.size()){
-            try {
-                Await.ready(dc.land(), Duration.create(2, "seconds"));
-            } catch (Exception e) {
-                e.printStackTrace();
-                //TO DO add exception
-            }
-            reporterRef.tell(new FlightCanceledMessage(droneId), self());
+    protected void addNoFlyPointMessage(AddNoFlyPointMessage m) {
+        if (actualLocation.distance(m.getNoFlyPoint()) < NO_FY_RANGE) {
+            handleErrorMessage("You cannot add a drone within the no-fly-range " +
+                    "of the location where another drone wants to land or to take off");
+        } else {
+            noFlyPoints.add(m.getNoFlyPoint());
         }
-        //stop
-        getContext().stop(self());
     }
 }
