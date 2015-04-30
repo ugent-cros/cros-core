@@ -8,14 +8,14 @@ import model.properties.Location;
  */
 public class RequestMessage extends AbstractFlightControlMessage{
 
-    private Long droneId;
+    private long droneId;
 
-    public RequestMessage(ActorRef requester, Location location, AbstractFlightControlMessage.RequestType type, Long droneId) {
+    public RequestMessage(ActorRef requester, Location location, AbstractFlightControlMessage.RequestType type, long droneId) {
         super(requester, location, type);
         this.droneId = droneId;
     }
 
-    public Long getDroneId() {
+    public long getDroneId() {
         return droneId;
     }
 }

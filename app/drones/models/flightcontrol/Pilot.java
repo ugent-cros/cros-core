@@ -10,9 +10,6 @@ import messages.FlyingStateChangedMessage;
 import messages.LocationChangedMessage;
 import messages.NavigationStateChangedMessage;
 import models.Drone;
-import scala.concurrent.Await;
-
-import java.util.concurrent.TimeoutException;
 
 /**
  * Created by Sander on 18/03/2015.
@@ -21,12 +18,12 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class Pilot extends FlightControl{
 
-    protected Long droneId;
+    protected long droneId;
     protected DroneCommander dc;
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower) {
+    public Pilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower) {
         super(reporterRef);
         this.droneId = droneId;
         this.linkedWithControlTower = linkedWithControlTower;
@@ -44,7 +41,7 @@ public abstract class Pilot extends FlightControl{
     public Pilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower) {
         super(reporterRef);
         this.dc = dc;
-        this.droneId = new Long(0);
+        this.droneId = 0;
         this.linkedWithControlTower = linkedWithControlTower;
 
         setSubscribeMessages();

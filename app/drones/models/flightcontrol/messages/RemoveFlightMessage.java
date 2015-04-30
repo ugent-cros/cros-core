@@ -5,7 +5,7 @@ package drones.models.flightcontrol.messages;
  */
 public class RemoveFlightMessage extends AbstractIdFlightControlMessage{
 
-    public RemoveFlightMessage(Long id) {
+    public RemoveFlightMessage(long id) {
         super(id);
     }
 }

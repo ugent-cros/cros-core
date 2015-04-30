@@ -7,7 +7,7 @@ import drones.models.flightcontrol.messages.AbstractIdFlightControlMessage;
  */
 public class RemoveFlightCompletedMessage extends AbstractIdFlightControlMessage {
 
-    public RemoveFlightCompletedMessage(Long id) {
+    public RemoveFlightCompletedMessage(long id) {
         super(id);
     }
 }

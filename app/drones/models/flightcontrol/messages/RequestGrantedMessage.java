@@ -14,7 +14,7 @@ public class RequestGrantedMessage extends AbstractIdFlightControlMessage{
      * @param id DroneId how has granted the request.
      * @param requestMessage Original requestMessage
      */
-    public RequestGrantedMessage(Long id, RequestMessage requestMessage) {
+    public RequestGrantedMessage(long id, RequestMessage requestMessage) {
         super(id);
         this.requestMessage = requestMessage;
     }

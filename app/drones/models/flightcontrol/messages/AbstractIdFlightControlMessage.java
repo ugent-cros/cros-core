@@ -7,13 +7,13 @@ import java.io.Serializable;
  */
 public class AbstractIdFlightControlMessage implements Serializable {
 
-    private Long id;
+    private long id;
 
-    public AbstractIdFlightControlMessage(Long id) {
+    public AbstractIdFlightControlMessage(long id) {
         this.id = id;
     }
 
-    public Long getDroneId() {
+    public long getDroneId() {
         return id;
     }
 }

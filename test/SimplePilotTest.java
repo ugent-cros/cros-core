@@ -137,7 +137,7 @@ public class SimplePilotTest extends TestSuperclass {
                 //request for take off
                 expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
-                simplePilot.tell(new RequestGrantedMessage(null,new RequestMessage(simplePilot,STERRE,AbstractFlightControlMessage.RequestType.TAKEOFF,null)),getRef());
+                simplePilot.tell(new RequestGrantedMessage(0,new RequestMessage(simplePilot,STERRE,AbstractFlightControlMessage.RequestType.TAKEOFF,0)),getRef());
 
                 expectMsgClass(MAX_DURATION_FLYING, CompletedMessage.class);
 
@@ -149,7 +149,7 @@ public class SimplePilotTest extends TestSuperclass {
                 expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
                 Location tmp = new Location(destination.getLocation().getLatitude(),destination.getLocation().getLongitude(),destination.getLocation().getAltitude());
-                simplePilot.tell(new RequestGrantedMessage(null,new RequestMessage(simplePilot,tmp,AbstractFlightControlMessage.RequestType.LANDING, null)),getRef());
+                simplePilot.tell(new RequestGrantedMessage(0,new RequestMessage(simplePilot,tmp,AbstractFlightControlMessage.RequestType.LANDING, 0)),getRef());
 
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);

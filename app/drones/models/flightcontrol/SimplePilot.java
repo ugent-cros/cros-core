@@ -65,7 +65,7 @@ public class SimplePilot extends Pilot {
      * @param linkedWithControlTower True if connected to ControlTower
      * @param wayPoints              Route to fly, the drone will land on the last item
      */
-    public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, droneId, linkedWithControlTower);
 
         if (wayPoints.isEmpty()) {
@@ -74,7 +74,7 @@ public class SimplePilot extends Pilot {
         this.wayPoints = wayPoints;
     }
 
-    public SimplePilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude) {
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude) {
         this(reporterRef,droneId,linkedWithControlTower,wayPoints);
         this.cruisingAltitude = cruisingAltitude;
     }

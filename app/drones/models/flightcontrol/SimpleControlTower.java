@@ -26,7 +26,7 @@ public class SimpleControlTower extends ControlTower {
 
     //drones
     //The index in the list determines the height. (index 0: minCruisingAltitude, index n: maxCruisingAltitude)
-    private Long[] drones;
+    private long[] drones;
     //pilots
     private ActorRef[] pilots;
 
@@ -47,7 +47,7 @@ public class SimpleControlTower extends ControlTower {
         this.minCruisingAltitude = minCruisingAltitude;
         this.maxNumberOfDrones = maxNumberOfDrones;
 
-        drones = new Long[maxNumberOfDrones];
+        drones = new long[maxNumberOfDrones];
         pilots = new ActorRef[maxNumberOfDrones];
 
         blocked = false;
@@ -145,7 +145,7 @@ public class SimpleControlTower extends ControlTower {
         }
     }
 
-    private boolean removeDrone(Long droneId) {
+    private boolean removeDrone(long droneId) {
         if (blocked) {
             return false;
         }
@@ -179,7 +179,7 @@ public class SimpleControlTower extends ControlTower {
         }
 
         //remove
-        drones[i] = null;
+        drones[i] = 0;
         pilots[i] = null;
 
         return true;
@@ -276,7 +276,7 @@ public class SimpleControlTower extends ControlTower {
         }
     }
 
-    private int findIndexForDroneId(Long id) {
+    private int findIndexForDroneId(long id) {
         int index = Arrays.asList(drones).indexOf(id);
         if (index < 0) {
             handleErrorMessage("Can not find actorRef for drone id");

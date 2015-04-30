@@ -11,7 +11,7 @@ public class AddFlightMessage extends AbstractIdFlightControlMessage{
 
     private List<Checkpoint> waypoints;
 
-    public AddFlightMessage(Long id, List<Checkpoint> waypoints) {
+    public AddFlightMessage(long id, List<Checkpoint> waypoints) {
         super(id);
         this.waypoints = waypoints;
     }

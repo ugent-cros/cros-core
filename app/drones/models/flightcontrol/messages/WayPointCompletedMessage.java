@@ -7,7 +7,7 @@ public class WayPointCompletedMessage extends AbstractIdFlightControlMessage {
 
     private int waypointNumber;
 
-    public WayPointCompletedMessage(Long id, int waypointNumber) {
+    public WayPointCompletedMessage(long id, int waypointNumber) {
         super(id);
         this.waypointNumber = waypointNumber;
     }
