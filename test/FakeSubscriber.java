@@ -1,6 +1,6 @@
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
-import messages.StopMessage;
+import droneapi.messages.StopMessage;
 
 import java.io.Serializable;
 

@@ -4,12 +4,19 @@ version := "1.0-SNAPSHOT"
 
 lazy val droneapi = (project in file("drone-api"))
 
-lazy val dronesimulator = (project in file("drone-simulator"))
+lazy val dronesimulator = (project in file("drivers/drone-simulator"))
+  .dependsOn(droneapi % "compile->compile")
+
+lazy val parrotdrivers = (project in file("drivers/parrot"))
   .dependsOn(droneapi % "compile->compile")
 
 lazy val root = (project in file("."))
 	.enablePlugins(PlayJava)
-	.dependsOn(droneapi % "compile->compile", dronesimulator % "compile->compile")
+	.dependsOn(
+    droneapi % "compile->compile",
+    dronesimulator % "compile->compile",
+    parrotdrivers % "compile->compile"
+  )
 
 scalaVersion := "2.11.1"
 

@@ -1,11 +1,10 @@
 package utilities.frontendSimulator;
 
-import drones.models.scheduler.messages.from.AssignmentProgressedMessage;
-import messages.*;
-import drones.messages.*;
-import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
-import drones.models.scheduler.messages.from.AssignmentStartedMessage;
-import drones.models.scheduler.messages.from.DroneAssignedMessage;
+import droneapi.messages.LocationChangedMessage;
+import drones.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.scheduler.messages.from.AssignmentProgressedMessage;
+import drones.scheduler.messages.from.AssignmentStartedMessage;
+import drones.scheduler.messages.from.DroneAssignedMessage;
 import models.*;
 
 import java.util.List;

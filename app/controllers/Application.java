@@ -3,16 +3,16 @@ package controllers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.util.Timeout;
-import api.DroneCommander;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.ArDrone2Driver;
-import drones.models.BepopDriver;
+import droneapi.api.DroneCommander;
+import droneapi.messages.BatteryPercentageChangedMessage;
+import droneapi.model.DroneMonitor;
+import droneapi.model.properties.FlipType;
 import drones.models.Fleet;
-import messages.BatteryPercentageChangedMessage;
-import model.DroneMonitor;
-import model.properties.FlipType;
 import models.*;
+import parrot.ardrone2.ArDrone2Driver;
+import parrot.ardrone3.BebopDriver;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
@@ -104,7 +104,7 @@ public class Application extends Controller {
     public static F.Promise<Result> initDrone(String ip, boolean bebop) {
         Drone droneEntity;
         if(bebop) {
-            droneEntity = new Drone("bepop", Drone.Status.AVAILABLE, new DroneType(BepopDriver.BEPOP_TYPE), ip);
+            droneEntity = new Drone("bebop", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE), ip);
         } else {
             droneEntity = new Drone("ardrone2", Drone.Status.AVAILABLE, new DroneType(ArDrone2Driver.ARDRONE2_TYPE), ip);
         }

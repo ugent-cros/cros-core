@@ -3,8 +3,8 @@ package CollisionDetector;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
-import api.DroneCommander;
-import messages.LocationChangedMessage;
+import droneapi.api.DroneCommander;
+import droneapi.messages.LocationChangedMessage;
 
 /**
  * Created by Sander on 30/04/2015.

@@ -6,15 +6,11 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.scheduler.messages.from.DroneStatusMessage;
-import messages.*;
+import droneapi.messages.*;
 import drones.models.Fleet;
-import drones.models.scheduler.Scheduler;
-import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
-import drones.models.scheduler.messages.from.AssignmentProgressedMessage;
-import drones.models.scheduler.messages.from.AssignmentStartedMessage;
-import drones.models.scheduler.messages.from.DroneAssignedMessage;
+import drones.scheduler.Scheduler;
+import drones.scheduler.SchedulerException;
+import drones.scheduler.messages.from.*;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -102,6 +98,22 @@ public class MessageWebSocket extends AbstractActor {
             ObjectNode node = Json.newObject();
             node.put("type", "assignmentStarted");
             node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentProgressedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentProgressed");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(DroneStatusMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "droneStatusChanged");
+            node.put("id", s.getDroneId());
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
         });
