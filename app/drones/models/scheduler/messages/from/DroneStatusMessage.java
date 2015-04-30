@@ -9,18 +9,24 @@ import models.Drone;
 public class DroneStatusMessage implements SchedulerEvent{
 
     private long droneId;
-    private Drone.Status status;
+    private Drone.Status oldStatus;
+    private Drone.Status newStatus;
 
-    public DroneStatusMessage(long droneId, Drone.Status status) {
+    public DroneStatusMessage(long droneId, Drone.Status oldStatus, Drone.Status newStatus) {
         this.droneId = droneId;
-        this.status = status;
+        this.oldStatus = oldStatus;
+        this.newStatus = newStatus;
     }
 
     public long getDroneId() {
         return droneId;
     }
 
-    public Drone.Status getDroneStatus() {
-        return status;
+    public Drone.Status getOldStatus() {
+        return oldStatus;
+    }
+
+    public Drone.Status getNewStatus() {
+        return newStatus;
     }
 }

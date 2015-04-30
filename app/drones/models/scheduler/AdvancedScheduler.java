@@ -533,15 +533,16 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     }
 
     /**
-     * Update the drone status and publish it.
+     * Update the drone newStatus and publish it.
      *
      * @param drone
-     * @param status
+     * @param newStatus
      */
-    protected void updateDroneStatus(Drone drone, Drone.Status status) {
-        drone.setStatus(status);
+    protected void updateDroneStatus(Drone drone, Drone.Status newStatus) {
+        Drone.Status oldStatus = drone.getStatus();
+        drone.setStatus(newStatus);
         drone.update();
-        eventBus.publish(new DroneStatusMessage(drone.getId(), status));
+        eventBus.publish(new DroneStatusMessage(drone.getId(), oldStatus, newStatus));
     }
 
     /**
