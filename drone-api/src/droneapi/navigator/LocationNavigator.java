@@ -6,6 +6,7 @@ import droneapi.model.properties.Location;
  * Created by Cedric on 4/5/2015.
  */
 public class LocationNavigator {
+
     private Location previousLocation;
     private Location goal;
     private float maxAngularVelocity;
@@ -39,7 +40,7 @@ public class LocationNavigator {
         this.maxVerticalVelocity = maxVerticalVelocity;
     }
 
-    public MoveCommand update(Location location){
+    public MoveVector update(Location location){
         if(goal == null || location == null) {
             return null;
         }
@@ -73,7 +74,7 @@ public class LocationNavigator {
 
             if(goalDistance < gpsAccuracy*1.2){ // we arrived at our destination with best effort accuracy
                 if(vz != 0){
-                    return new MoveCommand(0, 0, vz, 0);
+                    return new MoveVector(0, 0, vz, 0);
                 } else {
                     return null; // Arrived
                 }
@@ -81,7 +82,7 @@ public class LocationNavigator {
                 hadHeading = true;
                 float bearingDiff = goalBearing - movedBearing; // calculate difference angle that we have to correct
                 if(Math.abs(bearingDiff) < MIN_BEARING_DIFF){ // we don't care about 10 degrees off, continue
-                    return new MoveCommand(vx, 0, vz, 0);
+                    return new MoveVector(vx, 0, vz, 0);
                 } else {
 
                     if(bearingDiff > 180f){
@@ -104,7 +105,7 @@ public class LocationNavigator {
                         degreesLeft = Math.max(0, Math.abs(bearingDiff) - todoTurn);
                     }
 
-                    return new MoveCommand(vx, 0, vz, vr);
+                    return new MoveVector(vx, 0, vz, vr);
                 }
             }
         } else {
@@ -126,7 +127,7 @@ public class LocationNavigator {
 
                     degreesLeft = Math.max(0, degreesLeft - todoTurn); // subtract the already turned rotation
                 }
-                return new MoveCommand(vx, 0, vz, vr); // movement not significant enough to take angle measurement into account
+                return new MoveVector(vx, 0, vz, vr); // movement not significant enough to take angle measurement into account
             }
         }
     }

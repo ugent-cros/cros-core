@@ -8,7 +8,7 @@ import droneapi.model.properties.Location;
 import droneapi.model.properties.NavigationState;
 import droneapi.model.properties.NavigationStateReason;
 import droneapi.navigator.LocationNavigator;
-import droneapi.navigator.MoveCommand;
+import droneapi.navigator.MoveVector;
 import scala.concurrent.Promise;
 
 /**
@@ -61,7 +61,7 @@ public abstract class NavigatedDroneActor extends DroneActor {
                 location = new Location(location.getLatitude(), location.getLongitude(), altitude.getRawValue());
             }
 
-            MoveCommand cmd = getNavigator().update(location);
+            MoveVector cmd = getNavigator().update(location);
             if (cmd == null) { // arrived
                 move3d(Futures.promise(), 0d, 0d, 0d, 0d); // Cancel any movement
 

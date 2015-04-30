@@ -19,7 +19,7 @@ import parrot.shared.models.DroneConnectionDetails;
 import droneapi.messages.ConnectionStatusChangedMessage;
 import droneapi.messages.StopMessage;
 import droneapi.model.properties.FlipType;
-import droneapi.navigator.MoveCommand;
+import parrot.shared.commands.MoveCommand;
 import org.joda.time.DateTime;
 import scala.concurrent.duration.Duration;
 

@@ -16,7 +16,7 @@ import droneapi.model.properties.ConnectionStatus;
 import droneapi.model.properties.FlipType;
 import droneapi.model.properties.Location;
 import droneapi.navigator.LocationNavigator;
-import droneapi.navigator.MoveCommand;
+import parrot.shared.commands.MoveCommand;
 import org.joda.time.DateTime;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;

@@ -1,4 +1,4 @@
-package droneapi.navigator;
+package parrot.shared.commands;
 
 import java.io.Serializable;
 
