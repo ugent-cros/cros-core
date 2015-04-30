@@ -5,7 +5,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import api.DroneCommander;
 import drones.models.Fleet;
-import drones.models.flightcontrol.messages.SetCruisingAltitudeMessage;
+import drones.models.flightcontrol.messages.*;
 import messages.FlyingStateChangedMessage;
 import messages.LocationChangedMessage;
 import messages.NavigationStateChangedMessage;
@@ -18,12 +18,12 @@ import models.Drone;
  */
 public abstract class Pilot extends FlightControl{
 
-    protected Long droneId;
+    protected long droneId;
     protected DroneCommander dc;
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
-    public Pilot(ActorRef reporterRef, Long droneId, boolean linkedWithControlTower) {
+    public Pilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower) {
         super(reporterRef);
         this.droneId = droneId;
         this.linkedWithControlTower = linkedWithControlTower;
@@ -41,7 +41,7 @@ public abstract class Pilot extends FlightControl{
     public Pilot(ActorRef reporterRef, DroneCommander dc, boolean linkedWithControlTower) {
         super(reporterRef);
         this.dc = dc;
-        this.droneId = new Long(0);
+        this.droneId = 0;
         this.linkedWithControlTower = linkedWithControlTower;
 
         setSubscribeMessages();
@@ -57,14 +57,10 @@ public abstract class Pilot extends FlightControl{
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
-                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s));
-    }
-
-    private void setCruisingAltitude(SetCruisingAltitudeMessage s){
-        cruisingAltitude = s.getCruisingAltitude();
+                match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s)).
+                match(WaitAtWayPointCompletedMessage.class, s -> waitAtWayPointCompletedMessage(s));
     }
 
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);
@@ -72,4 +68,8 @@ public abstract class Pilot extends FlightControl{
     protected abstract void locationChanged(LocationChangedMessage m);
 
     protected abstract void navigationStateChanged(NavigationStateChangedMessage m);
+
+    protected abstract void addNoFlyPointMessage(AddNoFlyPointMessage m);
+
+    protected abstract void waitAtWayPointCompletedMessage(WaitAtWayPointCompletedMessage m);
 }

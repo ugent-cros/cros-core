@@ -1,17 +1,13 @@
 package drones.models.scheduler.messages.to;
 
+import drones.models.flightcontrol.messages.AbstractIdFlightControlMessage;
+
 /**
  * Created by Ronald on 17/04/2015.
  */
-public class FlightCanceledMessage {
+public class FlightCanceledMessage extends AbstractIdFlightControlMessage{
 
-    private long droneId;
-
-    public FlightCanceledMessage(long droneId) {
-        this.droneId = droneId;
-    }
-
-    public long getDroneId() {
-        return droneId;
+    public FlightCanceledMessage(Long id) {
+        super(id);
     }
 }

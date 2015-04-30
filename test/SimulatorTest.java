@@ -3,6 +3,7 @@ import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import api.DroneCommander;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import messages.*;
 import model.properties.*;
 import org.junit.AfterClass;

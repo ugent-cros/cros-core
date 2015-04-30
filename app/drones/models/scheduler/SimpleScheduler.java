@@ -233,7 +233,7 @@ public class SimpleScheduler extends Scheduler {
         if(!fleet.hasCommander(drone)) {
             log.info("[SimpleScheduler] Creating new commander.");
             try {
-                commander = Await.result(fleet.createCommanderForDrone(drone), new Timeout(3, TimeUnit.SECONDS).duration());
+                commander = Await.result(fleet.createCommanderForDrone(drone), Duration.create(3,TimeUnit.SECONDS));
             } catch(Exception ex){
                 log.error(ex, "Failed to initialize drone: {}", drone);
             }

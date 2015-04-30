@@ -12,6 +12,7 @@ import drones.models.Fleet;
 import drones.models.scheduler.Scheduler;
 import drones.models.scheduler.SchedulerException;
 import drones.models.scheduler.messages.from.AssignmentCompletedMessage;
+import drones.models.scheduler.messages.from.AssignmentProgressedMessage;
 import drones.models.scheduler.messages.from.AssignmentStartedMessage;
 import drones.models.scheduler.messages.from.DroneAssignedMessage;
 import play.Logger;
@@ -56,6 +57,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.subscribe(AssignmentStartedMessage.class, self());
             Scheduler.subscribe(AssignmentCompletedMessage.class, self());
             Scheduler.subscribe(DroneStatusMessage.class, self());
+            Scheduler.subscribe(AssignmentProgressedMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to subscribe to scheduler.", ex);
         }
@@ -124,6 +126,7 @@ public class MessageWebSocket extends AbstractActor {
             Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
             Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
             Scheduler.unsubscribe(DroneStatusMessage.class, self());
+            Scheduler.unsubscribe(AssignmentProgressedMessage.class, self());
         } catch (SchedulerException ex) {
             Logger.error("Failed to unsubscribe from scheduler.", ex);
         }
