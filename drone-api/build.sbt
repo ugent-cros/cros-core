@@ -9,5 +9,5 @@ lazy val droneapi = (project in file("."))
 javaSource in Compile := baseDirectory.value / "src"
 
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" % "akka-actor_2.11" % "2.3.9"
+	"com.typesafe.akka" % "akka-actor_2.11" % "2.3.4"
 )
