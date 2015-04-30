@@ -152,6 +152,7 @@ public class Drone extends Model {
         RETIRED,
         INACTIVE,
         UNREACHABLE,
+        MANUAL_CONTROL,
         UNKNOWN
     }
 }

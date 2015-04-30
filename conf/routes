@@ -53,6 +53,10 @@ GET            /drones/:id/rotation                  controllers.DroneController
 GET            /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
 GET            /drones/:id/initVideo                 controllers.DroneController.initVideo(id: Long)
 GET            /drones/:id/video                     controllers.DroneController.videoSocket(id: Long)
+GET            /drones/:id/commands                  controllers.ManualDroneController.links(id: Long)
+GET            /drones/:id/commands/manual           controllers.ManualDroneController.setManual(id: Long)
+GET            /drones/:id/commands/automatic        controllers.ManualDroneController.setAutomatic(id: Long)
+GET            /drones/:id/commands/:command         controllers.ManualDroneController.command(id: Long, command: String)
 
 POST           /login                                controllers.SecurityController.login()
 
