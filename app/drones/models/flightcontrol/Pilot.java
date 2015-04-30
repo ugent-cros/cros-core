@@ -57,18 +57,10 @@ public abstract class Pilot extends FlightControl{
     @Override
     protected UnitPFBuilder<Object> createListeners() {
         return ReceiveBuilder.
-                match(SetCruisingAltitudeMessage.class, s -> setCruisingAltitude(s)).
                 match(FlyingStateChangedMessage.class, s -> flyingStateChanged(s)).
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
                 match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s)).
-                match(AddNoFlyPointMessage.class, s -> addNoFlyPointMessage(s)).
                 match(WaitAtWayPointCompletedMessage.class, s -> waitAtWayPointCompletedMessage(s));
-    }
-
-    protected void setCruisingAltitude(SetCruisingAltitudeMessage s){
-        if(blocked){
-            cruisingAltitude = s.getCruisingAltitude();
-        }
     }
 
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);

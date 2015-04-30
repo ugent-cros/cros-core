@@ -79,6 +79,12 @@ public class SimplePilot extends Pilot {
         this.cruisingAltitude = cruisingAltitude;
     }
 
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude, List<Location> noFlyPoints) {
+        this(reporterRef,droneId,linkedWithControlTower,wayPoints, cruisingAltitude);
+        this.cruisingAltitude = cruisingAltitude;
+        this.noFlyPoints = new ArrayList<>(noFlyPoints);
+    }
+
     /**
      * Use only for testing!
      */
@@ -309,6 +315,7 @@ public class SimplePilot extends Pilot {
                 break;
             case EMERGENCY:
                 handleErrorMessage("Drone in emergency");
+                landed = true;
                 break;
             case LANDED:
                 if(!blocked && waitForLandFinished){
@@ -325,6 +332,7 @@ public class SimplePilot extends Pilot {
                     stop();
                     return;
                 }
+                landed = true;
                 blocked = true;
                 break;
         }
