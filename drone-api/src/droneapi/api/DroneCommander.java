@@ -2,6 +2,7 @@ package droneapi.api;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.pattern.Patterns;
@@ -30,6 +31,14 @@ public class DroneCommander implements DroneControl, DroneStatus {
 
     private boolean initialized = false;
     private boolean shutdown = false;
+
+    public DroneCommander(String droneAddress, DroneDriver driver) {
+
+        // Create DroneActor
+        droneActor = system.actorOf(
+                Props.create(driver.getActorClass(),
+                        () -> driver.createActor(droneAddress)));
+    }
 
     public DroneCommander(final ActorRef droneActor) {
         this.droneActor = droneActor;
