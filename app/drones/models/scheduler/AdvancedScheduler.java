@@ -12,6 +12,7 @@ import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
 import drones.models.flightcontrol.messages.StartFlightControlMessage;
 import drones.models.flightcontrol.messages.StopFlightControlMessage;
+import drones.models.flightcontrol.messages.WayPointCompletedMessage;
 import drones.models.scheduler.messages.from.*;
 import drones.models.scheduler.messages.to.*;
 import models.*;
@@ -43,6 +44,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected UnitPFBuilder<Object> initReceivers() {
         // TODO: add more flight control receivers
         return super.initReceivers()
+                .match(WayPointCompletedMessage.class, m -> waypointCompleted(m))
                 .match(FlightCanceledMessage.class, m -> flightCanceled(m))
                 .match(FlightCompletedMessage.class, m -> flightCompleted(m));
     }
@@ -203,6 +205,25 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
         if (drone.getStatus() == Drone.Status.RETIRED) {
             removeDrone(drone);
         }
+    }
+
+    /**
+     * Update and forward progress from an assignment.
+     */
+    protected void waypointCompleted(WayPointCompletedMessage message) {
+        Flight flight = flights.get(message.getDroneId());
+        if (flight == null || flight.getType() != Flight.Type.ASSIGNMENT) {
+            // There is no assignment associated to this progress
+            return;
+        }
+        Assignment assignment = getAssignment(flight.getAssignmentId());
+        if (assignment == null) {
+            // Assignment was deleted
+            return;
+        }
+        assignment.setProgress(message.getWaypointNumber());
+        assignment.update();
+        eventBus.publish(new AssignmentProgressedMessage(assignment.getId(), message.getWaypointNumber()));
     }
 
     /**
