@@ -7,7 +7,6 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import akka.util.Timeout;
 import api.DroneCommander;
-import api.DroneStatus;
 import com.avaje.ebean.Ebean;
 import drones.models.Fleet;
 import drones.models.flightcontrol.SimplePilot;
@@ -111,15 +110,15 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     protected void emergency(EmergencyMessage message) {
         long droneId = message.getDroneId();
         Drone drone = getDrone(droneId);
-        updateDroneStatus(drone,Drone.Status.EMERGENCY);
+        updateDroneStatus(drone, Drone.Status.EMERGENCY);
         if (flights.containsKey(droneId)) {
             cancelFlight(flights.get(droneId));
-        }else{
+        } else {
             // No registered flight
             // Try to land anyway
             // TODO: Do this elsewhere.
             Fleet fleet = Fleet.getFleet();
-            if(fleet.hasCommander(drone)){
+            if (fleet.hasCommander(drone)) {
                 DroneCommander commander = fleet.getCommanderForDrone(drone);
                 commander.land();
             }
@@ -241,7 +240,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             Location droneLocation = getDroneLocation(commander);
             if (droneLocation == null) {
                 dronePool.remove(drone.getId());
-                updateDroneStatus(drone,Drone.Status.UNREACHABLE);
+                updateDroneStatus(drone, Drone.Status.UNREACHABLE);
                 eventBus.publish(new DroneRemovedMessage(drone.getId()));
                 log.warning("[AdvancedScheduler] Encountered and removed unresponsive drone.");
             }
@@ -341,7 +340,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void addDrone(AddDroneMessage message) {
         Drone drone = getDrone(message.getDroneId());
-        if(drone == null || drone.getStatus() == Drone.Status.MANUAL_CONTROL){
+        if (drone == null || drone.getStatus() == Drone.Status.MANUAL_CONTROL) {
             // Don't add it this to the scheduler
             return;
         }
@@ -355,7 +354,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
                     boolean success = (failure == null) && (commander != null);
                     if (success) {
                         // Change drone state
-                        updateDroneStatus(drone.getId(),Drone.Status.AVAILABLE);
+                        updateDroneStatus(drone.getId(), Drone.Status.AVAILABLE);
                         // Add drone to the pool
                         dronePool.add(message.getDroneId());
                     }
@@ -382,8 +381,8 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             // Retire drone
             Drone drone = getDrone(droneId);
             // Decommission the drone
-            updateDroneStatus(drone,Drone.Status.RETIRED);
-            if(flight.getType() == Flight.Type.ASSIGNMENT) {
+            updateDroneStatus(drone, Drone.Status.RETIRED);
+            if (flight.getType() == Flight.Type.ASSIGNMENT) {
                 // Cancel flight
                 cancelFlight(flight);
             }
@@ -402,7 +401,7 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
             Logger.warn("Tried to shut down non-existent commander.");
         }
         // Update status
-        updateDroneStatus(drone,Drone.Status.INACTIVE);
+        updateDroneStatus(drone, Drone.Status.INACTIVE);
         // Publish
         eventBus.publish(new DroneRemovedMessage(drone.getId()));
         return;
@@ -535,10 +534,11 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Update the drone status and publish it.
+     *
      * @param drone
      * @param status
      */
-    protected void updateDroneStatus(Drone drone, Drone.Status status){
+    protected void updateDroneStatus(Drone drone, Drone.Status status) {
         drone.setStatus(status);
         drone.update();
         eventBus.publish(new DroneStatusMessage(drone.getId(), status));
@@ -546,10 +546,11 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
 
     /**
      * Get drone from database, update the drone status and publish it.
+     *
      * @param droneId
      * @param status
      */
-    protected void updateDroneStatus(long droneId, Drone.Status status){
+    protected void updateDroneStatus(long droneId, Drone.Status status) {
         updateDroneStatus(getDrone(droneId), status);
     }
 }
