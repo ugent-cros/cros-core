@@ -341,8 +341,11 @@ public class AdvancedScheduler extends SimpleScheduler implements Comparator<Ass
     @Override
     protected void addDrone(AddDroneMessage message) {
         Drone drone = getDrone(message.getDroneId());
+        if(drone == null || drone.getStatus() == Drone.Status.MANUAL_CONTROL){
+            // Don't add it this to the scheduler
+            return;
+        }
         Fleet fleet = Fleet.getFleet();
-
         if (!fleet.hasCommander(drone)) {
 
             ExecutionContextExecutor executor = getContext().dispatcher();
