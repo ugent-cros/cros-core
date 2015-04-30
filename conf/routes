@@ -21,14 +21,17 @@ GET            /calibrate                            controllers.Application.cal
 GET            /moveTo                               controllers.Application.moveToLocation(lat: Double, lon: Double, alt: Double, id: Long)
 GET            /move                                 controllers.Application.moveVector(vx: Double, vy: Double, vz: Double, vr: Double, id: Long)
 GET            /setMaxHeight                         controllers.Application.setMaxHeight(meters: Float, id: Long)
-GET             /flip                               controllers.Application.flip(id: Long, flip: String)
+GET            /image                                controllers.Application.getImage(id: Long)
+GET            /flip                                 controllers.Application.flip(id: Long, flip: String)
 
 GET            /takeoff                              controllers.Application.takeOff(id: Long)
 GET            /land                                 controllers.Application.land(id: Long)
+GET            /initVideo                            controllers.Application.initVideo(id: Long)
 GET            /subscribe                            controllers.Application.subscribeMonitor(id: Long)
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
 GET            /socket                               controllers.Application.socket()
+GET            /videoSocket                          controllers.Application.videoSocket(id: Long)
 
 
 # Drone REST calls
@@ -48,6 +51,12 @@ GET            /drones/:id/location                  controllers.DroneController
 GET            /drones/:id/speed                     controllers.DroneController.speed(id: Long)
 GET            /drones/:id/rotation                  controllers.DroneController.rotation(id: Long)
 GET            /drones/:id/abort                     controllers.DroneController.emergency(id: Long)
+GET            /drones/:id/initVideo                 controllers.DroneController.initVideo(id: Long)
+GET            /drones/:id/video                     controllers.DroneController.videoSocket(id: Long)
+GET            /drones/:id/commands                  controllers.ManualDroneController.links(id: Long)
+GET            /drones/:id/commands/manual           controllers.ManualDroneController.setManual(id: Long)
+GET            /drones/:id/commands/automatic        controllers.ManualDroneController.setAutomatic(id: Long)
+GET            /drones/:id/commands/:command         controllers.ManualDroneController.command(id: Long, command: String)
 
 POST           /login                                controllers.SecurityController.login()
 

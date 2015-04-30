@@ -1,7 +1,7 @@
-import drones.commands.MoveCommand;
-import drones.models.Location;
-import drones.models.NavigationState;
-import drones.util.LocationNavigator;
+
+import droneapi.model.properties.Location;
+import droneapi.navigator.LocationNavigator;
+import droneapi.navigator.MoveVector;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -15,7 +15,7 @@ public class LocationNavigatorTest {
         Location start = new Location(51.046266, 3.724902, 1);
         Location goal = new Location(51.046267, 3.724903, 1);
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
-        MoveCommand cmd = nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeight() + 0.2));
+        MoveVector cmd = nav.update(new Location(start.getLatitude(), start.getLongitude(), start.getHeight() + 0.2));
         Assert.assertNull(cmd);
     }
 
@@ -24,9 +24,9 @@ public class LocationNavigatorTest {
         Location start = new Location(51.046266, 3.724902, 1);
         Location goal = new Location(51.046266112, 3.724902112, 3);
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
-        MoveCommand cmd1 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 1.4));
-        MoveCommand cmd2 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 2.4));
-        MoveCommand cmd3 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 2.8));
+        MoveVector cmd1 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 1.4));
+        MoveVector cmd2 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 2.4));
+        MoveVector cmd3 = nav.update(new Location(start.getLatitude(), start.getLongitude(), 2.8));
         Assert.assertNotNull(cmd1);
         Assert.assertTrue(cmd1.getVz() == 1);
         Assert.assertNotNull(cmd2);
@@ -43,22 +43,22 @@ public class LocationNavigatorTest {
         Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
         LocationNavigator nav2 = new LocationNavigator(start, goal, 2f, 120f, 1f);
-        MoveCommand cmda1 = nav.update(firstStep);
+        MoveVector cmda1 = nav.update(firstStep);
         Assert.assertEquals(cmda1.getVr(), 1, 0); // attempt to turn right, full power (>90 degrees)
 
-        MoveCommand cmdb1 = nav2.update(firstStep);
+        MoveVector cmdb1 = nav2.update(firstStep);
         Assert.assertTrue(cmdb1.getVr() < 1); // angular velocity = 120, correction angle = +-116, no full rotational power
-        MoveCommand cmdb2 = nav2.update(firstStep);
+        MoveVector cmdb2 = nav2.update(firstStep);
         Assert.assertEquals(cmdb2.getVr(), 0, 0); // performed one step of rotation of 120 degrees
 
         Location secondStep = new Location(51.046318, 3.725011, 2.9);
-        MoveCommand cmda2 = nav.update(secondStep);
+        MoveVector cmda2 = nav.update(secondStep);
         Assert.assertTrue(cmda2.getVr() < 0); // overshoot, correct to the left
 
         // Trajectory
         nav.update(new Location(51.046259, 3.725234, 2.95));
         nav.update(new Location(51.046252, 3.725354, 3.02));
-        MoveCommand cmda3 = nav.update(new Location(51.04625322, 3.72544322, 2.96));
+        MoveVector cmda3 = nav.update(new Location(51.04625322, 3.72544322, 2.96));
         Assert.assertNull(cmda3);
     }
 
@@ -68,7 +68,7 @@ public class LocationNavigatorTest {
         Location goal = new Location(51.046266, 3.726952, 3); // goal east of start
         Location firstStep = new Location(51.046266, 3.726327, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
-        MoveCommand cmda = nav.update(firstStep);
+        MoveVector cmda = nav.update(firstStep);
         Assert.assertEquals(cmda.getVr(), 0, 0); // The bearing difference should be less than 10 degrees
     }
 
@@ -78,7 +78,7 @@ public class LocationNavigatorTest {
         Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
         Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
-        MoveCommand cmd1 = nav.update(firstStep);
+        MoveVector cmd1 = nav.update(firstStep);
         Assert.assertTrue(cmd1.getVr() < 0); // prefer left turn instead of long right turn to go to southwest
     }
 
@@ -88,7 +88,7 @@ public class LocationNavigatorTest {
         Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
         Location firstStep = new Location(51.046366, 3.754877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
-        MoveCommand cmd1 = nav.update(firstStep);
+        MoveVector cmd1 = nav.update(firstStep);
         Assert.assertTrue(cmd1.getVr() > 0); // prefer left turn instead of long right turn to go to southwest
     }
 }

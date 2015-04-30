@@ -10,12 +10,16 @@ import javax.persistence.Embeddable;
  */
 @Embeddable
 @JsonRootName("droneType")
-public class DroneType {
+public class DroneType implements droneapi.api.DroneType {
 
     @Constraints.Required
     private String type;
     @Constraints.Required
     private String versionNumber;
+
+    public DroneType(droneapi.api.DroneType type) {
+        this(type.getType(), type.getVersionNumber());
+    }
 
     public DroneType(String type, String versionNumber) {
         this.type = type;

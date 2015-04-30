@@ -1,8 +1,9 @@
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.pattern.Patterns;
-import drones.messages.*;
-import drones.models.*;
+import droneapi.api.DroneCommander;
+import droneapi.messages.*;
+import droneapi.model.properties.*;
 import org.junit.*;
 import play.libs.Akka;
 import scala.concurrent.Await;
@@ -11,7 +12,6 @@ import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 
 /**
  * Created by Cedric on 4/2/2015.
@@ -35,10 +35,16 @@ public class DroneActorTest extends TestSuperclass{
     }
 
     @Before
-    public void init() {
+    public void init() throws InterruptedException, TimeoutException {
         droneActor = Akka.system().actorOf(
                 Props.create(TestDroneActor.class));
         commander = new DroneCommander(droneActor);
+        Await.ready(commander.init(), TIMEOUT);
+    }
+
+    @After
+    public void stop(){
+        commander.stop();
     }
 
     @Test

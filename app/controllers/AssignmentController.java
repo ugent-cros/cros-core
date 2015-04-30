@@ -1,14 +1,12 @@
 package controllers;
 
-import akka.actor.ActorRef;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import drones.models.scheduler.Scheduler;
-import drones.models.scheduler.SchedulerException;
-import drones.models.scheduler.messages.AssignmentMessage;
+import drones.scheduler.Scheduler;
+import drones.scheduler.SchedulerException;
 import models.Assignment;
 import models.User;
 import play.Logger;
@@ -99,11 +97,11 @@ public class AssignmentController {
         assignment.save();
 
         try {
-            Scheduler.getScheduler().tell(new AssignmentMessage(assignment.getId()), ActorRef.noSender());
+            Scheduler.schedule();
             return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
-        } catch (SchedulerException e) {
-            Logger.error("scheduler error", e);
-            return internalServerError("scheduler could not process new assignment");
+        } catch (SchedulerException ex) {
+            Logger.error("Failed to start schedule procedure.", ex);
+            return internalServerError("Failed to start schedule procedure.");
         }
 
     }

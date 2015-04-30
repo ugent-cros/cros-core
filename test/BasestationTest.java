@@ -1,6 +1,5 @@
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
-import controllers.routes;
 import models.Basestation;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -11,12 +10,15 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
+import controllers.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
+
+import controllers.*;
 
 /**
  * Created by Eveline on 8/03/2015.

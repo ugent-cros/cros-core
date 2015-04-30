@@ -1,6 +1,6 @@
 package drones.util;
 
-import drones.models.Location;
+import droneapi.model.properties.Location;
 
 /**
  * Created by Cedric on 4/2/2015.

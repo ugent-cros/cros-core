@@ -2,21 +2,21 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
-import drones.models.DroneCommander;
-import drones.models.FlyingState;
-import drones.models.Location;
-import drones.models.flightcontrol.SimplePilot;
-import drones.models.flightcontrol.messages.*;
-import drones.models.scheduler.messages.DroneArrivalMessage;
-import drones.simulation.BepopSimulator;
+import droneapi.api.DroneCommander;
+import drones.flightcontrol.SimplePilot;
+import drones.flightcontrol.messages.*;
+import drones.scheduler.messages.to.FlightCanceledMessage;
+import drones.scheduler.messages.to.FlightCompletedMessage;
+import droneapi.model.properties.FlyingState;
+import droneapi.model.properties.Location;
 import models.Checkpoint;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import simulator.BepopSimulator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,14 +83,16 @@ public class SimplePilotTest extends TestSuperclass {
 
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, DroneArrivalMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
 
                 //check if on destination
                 Location droneLocation;
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue("Check dronelocation",d < 50);
+                    assertTrue("Check dronelocation: " + d,d < 50);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -102,13 +104,18 @@ public class SimplePilotTest extends TestSuperclass {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                simplePilot.tell(new StopFlightControlMessage(),getRef());
+
+                expectMsgClass(MAX_DURATION_MESSAGE, FlightCanceledMessage.class);
             }
         };
     }
 
     /**
      * Test if correct request messages are used for landing/takeoff.
-     */
+     *
+    */
     @Test
     public void requestMessages() throws TimeoutException, InterruptedException {
         new JavaTestKit(system) {
@@ -124,22 +131,34 @@ public class SimplePilotTest extends TestSuperclass {
                                 () -> new SimplePilot(getRef(), dc, true, wayPoints))
                 );
 
+                //start
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForTakeOffMessage.class);
+                //request for take off
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
-                simplePilot.tell(new RequestForTakeOffGrantedMessage(simplePilot,STERRE),getRef());
+                simplePilot.tell(new RequestGrantedMessage(0,new RequestMessage(simplePilot,STERRE,AbstractFlightControlMessage.RequestType.TAKEOFF,0)),getRef());
 
-                expectMsgClass(MAX_DURATION_FLYING, TakeOffCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, CompletedMessage.class);
 
-                expectMsgClass(MAX_DURATION_FLYING, RequestForLandingMessage.class);
+                //at wayPoints
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
+
+                //request for landing
+                expectMsgClass(MAX_DURATION_FLYING, RequestMessage.class);
 
                 Location tmp = new Location(destination.getLocation().getLatitude(),destination.getLocation().getLongitude(),destination.getLocation().getAltitude());
-                simplePilot.tell(new RequestForLandingGrantedMessage(simplePilot,tmp),getRef());
+                simplePilot.tell(new RequestGrantedMessage(0,new RequestMessage(simplePilot,tmp,AbstractFlightControlMessage.RequestType.LANDING, 0)),getRef());
 
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,DroneArrivalMessage.class,LandingCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING,FlightCompletedMessage.class,CompletedMessage.class);
+
+                simplePilot.tell(new StopFlightControlMessage(),getRef());
+
+                expectMsgClass(MAX_DURATION_MESSAGE, FlightCanceledMessage.class);
             }
         };
     }
+
 }

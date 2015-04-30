@@ -1,6 +1,6 @@
-import drones.models.Location;
-import org.junit.Test;
+import droneapi.model.properties.Location;
 import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by Cedric on 4/2/2015.

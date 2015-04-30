@@ -1,9 +1,7 @@
 import akka.japi.pf.UnitPFBuilder;
-import drones.models.DroneActor;
-import drones.models.DroneException;
-import drones.models.FlipType;
-import drones.models.Location;
-import drones.util.LocationNavigator;
+import droneapi.model.DroneActor;
+import droneapi.model.DroneException;
+import droneapi.model.properties.FlipType;
 import scala.concurrent.Promise;
 
 /**
@@ -16,8 +14,13 @@ public class TestDroneActor extends DroneActor {
     }
 
     @Override
-    protected void init(Promise<Void> p) {
+    protected void stop() {
 
+    }
+
+    @Override
+    protected void init(Promise<Void> p) {
+        p.success(null);
     }
 
     @Override
@@ -82,6 +85,11 @@ public class TestDroneActor extends DroneActor {
 
     @Override
     protected void flip(Promise<Void> p, FlipType type) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
+    protected void initVideo(Promise<Void> p) {
         p.failure(new DroneException("Not implemented yet."));
     }
 

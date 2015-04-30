@@ -2,7 +2,21 @@ name := """cros-core"""
 
 version := "1.0-SNAPSHOT"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+lazy val droneapi = (project in file("drone-api"))
+
+lazy val dronesimulator = (project in file("drivers/drone-simulator"))
+  .dependsOn(droneapi % "compile->compile")
+
+lazy val parrotdrivers = (project in file("drivers/parrot"))
+  .dependsOn(droneapi % "compile->compile")
+
+lazy val root = (project in file("."))
+	.enablePlugins(PlayJava)
+	.dependsOn(
+    droneapi % "compile->compile",
+    dronesimulator % "compile->compile",
+    parrotdrivers % "compile->compile"
+  )
 
 scalaVersion := "2.11.1"
 
@@ -12,7 +26,10 @@ libraryDependencies ++= Seq(
   cache,
   javaWs,
   "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
-  "com.typesafe.akka" % "akka-testkit_2.11" % "2.3.9"
+  "com.typesafe.akka" % "akka-testkit_2.11" % "2.3.9",
+  "commons-codec" % "commons-codec" % "1.10",
+  "org.slf4j" % "slf4j-api" % "1.7.12",
+  "com.typesafe.akka" % "akka-stream-experimental_2.11" % "1.0-M5"
 )
 
 // Code coverage
@@ -31,3 +48,4 @@ jacoco.excludes        in jacoco.Config := Seq(
   "controllers*javascript*",
   "controller*ref*"
 )
+

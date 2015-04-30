@@ -2,7 +2,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import controllers.SecurityController;
-import controllers.routes;
 import exceptions.IncompatibleSystemException;
 import models.User;
 import org.fest.assertions.Fail;
@@ -15,6 +14,7 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.test.FakeRequest;
 import utilities.JsonHelper;
+import controllers.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +23,8 @@ import java.util.Map;
 import static org.fest.assertions.Assertions.assertThat;
 import static play.test.Helpers.*;
 import static utilities.JsonHelper.removeRootElement;
+
+import controllers.*;
 
 /**
  * Created by yasser on 4/03/15.
