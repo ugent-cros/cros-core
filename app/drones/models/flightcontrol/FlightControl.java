@@ -54,10 +54,19 @@ public abstract class FlightControl extends AbstractActor {
 
     protected abstract void stopFlightControlMessage(StopFlightControlMessage m);
 
+    /**
+     * Handles a RequestMessage of a other drone. A RequestMessage is send when a drone wants to land or to take off.
+     */
     protected abstract void requestMessage(RequestMessage m);
 
+    /**
+     * Handles a RequestGrantedMessage. A RequestGrantedMessage is send to a class as a reply on a RequestMessage.
+     */
     protected abstract void requestGrantedMessage(RequestGrantedMessage m);
 
+    /**
+     * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
+     */
     protected abstract void completedMessage(CompletedMessage m);
 
     protected void handleErrorMessage(String s){

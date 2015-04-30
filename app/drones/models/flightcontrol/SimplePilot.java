@@ -34,7 +34,7 @@ public class SimplePilot extends Pilot {
 
     //List of points where the drone cannot fly
     private List<Location> noFlyPoints = new ArrayList<>();
-    //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a land.
+    //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a landing or take off.
     private List<RequestMessage> evacuationPoints = new ArrayList<>();
 
     //Range around a no fly point where the drone cannot fly.
@@ -210,6 +210,9 @@ public class SimplePilot extends Pilot {
         }
     }
 
+    /**
+     * Handles a RequestMessage of a other drone. A RequestMessage is send when a drone wants to land or to take off.
+     */
     @Override
     protected void requestMessage(RequestMessage m) {
         if(blocked){
@@ -224,6 +227,9 @@ public class SimplePilot extends Pilot {
         }
     }
 
+    /**
+     * Handles a RequestGrantedMessage. A RequestGrantedMessage is send to a class as a reply on a RequestMessage.
+     */
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
         switch (m.getRequestMessage().getType()) {
@@ -252,6 +258,9 @@ public class SimplePilot extends Pilot {
         }
     }
 
+    /**
+     * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
+     */
     @Override
     protected void completedMessage(CompletedMessage m) {
         noFlyPoints.remove(m.getLocation());
@@ -259,7 +268,6 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
-        System.err.println("Location: " + m.getLongitude() + ", " + m.getLatitude() + ", " + m.getGpsHeight());
         if (!blocked && !waitForLandFinished && !waitForTakeOffFinished && !waitForGoUpUntilCruisingAltitudeFinished) {
             actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
             for (RequestMessage r : evacuationPoints) {
