@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*PCMD_MAG=<SEQ>,<FLAG>,<ROLL>,<PITCH>,<GAZ>,<YAW>,<PSI>,<ACCPSI>\r
+ * The command looks like: AT*PCMD_MAG=&lt;SEQ&gt;,&lt;FLAG&gt;,&lt;ROLL&gt;,&lt;PITCH&gt;,&lt;GAZ&gt;,&lt;YAW&gt;,&lt;PSI&gt;,&lt;ACCPSI&gt;\r
  *
  * Created by brecht on 3/26/15.
  */

@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*PMODE=<SEQ>,<PARAM1>\r
+ * The command looks like: AT*PMODE=&lt;SEQ&gt;,&lt;PARAM1&gt;\r
  *
  * Created by brecht on 3/8/15.
  */

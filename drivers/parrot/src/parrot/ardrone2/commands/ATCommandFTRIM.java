@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*FTRIM=<SEQ>\r
+ * The command looks like: AT*FTRIM=&lt;SEQ&gt;\r
  *
  * Created by brecht on 3/12/15.
  */

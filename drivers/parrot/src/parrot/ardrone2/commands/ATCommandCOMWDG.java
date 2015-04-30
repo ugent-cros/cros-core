@@ -2,7 +2,7 @@ package parrot.ardrone2.commands;
 
 /**
  * This command resets communication watchdog
- * The command looks like: AT*COMWDG=<SEQ>\r
+ * The command looks like: AT*COMWDG=&lt;SEQ&gt;\r
  *
  * Created by brecht on 3/8/15.
  */

@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*REF=<SEQ>,<BIT VECTOR>\r
+ * The command looks like: AT*REF=&lt;SEQ&gt;,&lt;BIT VECTOR&gt;\r
  *
  * Created by brecht on 3/7/15.
  */

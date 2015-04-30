@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*CONFIG_IDS=<SEQ>,<ANIMATION_ID>,<FREQUENCY>,<DURATION>\r
+ * The command looks like: AT*CONFIG_IDS=&lt;SEQ&gt;,&lt;ANIMATION_ID&gt;,&lt;FREQUENCY&gt;,&lt;DURATION&gt;\r
  *
  * Created by brecht on 4/3/15.
  */

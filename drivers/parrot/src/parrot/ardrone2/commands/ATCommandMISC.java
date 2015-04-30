@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*MISC=<SEQ>,<PARAM1>,<PARAM2>,<PARAM3>,<PARAM4>\r
+ * The command looks like: AT*MISC=&lt;SEQ&gt;,&lt;PARAM1&gt;,&lt;PARAM2&gt;,&lt;PARAM3&gt;,&lt;PARAM4&gt;\r
  *
  * Created by brecht on 3/8/15.
  */

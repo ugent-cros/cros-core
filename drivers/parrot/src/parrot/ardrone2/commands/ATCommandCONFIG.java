@@ -3,7 +3,7 @@ package parrot.ardrone2.commands;
 import parrot.ardrone2.util.ConfigKey;
 
 /**
- * The command looks like: AT*CONFIG=<SEQ>,"<KEY>","<VALUE>"\r
+ * The command looks like: AT*CONFIG=&lt;SEQ&gt;,"&lt;KEY&gt;","&lt;VALUE&gt;"\r
  *
  * Created by brecht on 3/8/15.
  */

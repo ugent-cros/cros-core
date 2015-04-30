@@ -2,7 +2,7 @@ package parrot.ardrone2.commands;
 
 /**
  * This command asks the drone to calibrate the magneto meter (The drone must be flying)
- * The command looks like: AT*CALIB=<SEQ>,<DEVICE_ID>\r
+ * The command looks like: AT*CALIB=&lt;SEQ&gt;,&lt;DEVICE_ID&gt;\r
  *
  * Created by brecht on 3/26/15.
  */

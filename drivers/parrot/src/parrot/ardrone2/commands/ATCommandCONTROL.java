@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*CTRL=<SEQ>,<PARAM1>,<PARAM2>\r
+ * The command looks like: AT*CTRL=&lt;SEQ&gt;,&lt;PARAM1&gt;,&lt;PARAM2&gt;\r
  *
  * Created by brecht on 3/24/15.
  */

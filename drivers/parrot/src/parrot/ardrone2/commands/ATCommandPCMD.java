@@ -1,7 +1,7 @@
 package parrot.ardrone2.commands;
 
 /**
- * The command looks like: AT*PCMD=<SEQ>,<FLAG>,<ROLL>,<PITCH>,<GAZ>,<YAW>\r
+ * The command looks like: AT*PCMD=&lt;SEQ&gt;,&lt;FLAG&gt;,&lt;ROLL&gt;,&lt;PITCH&gt;,&lt;GAZ&gt;,&lt;YAW&gt;\r
  *
  * Created by brecht on 3/7/15.
  */
