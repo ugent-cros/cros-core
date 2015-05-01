@@ -296,6 +296,11 @@ public class Bebop extends NavigatedDroneActor {
     }
 
     @Override
+    protected void stopVideo(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented"));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
         land(p);
     }

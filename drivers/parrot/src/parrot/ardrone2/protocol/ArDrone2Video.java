@@ -61,10 +61,22 @@ public class ArDrone2Video extends UntypedActor {
                     .match(Tcp.Received.class, b -> processRawData(b.data()))
                     .match(Tcp.CommandFailed.class, m -> commandFailed())
                     .match(StopMessage.class, m -> getContext().stop(getSelf()))
-                    .match(Tcp.ConnectionClosed.class, m -> connectionClosed()).build());
+                    .match(Tcp.ConnectionClosed.class, m -> connectionClosed())
+                    .match(StopMessage.class, s -> stop()).build());
         } else if(msg instanceof StopMessage){
             getContext().stop(getSelf());
         }
+    }
+
+    private void stop() {
+        try {
+            pos.close();
+            pis.close();
+        } catch (IOException e) {
+            log.error(e, "Error while closing streams");
+        }
+
+        getContext().stop(getSelf());
     }
 
     private void processRawData(ByteString data) {

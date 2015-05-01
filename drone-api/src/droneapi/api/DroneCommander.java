@@ -231,6 +231,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> stopVideo() {
+        if(canSend()) {
+            return Patterns.ask(droneActor, new StopVideoRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, system.dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
     public void stop() {
         droneActor.tell(new StopMessage(), ActorRef.noSender());
         shutdown = true;

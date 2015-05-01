@@ -113,6 +113,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
                     .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(InitVideoCommand.class, s -> handleInitVideo())
+                    .match(StopVideoCommand.class, s -> handleStopVideo())
 
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -136,6 +137,14 @@ public class ArDrone2Protocol extends UntypedActor {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+    }
+
+    private void handleStopVideo() {
+        if(ardrone2Video != null) {
+            ardrone2Video.tell(new StopMessage(), self());
+        }
+
+        ardrone2Video = null;
     }
 
     private void handleInitVideo() {
@@ -350,6 +359,9 @@ public class ArDrone2Protocol extends UntypedActor {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
         ardrone2Config.tell(new StopMessage(), self());
+        if(ardrone2Video != null) {
+            ardrone2Video.tell(new StopMessage(), self());
+        }
         // ardrone2Video does not have to be stopped
 
         udpManager.tell(UdpMessage.unbind(), self());

@@ -395,6 +395,16 @@ public class Application extends Controller {
         });
     }
 
+    public static F.Promise<Result> stopVideo(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.stopVideo()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
     public static Result preflight(String all) {
         response().setHeader("Access-Control-Allow-Origin", "*");
         response().setHeader("Allow", "*");
