@@ -2,6 +2,7 @@ package controllers;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,6 +21,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.WebSocket;
 import scala.concurrent.Await;
+import scala.concurrent.Future;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
 import utilities.VideoWebSocket;
@@ -172,6 +174,10 @@ public class Application extends Controller {
         } else {
             return WebSocket.reject(unauthorized());
         }*/
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        d.initVideo();
+
         return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
     }
 
@@ -207,7 +213,12 @@ public class Application extends Controller {
     public static F.Promise<Result> getImage(long id) {
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
-        return F.Promise.wrap(d.getImage()).map(v -> {
+        // Somehow intellij can't parse this as valid java, but it works
+        return F.Promise.wrap(d.initVideo().flatMap(new Mapper<Void, Future<byte[]>>() {
+            public Future<byte[]> apply(final Void s) {
+                return d.getImage();
+            }
+        }, Akka.system().dispatcher())).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("image", Base64.getEncoder().encodeToString(v));
             return ok(result);

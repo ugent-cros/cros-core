@@ -55,6 +55,7 @@ public class ArDrone3 extends UntypedActor {
     private static final byte NONACK_CHANNEL = 10;
     private static final byte ACK_CHANNEL = 11;
     private static final byte EMERGENCY_CHANNEL = 12;
+    private static final byte VIDEO_ACK = 13;
 
     private final EnumMap<FrameDirection, Map<Byte, DataChannel>> channels;
     private final List<DataChannel> ackChannels;
@@ -79,6 +80,8 @@ public class ArDrone3 extends UntypedActor {
     private int currentFrameNum;
     private static PipedInputStream pis;
     private static PipedOutputStream pos;
+    private long lowPacketsAck;
+    private long highPacketsAck;
     private boolean captureVideo;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
@@ -223,7 +226,7 @@ public class ArDrone3 extends UntypedActor {
                     processDataFrame(frame);
                     break;
                 case DATA_LOW_LATENCY:
-                    if(captureVideo) {
+                    if (captureVideo) {
                         handleVideoData(frame);
                     }
                     break;
@@ -256,29 +259,66 @@ public class ArDrone3 extends UntypedActor {
         }
     }
 
+    private void resetVideoChecksum(int fragmentsPerFrame) {
+        // This code could possibly never work in Java due to long-long (128 bit) dependency in official sdk
+        if (0 <= fragmentsPerFrame && fragmentsPerFrame < 64) {
+            highPacketsAck = Long.MAX_VALUE;
+            lowPacketsAck = Long.MAX_VALUE << fragmentsPerFrame;
+        } else if (64 <= fragmentsPerFrame && fragmentsPerFrame < 128) {
+            highPacketsAck = Long.MAX_VALUE << (fragmentsPerFrame - 64);
+            lowPacketsAck = 0;
+        } else {
+            highPacketsAck = 0;
+            lowPacketsAck = 0;
+        }
+    }
+
     private void handleVideoData(Frame dataFrame) {
         ByteString data = dataFrame.getData();
         ByteIterator it = data.iterator();
         int frameNum = it.getShort(FrameHelper.BYTE_ORDER);
-        if (frameNum != currentFrameNum) {
-            // Flush?
-            flushFrame();
-            currentFrameNum = frameNum;
-        }
         byte flags = it.getByte();
-        byte fragNum = it.getByte();
-        byte fragPerFrame = it.getByte();
+        byte fragNumSigned = it.getByte();
+        int fragNum = fragNumSigned & 0xff; //make byte unsigned
+        byte fragPerFrameSigned = it.getByte();
+        int fragPerFrame = fragPerFrameSigned & 0xff; //make unsigned
         boolean flushFrame = (flags & 1) == 1; //check 1st bit, ignore for now?
+
+        if (frameNum != currentFrameNum) {
+            log.debug("Flush frame {}, size {}", currentFrameNum, currentFrameSize);
+            flushFrame();
+            resetVideoChecksum(fragPerFrame);
+            currentFrameNum = frameNum;
+
+            lowPacketsAck = 0;
+            highPacketsAck = 0;
+        }
 
         // Reassemble fragments to a frame buffer
         int offset = fragNum * MAX_FRAGMENT_SIZE;
         int dataLen = data.size() - 5; //minus length header
         if (fragNum == fragPerFrame - 1) { // final frame, perhaps check for flush, could be smaller frame than max size
-            currentFrameSize = (fragPerFrame - 1) * MAX_FRAGMENT_SIZE + dataLen;
+            currentFrameSize = ((fragPerFrame - 1) * MAX_FRAGMENT_SIZE) + dataLen;
         } else if (dataLen != MAX_FRAGMENT_SIZE) {
             log.warning("Received incomplete video frame. len={}, maxlen={}", dataLen, MAX_FRAGMENT_SIZE);
         }
         it.getBytes(fragmentBuffer, offset, dataLen);
+        log.debug("FrameNum={}, fragNum={}, numOfFrag={}, flush={}", frameNum, fragNum, fragPerFrame, flushFrame);
+
+        // Set ack flags:
+        if (0 <= fragNum && fragNum < 64)
+        {
+            lowPacketsAck |= (1 << fragNum);
+        }
+        else if (64 <= fragNum && fragNum < 128)
+        {
+            highPacketsAck |= (1 << (fragNum-64));
+        }
+
+        // Now ack this video data
+        DataChannel ch = channels.get(FrameDirection.TO_DRONE).get(VIDEO_ACK);
+        Frame f = ch.createFrame(FrameHelper.getVideoAck(frameNum, lowPacketsAck, highPacketsAck));
+        sendData(FrameHelper.getFrameData(f));
 
         // Not sure if necessary:
         //if(flushFrame){
@@ -418,6 +458,7 @@ public class ArDrone3 extends UntypedActor {
         addSendChannel(FrameType.DATA, PING_CHANNEL);
         addSendChannel(FrameType.DATA, PONG_CHANNEL);
         addSendChannel(FrameType.DATA, NONACK_CHANNEL);
+        addSendChannel(FrameType.DATA_LOW_LATENCY, VIDEO_ACK);
         addSendChannel(FrameType.DATA_WITH_ACK, ACK_CHANNEL);
         addSendChannel(FrameType.DATA_WITH_ACK, EMERGENCY_CHANNEL);
     }
@@ -545,9 +586,9 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void handleSetVideo(boolean enable) {
-        if (enable) {
+        if (enable && !captureVideo) {
             startVideo();
-        } else {
+        } else if (!enable && captureVideo) {
             stopVideo();
         }
     }
