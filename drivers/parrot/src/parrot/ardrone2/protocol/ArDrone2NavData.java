@@ -169,9 +169,9 @@ public class ArDrone2NavData extends UntypedActor {
         offset += 8;
         double elevation = bb.getDouble(offset);
         offset += 16; // Elevation and hdop
-        int dataAvailable = bb.getInt(offset);
+        int dataAvailable = PacketHelper.getInt(navdata, offset);
 
-        boolean gpsAvailable = (dataAvailable == 1);
+        boolean gpsAvailable = (dataAvailable != 0);
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
         listener.tell(gpsFixMessage, getSelf());
 
