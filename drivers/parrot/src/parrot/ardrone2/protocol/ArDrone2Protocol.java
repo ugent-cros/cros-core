@@ -48,6 +48,8 @@ public class ArDrone2Protocol extends UntypedActor {
     // Sequence number of command
     private int seq = 0;
 
+    private boolean videoInited = false;
+
     // Session IDs
     private static final String ARDRONE_SESSION_ID     = "d2e081a3";  // SessionID
     private static final String ARDRONE_PROFILE_ID     = "be27e2e4";  // Profile ID
@@ -144,6 +146,7 @@ public class ArDrone2Protocol extends UntypedActor {
             ardrone2Video.tell(new StopMessage(), self());
         }
 
+        videoInited = false;
         ardrone2Video = null;
     }
 
@@ -173,9 +176,12 @@ public class ArDrone2Protocol extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
                 ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
 
-        // Create config data actor
-        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
-                () -> new ArDrone2Video(details, listener, getSelf())));
+        if(!videoInited) {
+            videoInited = true;
+            // Create config data actor
+            ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                    () -> new ArDrone2Video(details, listener, getSelf())));
+        }
     }
 
     @Override
