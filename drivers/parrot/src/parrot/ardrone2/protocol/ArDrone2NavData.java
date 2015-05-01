@@ -18,8 +18,6 @@ import droneapi.model.properties.AlertState;
 import droneapi.model.properties.FlyingState;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import static parrot.ardrone2.models.NavData.*;
 
