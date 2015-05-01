@@ -11,7 +11,7 @@ import akka.util.ByteString;
 import droneapi.messages.StopMessage;
 import parrot.ardrone2.util.DefaultPorts;
 import parrot.shared.models.DroneConnectionDetails;
-import parrot.shared.protocols.H264Decoder;
+import parrot.shared.util.H264Decoder;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -24,7 +24,7 @@ public class ArDrone2Video extends UntypedActor {
     private final ActorRef tcpManager;
     private InetSocketAddress senderAddressVideo;
 
-    private static final int MAX_INPUT_SIZE = 4194304;
+    private static final int MAX_INPUT_SIZE = 4*1024*1024; // 4MiB
 
     private static PipedInputStream pis;
     private static PipedOutputStream pos;
