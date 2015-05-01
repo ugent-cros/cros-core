@@ -71,7 +71,8 @@ public class ArDrone2Video extends UntypedActor {
         byte[] received = data.toArray();
 
         try {
-            pos.write(received, 0, received.length);
+            pos.write(received);
+            //pos.write(received, 0, received.length);
             pos.flush();
         } catch (IOException ex) {
             log.error(ex, "Exception in processing ArDrone2 video");
