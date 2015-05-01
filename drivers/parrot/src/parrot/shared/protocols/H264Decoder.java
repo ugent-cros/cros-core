@@ -85,7 +85,7 @@ public class H264Decoder extends Thread {
 
         packet = IPacket.make();
 
-        converter = ConverterFactory.createConverter(ConverterFactory.XUGGLER_BGR_24, IPixelFormat.Type.YUV420P, 640, 360);
+        converter = ConverterFactory.createConverter(ConverterFactory.XUGGLER_BGR_24, IPixelFormat.Type.YUV420P, videoCoder.getWidth(), videoCoder.getHeight());
     }
 
     /**
