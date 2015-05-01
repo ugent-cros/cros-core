@@ -160,14 +160,11 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void parseGPSData(byte[] navdata, int offset) {
-        ByteBuffer bb = ByteBuffer.wrap(navdata);
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-
-        double latitude = bb.getDouble(offset);
+        double latitude = PacketHelper.getDouble(navdata, offset);
         offset += 8;
-        double longitude = bb.getDouble(offset);
+        double longitude = PacketHelper.getDouble(navdata, offset);
         offset += 8;
-        double elevation = bb.getDouble(offset);
+        double elevation = PacketHelper.getDouble(navdata, offset);
         offset += 16; // Elevation and hdop
         int dataAvailable = PacketHelper.getInt(navdata, offset);
 
