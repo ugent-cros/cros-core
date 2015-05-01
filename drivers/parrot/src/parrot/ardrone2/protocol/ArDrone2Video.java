@@ -24,7 +24,7 @@ public class ArDrone2Video extends UntypedActor {
     private final ActorRef tcpManager;
     private InetSocketAddress senderAddressVideo;
 
-    private static final int MAX_INPUT_SIZE = 4999999;
+    private static final int MAX_INPUT_SIZE = 99999;
 
     private static PipedInputStream pis;
     private static PipedOutputStream pos;

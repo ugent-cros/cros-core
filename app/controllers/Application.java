@@ -160,7 +160,7 @@ public class Application extends Controller {
     }
 
     public static WebSocket<String> videoSocket(long id) {
-        String[] tokens = request().queryString().get("authToken");
+        /*String[] tokens = request().queryString().get("authToken");
 
         if (tokens == null || tokens.length != 1 || tokens[0] == null)
             return WebSocket.reject(unauthorized());
@@ -170,7 +170,8 @@ public class Application extends Controller {
             return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
         } else {
             return WebSocket.reject(unauthorized());
-        }
+        }*/
+        return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
     }
 
     public static Result unsubscribeMonitor(long id){
