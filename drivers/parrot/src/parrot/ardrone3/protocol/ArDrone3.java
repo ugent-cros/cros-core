@@ -251,7 +251,7 @@ public class ArDrone3 extends UntypedActor {
                 try {
                     pos.write(fragmentBuffer, 0, currentFrameSize);
                     pos.flush();
-                } catch (IOException ex) {
+                } catch (Exception ex) {
                     log.error(ex, "Failed flushing bebop video frame.");
                 }
             }
@@ -287,6 +287,7 @@ public class ArDrone3 extends UntypedActor {
         if (frameNum != currentFrameNum) {
             log.debug("Flush frame {}, size {}", currentFrameNum, currentFrameSize);
             flushFrame();
+
             resetVideoChecksum(fragPerFrame);
             currentFrameNum = frameNum;
 
@@ -319,11 +320,6 @@ public class ArDrone3 extends UntypedActor {
         DataChannel ch = channels.get(FrameDirection.TO_DRONE).get(VIDEO_ACK);
         Frame f = ch.createFrame(FrameHelper.getVideoAck(frameNum, lowPacketsAck, highPacketsAck));
         sendData(FrameHelper.getFrameData(f));
-
-        // Not sure if necessary:
-        //if(flushFrame){
-        //    flushFrame();
-        //}
     }
 
     private void handlePong(ByteString data) {
