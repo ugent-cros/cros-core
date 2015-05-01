@@ -68,14 +68,7 @@ public class ArDrone2Video extends UntypedActor {
     }
 
     private void processRawData(ByteString data) {
-        byte[] received = new byte[data.length()];
-        ByteIterator it = data.iterator();
-
-        int i = 0;
-        while(it.hasNext()) {
-            received[i] = it.getByte();
-            i++;
-        }
+        byte[] received = data.toArray();
 
         try {
             pos.write(received, 0, received.length);
