@@ -18,6 +18,8 @@ import droneapi.model.properties.AlertState;
 import droneapi.model.properties.FlyingState;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import static parrot.ardrone2.models.NavData.*;
 
@@ -158,13 +160,16 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void parseGPSData(byte[] navdata, int offset) {
-        double latitude = PacketHelper.getDouble(navdata, offset);
+        ByteBuffer bb = ByteBuffer.wrap(navdata);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+
+        double latitude = bb.getDouble(offset);
         offset += 8;
-        double longitude = PacketHelper.getDouble(navdata, offset);
+        double longitude = bb.getDouble(offset);
         offset += 8;
-        double elevation = PacketHelper.getDouble(navdata, offset);
+        double elevation = bb.getDouble(offset);
         offset += 16; // Elevation and hdop
-        int dataAvailable = PacketHelper.getInt(navdata, offset);
+        int dataAvailable = bb.getInt(offset);
 
         boolean gpsAvailable = (dataAvailable == 1);
         Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
