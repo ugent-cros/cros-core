@@ -22,10 +22,6 @@ public class VideoWebSocket extends AbstractActor {
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public static Props props(ActorRef out, long droneID) {
-        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
-        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
-        d.initVideo();
-
         return Props.create(VideoWebSocket.class, out, droneID);
     }
 
