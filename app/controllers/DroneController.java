@@ -160,6 +160,9 @@ public class DroneController {
         if (drone == null)
             return notFound();
 
+        if (drone.getStatus() == Drone.Status.FLYING)
+            return forbidden("You cannot update a drone which is in flight.");
+
         JsonNode body = Json.parse(update);
         JsonNode strippedBody;
         try {
