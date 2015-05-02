@@ -155,7 +155,7 @@ public class DroneController {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
-        if (drone.getStatus() != Drone.Status.AVAILABLE)
+        if (drone.getStatus() == Drone.Status.FLYING)
             return badRequest(Json.toJson("cannot update drone which is in flight."));
 
         JsonNode body = request().body().asJson();
