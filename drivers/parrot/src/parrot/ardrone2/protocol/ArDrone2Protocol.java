@@ -100,7 +100,7 @@ public class ArDrone2Protocol extends UntypedActor {
                             // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
-                    .match(ResetCommand.class, s -> handleEmergency())
+                    .match(ResetCommand.class, s -> handleReset())
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
@@ -139,12 +139,16 @@ public class ArDrone2Protocol extends UntypedActor {
         }
     }
 
-    private void handleEmergency() {
-        int bitFields = (1 << 8) | REF_BIT_FIELD;
-        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
+    private void handleReset() {
+        handleEmergency();
 
         getContext().system().scheduler().scheduleOnce(Duration.create(250, TimeUnit.MILLISECONDS),
                 getSelf(), new CalibrateCommand(), getContext().system().dispatcher(), null);
+    }
+
+    private void handleEmergency() {
+        int bitFields = (1 << 8) | REF_BIT_FIELD;
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
 
     private void handleInitVideo() {
