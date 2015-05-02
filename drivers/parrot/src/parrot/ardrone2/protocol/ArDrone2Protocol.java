@@ -145,9 +145,7 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleEmergencyReset() {
         Object stateMessage = new FlyingStateChangedMessage(FlyingState.EMERGENCY);
         listener.tell(stateMessage, getSelf());
-
-        new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.STOPPED);
-
+        
         int bitFields = (1 << 8) | REF_BIT_FIELD;
         sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
