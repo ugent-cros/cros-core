@@ -204,8 +204,6 @@ public class DroneController {
                 (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.MANUAL_CONTROL) ||
                 (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.RETIRED) ||
 
-                (s1 == Drone.Status.FLYING && s2 == Drone.Status.MANUAL_CONTROL) ||
-
                 (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.AVAILABLE) ||
                 (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.CHARGING) ||
                 (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.MANUAL_CONTROL) ||
