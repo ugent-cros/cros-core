@@ -16,6 +16,7 @@ import parrot.ardrone2.util.DefaultPorts;
 import parrot.messages.InitCompletedMessage;
 import parrot.messages.InitNavDataMessage;
 import parrot.messages.RequestConfigMessage;
+import parrot.messages.VideoFailedMessage;
 import parrot.shared.commands.*;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.ardrone2.util.PacketCreator;
@@ -67,6 +68,8 @@ public class ArDrone2Protocol extends UntypedActor {
     private ActorRef ardrone2Config;
     private ActorRef ardrone2Video;
 
+    private Object lock = new Object();
+
     public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
         this.details = details;
@@ -99,6 +102,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitNavDataMessage.class, s -> sendInitNavData())
+                    .match(VideoFailedMessage.class, s -> handleStopVideo())
                             // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
@@ -176,11 +180,13 @@ public class ArDrone2Protocol extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
                 ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
 
-        if(!videoInited) {
-            videoInited = true;
-            // Create config data actor
-            ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
-                    () -> new ArDrone2Video(details, listener, getSelf())));
+        synchronized (lock) {
+            if (!videoInited) {
+                videoInited = true;
+                // Create config data actor
+                ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                        () -> new ArDrone2Video(details, listener, getSelf())));
+            }
         }
     }
 

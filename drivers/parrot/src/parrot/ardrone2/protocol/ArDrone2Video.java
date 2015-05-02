@@ -10,6 +10,7 @@ import akka.util.ByteIterator;
 import akka.util.ByteString;
 import droneapi.messages.StopMessage;
 import parrot.ardrone2.util.DefaultPorts;
+import parrot.messages.VideoFailedMessage;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.shared.protocols.H264Decoder;
 
@@ -22,6 +23,7 @@ import java.net.InetSocketAddress;
 public class ArDrone2Video extends UntypedActor {
     private LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final ActorRef tcpManager;
+    private final ActorRef parent;
     private InetSocketAddress senderAddressVideo;
 
     private static final int MAX_INPUT_SIZE = 4194304;
@@ -35,6 +37,8 @@ public class ArDrone2Video extends UntypedActor {
         // TCP manager
         tcpManager = Tcp.get(getContext().system()).manager();
         tcpManager.tell(TcpMessage.connect(senderAddressVideo), getSelf());
+
+        this.parent = parent;
 
         try {
             pos = new PipedOutputStream();
@@ -52,7 +56,7 @@ public class ArDrone2Video extends UntypedActor {
         //log.error("[ARDRONE2VIDEO] Error");
         if (msg instanceof Tcp.CommandFailed) {
             log.error("[ARDRONE2VIDEO] TCP command failed");
-            getContext().stop(getSelf());
+            stop();
         } else if (msg instanceof Tcp.Connected) {
             log.info("[ARDRONE2VIDEO] Connected to {}", senderAddressVideo);
 
@@ -69,6 +73,8 @@ public class ArDrone2Video extends UntypedActor {
     }
 
     private void stop() {
+        log.info("Stopping videostream");
+
         try {
             pos.close();
             pis.close();
