@@ -10,6 +10,9 @@ import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
+import droneapi.model.properties.FlyingState;
+import droneapi.model.properties.NavigationState;
+import droneapi.model.properties.NavigationStateReason;
 import parrot.ardrone2.commands.*;
 import parrot.ardrone2.util.ConfigKey;
 import parrot.ardrone2.util.DefaultPorts;
@@ -140,6 +143,11 @@ public class ArDrone2Protocol extends UntypedActor {
     }
 
     private void handleEmergencyReset() {
+        Object stateMessage = new FlyingStateChangedMessage(FlyingState.EMERGENCY);
+        listener.tell(stateMessage, getSelf());
+
+        new NavigationStateChangedMessage(NavigationState.UNAVAILABLE, NavigationStateReason.STOPPED);
+
         int bitFields = (1 << 8) | REF_BIT_FIELD;
         sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
