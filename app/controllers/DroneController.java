@@ -152,13 +152,15 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     public static Result update(Long id) {
+        return update(id, request().body().asJson().toString());
+    }
+
+    public static Result update(Long id, String update) {
         Drone drone = Drone.FIND.byId(id);
         if (drone == null)
             return notFound();
-        if (drone.getStatus() != Drone.Status.AVAILABLE)
-            return badRequest(Json.toJson("cannot update drone which is in flight."));
 
-        JsonNode body = request().body().asJson();
+        JsonNode body = Json.parse(update);
         JsonNode strippedBody;
         try {
             strippedBody = JsonHelper.removeRootElement(body, Drone.class, false);
@@ -172,10 +174,53 @@ public class DroneController {
             return badRequest(droneForm.errors().toString());
 
         Drone updatedDrone = droneForm.get();
+
+        if (!transitionAllowed(drone.getStatus(), updatedDrone.getStatus()))
+            return forbidden(Json.toJson("cannot transition dronestatus from " + drone.getStatus() + " to " + updatedDrone.getStatus() + "."));
+
         updatedDrone.setVersion(drone.getVersion());
         updatedDrone.setId(drone.getId());
         updatedDrone.update();
         return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
+    }
+
+    public static boolean transitionAllowed(Drone.Status s1, Drone.Status s2) {
+        if (s1 == s2)
+            return true;
+
+        return ((s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.CHARGING) ||
+                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.INACTIVE) ||
+                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.MANUAL_CONTROL) ||
+                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.RETIRED) ||
+
+                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.AVAILABLE) ||
+                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.INACTIVE) ||
+                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.MANUAL_CONTROL) ||
+                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.RETIRED) ||
+
+                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.AVAILABLE) ||
+                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.CHARGING) ||
+                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.INACTIVE) ||
+                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.MANUAL_CONTROL) ||
+                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.RETIRED) ||
+
+                (s1 == Drone.Status.FLYING && s2 == Drone.Status.MANUAL_CONTROL) ||
+
+                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.AVAILABLE) ||
+                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.CHARGING) ||
+                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.MANUAL_CONTROL) ||
+                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.RETIRED) ||
+
+                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.AVAILABLE) ||
+                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.CHARGING) ||
+                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.INACTIVE) ||
+                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.RETIRED) ||
+
+                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.AVAILABLE) ||
+                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.CHARGING) ||
+                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.INACTIVE) ||
+                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.MANUAL_CONTROL)
+        );
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
