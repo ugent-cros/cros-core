@@ -434,7 +434,7 @@ public abstract class DroneActor extends AbstractActor {
 
     protected void emergencyInternal(final ActorRef sender, final ActorRef self) {
         if (loaded) {
-            log.info("Attempting emergency...");
+            log.debug("Attempting emergency...");
             setFlyingState(FlyingState.EMERGENCY);
             setNavigationState(NavigationState.AVAILABLE, NavigationStateReason.STOPPED);
             Promise<Void> v = Futures.promise();
