@@ -9,6 +9,7 @@ import play.db.ebean.Model;
 import utilities.JsonHelper;
 
 import javax.persistence.*;
+import javax.validation.Valid;
 
 /**
  * Created by Eveline on 6/03/2015.
@@ -36,6 +37,7 @@ public class Basestation extends Model {
 
     @Constraints.Required
     @Embedded
+    @Valid
     private Location location;
 
     public Basestation(String name, double latitude, double longitude, double altitude){
