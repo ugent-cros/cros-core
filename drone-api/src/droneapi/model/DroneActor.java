@@ -78,6 +78,7 @@ public abstract class DroneActor extends AbstractActor {
                 // General commands (can be converted to switch as well, depends on embedded data)
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
+                match(EmergencyRequestMessage.class, s -> emergencyInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
                 match(SetHullRequestMessage.class, s -> setHullInternal(sender(), self(), s.hasHull())).
@@ -423,6 +424,17 @@ public abstract class DroneActor extends AbstractActor {
     protected void landInternal(final ActorRef sender, final ActorRef self) {
         if (loaded) {
             log.debug("Attempting landing... (pray to cthullu that this works!)");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            land(v);
+        } else {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone not initialized yet")), self);
+        }
+    }
+
+    protected void emergencyInternal(final ActorRef sender, final ActorRef self) {
+        if (loaded) {
+            log.debug("Attempting emergency...");
             Promise<Void> v = Futures.promise();
             handleMessage(v.future(), sender, self);
             land(v);
