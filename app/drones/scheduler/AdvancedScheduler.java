@@ -188,6 +188,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("Received arrival from nonexistent flight.");
             return;
         }
+        Logger.debug("COMPLETED FLIGHT: " + flight.hashCode());
         // Stop flight control
         flight.getFlightControl().tell(new StopFlightControlMessage(), self());
 
@@ -595,6 +596,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Record flight
         Flight flight = new Flight(droneId, assignment.getId(), pilot);
         flights.put(droneId, flight);
+        Logger.debug("CREATED: " + flight.hashCode());
         updateDroneStatus(drone, Drone.Status.FLYING);
         // Start flying
         pilot.tell(new StartFlightControlMessage(), self());
@@ -618,6 +620,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Record flight
         Flight flight = new Flight(droneId, pilot, nextStatus);
         flights.put(droneId, flight);
+        Logger.debug("CREATED: " + flight.hashCode());
         updateDroneStatus(drone, Drone.Status.FLYING);
         // Start flying
         pilot.tell(new StartFlightControlMessage(), self());
@@ -688,12 +691,14 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
     }
 
     protected void flightCanceled(FlightCanceledMessage message) {
+        Logger.debug("CANCELED");
         // Retrieve associated flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
             Logger.warn("Received cancellation from nonexistent flight.");
             return;
         }
+        Logger.debug("CANCELED FLIGHT: " + flight.hashCode());
 
         Drone drone = getDrone(flight.getDroneId());
         if (drone == null) {
