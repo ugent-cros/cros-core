@@ -500,7 +500,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
         DroneRemovedMessage A = test.expectMsgClass(LONG_TIMEOUT,DroneRemovedMessage.class);
         drone.refresh();
         Assert.assertTrue("Drone removed", A.getDroneId() == drone.getId());
-        Assert.assertTrue("Drone INACTIVE",drone.getStatus() == Drone.Status.INACTIVE);
+        Assert.assertTrue("Drone RETIRED",drone.getStatus() == Drone.Status.RETIRED);
         unsubscribe(test, DroneRemovedMessage.class);
     }
 
@@ -553,19 +553,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 // Wait before adding the assignment to be able to assert the procedure
                 expectNoMsg(SHORT_TIMEOUT);
 
-                Assignment assignment = null;
-                for (int iteration = 0; iteration < 1; iteration++){
-                    if(iteration % 2 == 0){
-                        assignment = createAssignment(EAST);
-                    }else{
-                        assignment = createAssignment(WEST);
-                    }
-                    // Schedule
-                    assertScheduled(this,assignment,drone);
-                    assertCanceled(this,assignment,drone);
-                    assignment.delete();
-                }
-                //removeDrone(this,drone);
+
+                Assignment assignment = createAssignment(EAST);
+                // Schedule
+                assertScheduled(this, assignment, drone);
+                expectNoMsg(LONG_TIMEOUT);
+                assertCanceled(this,assignment,drone);
+                assignment.delete();
+                removeDrone(this,drone);
             }
         };
     }

@@ -11,6 +11,7 @@ import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
 import models.Checkpoint;
+import play.Logger;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -274,6 +275,7 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void locationChanged(LocationChangedMessage m) {
+        Logger.debug(wayPoints.get(wayPoints.size() -1).getLocation().getLongitude() + "");
         if (!blocked && !waitForLandFinished && !waitForTakeOffFinished && !waitForGoUpUntilCruisingAltitudeFinished) {
             actualLocation = new Location(m.getLatitude(), m.getLongitude(), m.getGpsHeight());
             for (RequestMessage r : evacuationPoints) {

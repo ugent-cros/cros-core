@@ -2,6 +2,7 @@ package drones.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.dispatch.OnComplete;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
@@ -81,6 +82,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         if (flights.isEmpty()) {
             // Termination
             eventBus.publish(new SchedulerStoppedMessage());
+            Logger.debug("STOPPED");
             context().stop(self());
         } else {
             // Cancellation
@@ -179,6 +181,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
     }
 
     protected void flightCompleted(FlightCompletedMessage message) {
+        Logger.debug("COMPLETED");
         // Retrieve flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
@@ -688,7 +691,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Retrieve associated flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
-            Logger.error("Received cancellation from nonexistent flight.");
+            Logger.warn("Received cancellation from nonexistent flight.");
             return;
         }
 
@@ -723,4 +726,5 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
     private void updateDroneStatus(long droneId, Drone.Status status) {
         updateDroneStatus(getDrone(droneId), status);
     }
+
 }

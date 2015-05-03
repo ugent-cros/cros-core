@@ -74,13 +74,10 @@ public abstract class Scheduler extends AbstractActor {
      */
     public static void stop(){
         synchronized (lock) {
-            if (scheduler != null) {
-                if (!scheduler.isTerminated()) {
-                    scheduler.tell(new StopSchedulerMessage(), ActorRef.noSender());
-                }
-                scheduler = null;
+            if (scheduler == null || scheduler.isTerminated()) {
+                throw new SchedulerException("The scheduler is already terminated.");
             } else {
-                throw new SchedulerException("The scheduler cannot be stopped before it has started.");
+                scheduler.tell(new StopSchedulerMessage(), ActorRef.noSender());
             }
         }
     }
