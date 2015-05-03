@@ -519,6 +519,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
                     .match(InitVideoCommand.class, s -> handleSetVideo(true))
+                    .match(StopVideoCommand.class, s -> handleSetVideo(false))
                     .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVr()))
                     .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
@@ -566,6 +567,8 @@ public class ArDrone3 extends UntypedActor {
 
     private void stopVideo() {
         if (decoder != null) {
+            setVideoStreaming(false);
+            captureVideo = false;
             decoder.setStop(); //request stop
             decoder = null;
             fragmentBuffer = null; //release handle so GC can cleanup
@@ -577,8 +580,6 @@ public class ArDrone3 extends UntypedActor {
                 log.error(ex, "Failed to close bebop video output streams.");
             }
         }
-        captureVideo = false;
-        setVideoStreaming(false);
     }
 
     private void handleSetVideo(boolean enable) {
