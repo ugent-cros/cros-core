@@ -19,6 +19,7 @@ import parrot.ardrone2.util.DefaultPorts;
 import parrot.messages.InitCompletedMessage;
 import parrot.messages.InitNavDataMessage;
 import parrot.messages.RequestConfigMessage;
+import parrot.messages.VideoFailedMessage;
 import parrot.shared.commands.*;
 import parrot.shared.models.DroneConnectionDetails;
 import parrot.ardrone2.util.PacketCreator;
@@ -51,6 +52,8 @@ public class ArDrone2Protocol extends UntypedActor {
     // Sequence number of command
     private int seq = 0;
 
+    private boolean videoInited = false;
+
     // Session IDs
     private static final String ARDRONE_SESSION_ID     = "d2e081a3";  // SessionID
     private static final String ARDRONE_PROFILE_ID     = "be27e2e4";  // Profile ID
@@ -67,6 +70,8 @@ public class ArDrone2Protocol extends UntypedActor {
     private ActorRef ardrone2NavData;
     private ActorRef ardrone2Config;
     private ActorRef ardrone2Video;
+
+    private Object lock = new Object();
 
     public ArDrone2Protocol(DroneConnectionDetails details, final ActorRef listener) {
         // Connection details
@@ -100,6 +105,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(DroneConnectionDetails.class, s -> droneDiscovered(s))
                     .match(StopMessage.class, s -> stop())
                     .match(InitNavDataMessage.class, s -> sendInitNavData())
+                    .match(VideoFailedMessage.class, s -> handleStopVideo())
                             // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
@@ -116,6 +122,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(SetMaxTiltCommand.class, s -> handleMaxTilt(s))
                     .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(InitVideoCommand.class, s -> handleInitVideo())
+                    .match(StopVideoCommand.class, s -> handleStopVideo())
                     .match(EmergencyCommand.class, s -> handleEmergencyReset())
 
                     .matchAny(s -> {
@@ -140,6 +147,15 @@ public class ArDrone2Protocol extends UntypedActor {
             log.info("[ARDRONE2] Unhandled message received - ArDrone2 protocol");
             unhandled(msg);
         }
+    }
+
+    private void handleStopVideo() {
+        if (ardrone2Video != null) {
+            ardrone2Video.tell(new StopMessage(), self());
+        }
+
+        videoInited = false;
+        ardrone2Video = null;
     }
 
     private void handleEmergencyReset() {
@@ -176,9 +192,14 @@ public class ArDrone2Protocol extends UntypedActor {
         sendData(PacketCreator.createPacket(new ATCommandCONFIG(seq++,
                 ConfigKey.VIDEO_ON_USB, Boolean.toString(false).toUpperCase())));
 
-        // Create config data actor
-        ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
-                () -> new ArDrone2Video(details, listener, getSelf())));
+        synchronized (lock) {
+            if (!videoInited) {
+                videoInited = true;
+                // Create config data actor
+                ardrone2Video = getContext().actorOf(Props.create(ArDrone2Video.class,
+                        () -> new ArDrone2Video(details, listener, getSelf())));
+            }
+        }
     }
 
     @Override
@@ -354,6 +375,9 @@ public class ArDrone2Protocol extends UntypedActor {
         ardrone2ResetWDG.tell(new StopMessage(), self());
         ardrone2NavData.tell(new StopMessage(), self());
         ardrone2Config.tell(new StopMessage(), self());
+        if(ardrone2Video != null) {
+            ardrone2Video.tell(new StopMessage(), self());
+        }
         // ardrone2Video does not have to be stopped
 
         udpManager.tell(UdpMessage.unbind(), self());

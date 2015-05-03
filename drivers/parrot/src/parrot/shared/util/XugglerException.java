@@ -1,4 +1,4 @@
-package parrot.ardrone2.util;
+package parrot.shared.util;
 
 /**
  * Created by brecht on 4/25/15.

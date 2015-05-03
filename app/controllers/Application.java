@@ -2,6 +2,7 @@ package controllers;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.Mapper;
 import akka.util.Timeout;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,6 +21,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.WebSocket;
 import scala.concurrent.Await;
+import scala.concurrent.Future;
 import utilities.ControllerHelper;
 import utilities.MessageWebSocket;
 import utilities.VideoWebSocket;
@@ -159,8 +161,9 @@ public class Application extends Controller {
         }
     }
 
+    // @TODO
     public static WebSocket<String> videoSocket(long id) {
-        String[] tokens = request().queryString().get("authToken");
+        /*String[] tokens = request().queryString().get("authToken");
 
         if (tokens == null || tokens.length != 1 || tokens[0] == null)
             return WebSocket.reject(unauthorized());
@@ -170,7 +173,12 @@ public class Application extends Controller {
             return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
         } else {
             return WebSocket.reject(unauthorized());
-        }
+        }*/
+        Drone drone = Drone.FIND.byId(id);
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        d.initVideo();
+
+        return WebSocket.withActor(out -> VideoWebSocket.props(out, id));
     }
 
     public static Result unsubscribeMonitor(long id){
@@ -205,7 +213,12 @@ public class Application extends Controller {
     public static F.Promise<Result> getImage(long id) {
         Drone drone = Drone.FIND.byId(id);
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
-        return F.Promise.wrap(d.getImage()).map(v -> {
+        // Somehow intellij can't parse this as valid java, but it works
+        return F.Promise.wrap(d.initVideo().flatMap(new Mapper<Void, Future<byte[]>>() {
+            public Future<byte[]> apply(final Void s) {
+                return d.getImage();
+            }
+        }, Akka.system().dispatcher())).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("image", Base64.getEncoder().encodeToString(v));
             return ok(result);
@@ -397,6 +410,16 @@ public class Application extends Controller {
         Drone drone = Drone.FIND.where().eq("id", id).findUnique();
         DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
         return F.Promise.wrap(d.initVideo()).map(v -> {
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return ok(result);
+        });
+    }
+
+    public static F.Promise<Result> stopVideo(long id){
+        Drone drone = Drone.FIND.where().eq("id", id).findUnique();
+        DroneCommander d = Fleet.getFleet().getCommanderForDrone(drone);
+        return F.Promise.wrap(d.stopVideo()).map(v -> {
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             return ok(result);

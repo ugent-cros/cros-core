@@ -421,6 +421,11 @@ public class BepopSimulator extends NavigatedDroneActor {
     }
 
     @Override
+    protected void stopVideo(Promise<Void> p) {
+        p.failure(new DroneException("Not implemented yet."));
+    }
+
+    @Override
     protected void emergency(Promise<Void> p) {
 
         if (connectionLost) return;

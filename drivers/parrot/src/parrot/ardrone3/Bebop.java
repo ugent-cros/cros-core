@@ -292,7 +292,20 @@ public class Bebop extends NavigatedDroneActor {
 
     @Override
     protected void initVideo(Promise<Void> p) {
-        p.failure(new DroneException("Not implemented"));
+       if(sendMessage(new InitVideoCommand())){
+           p.success(null);
+       } else {
+           p.failure(new DroneException("Failed to send command. Not initialized yet."));
+       }
+    }
+
+    @Override
+    protected void stopVideo(Promise<Void> p) {
+        if(sendMessage(new StopVideoCommand())){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override

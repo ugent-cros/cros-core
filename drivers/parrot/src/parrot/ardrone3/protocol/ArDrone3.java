@@ -21,8 +21,12 @@ import droneapi.messages.StopMessage;
 import droneapi.model.properties.FlipType;
 import parrot.shared.commands.MoveCommand;
 import org.joda.time.DateTime;
+import parrot.shared.util.H264Decoder;
 import scala.concurrent.duration.Duration;
 
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -37,6 +41,10 @@ public class ArDrone3 extends UntypedActor {
     private final static int TICK_DURATION = 50; //ms
     private final static int PING_INTERVAL = 1000;
 
+    private static final int MAX_FRAGMENT_SIZE = 1000; //max video fragment size, can be parsed from json
+    private static final int MAX_FRAGMENT_NUM = 128;
+    private static final int MAX_VIDEOBUFFER_SIZE = 4 * 1024 * 1024;
+
     // Receiving ID's
     private static final byte PING_CHANNEL = 0;
     private static final byte PONG_CHANNEL = 1;
@@ -47,6 +55,7 @@ public class ArDrone3 extends UntypedActor {
     private static final byte NONACK_CHANNEL = 10;
     private static final byte ACK_CHANNEL = 11;
     private static final byte EMERGENCY_CHANNEL = 12;
+    private static final byte VIDEO_ACK = 13;
 
     private final EnumMap<FrameDirection, Map<Byte, DataChannel>> channels;
     private final List<DataChannel> ackChannels;
@@ -63,6 +72,17 @@ public class ArDrone3 extends UntypedActor {
     private boolean isOffline = true;
     private long lastPong = 0;
     private long lastPing = 0;
+
+    // Video processing
+    private H264Decoder decoder;
+    private byte[] fragmentBuffer;
+    private int currentFrameSize;
+    private int currentFrameNum;
+    private static PipedInputStream pis;
+    private static PipedOutputStream pos;
+    private long lowPacketsAck;
+    private long highPacketsAck;
+    private boolean captureVideo;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
         this.receivingPort = receivingPort;
@@ -87,8 +107,14 @@ public class ArDrone3 extends UntypedActor {
     @Override
     public void aroundPostStop() {
         super.aroundPostStop();
-        if(senderRef != null){
-            senderRef.tell(new PoisonPill(){}, self()); // stop the sender
+        if (senderRef != null) {
+            senderRef.tell(new PoisonPill() {
+            }, self()); // stop the sender
+        }
+
+        if (decoder != null) {
+            decoder.setStop();
+            decoder = null;
         }
     }
 
@@ -200,7 +226,9 @@ public class ArDrone3 extends UntypedActor {
                     processDataFrame(frame);
                     break;
                 case DATA_LOW_LATENCY:
-                    // Ignore video data for now
+                    if (captureVideo) {
+                        handleVideoData(frame);
+                    }
                     break;
                 case DATA_WITH_ACK:
                     processDataFrame(frame);
@@ -211,6 +239,87 @@ public class ArDrone3 extends UntypedActor {
                     break;
             }
         }
+    }
+
+    private void flushFrame() {
+        if (currentFrameSize > 0) {
+            if (pos == null) {
+                log.warning("PipedOutputStream is null.");
+            } else if (fragmentBuffer == null) {
+                log.warning("Empty fragment buffer.");
+            } else {
+                try {
+                    pos.write(fragmentBuffer, 0, currentFrameSize);
+                    pos.flush();
+                } catch (Exception ex) {
+                    log.error(ex, "Failed flushing bebop video frame.");
+                }
+            }
+            currentFrameSize = 0;
+        }
+    }
+
+    private void resetVideoChecksum(int fragmentsPerFrame) {
+        // This code could possibly never work in Java due to long-long (128 bit) dependency in official sdk
+        if (0 <= fragmentsPerFrame && fragmentsPerFrame < 64) {
+            highPacketsAck = Long.MAX_VALUE;
+            lowPacketsAck = Long.MAX_VALUE << fragmentsPerFrame;
+        } else if (64 <= fragmentsPerFrame && fragmentsPerFrame < 128) {
+            highPacketsAck = Long.MAX_VALUE << (fragmentsPerFrame - 64);
+            lowPacketsAck = 0;
+        } else {
+            highPacketsAck = 0;
+            lowPacketsAck = 0;
+        }
+    }
+
+    private void handleVideoData(Frame dataFrame) {
+        ByteString data = dataFrame.getData();
+        ByteIterator it = data.iterator();
+        int frameNum = it.getShort(FrameHelper.BYTE_ORDER);
+        byte flags = it.getByte();
+        byte fragNumSigned = it.getByte();
+        int fragNum = fragNumSigned & 0xff; //make byte unsigned
+        byte fragPerFrameSigned = it.getByte();
+        int fragPerFrame = fragPerFrameSigned & 0xff; //make unsigned
+        boolean flushFrame = (flags & 1) == 1; //check 1st bit, ignore for now?
+
+        if (frameNum != currentFrameNum) {
+            log.debug("Flush frame {}, size {}", currentFrameNum, currentFrameSize);
+            flushFrame();
+
+            resetVideoChecksum(fragPerFrame);
+            currentFrameNum = frameNum;
+
+            lowPacketsAck = 0;
+            highPacketsAck = 0;
+        }
+
+        // Reassemble fragments to a frame buffer
+        int offset = fragNum * MAX_FRAGMENT_SIZE;
+        int dataLen = data.size() - 5; //minus length header
+        if (fragNum == fragPerFrame - 1) { // final frame, perhaps check for flush, could be smaller frame than max size
+            currentFrameSize = ((fragPerFrame - 1) * MAX_FRAGMENT_SIZE) + dataLen;
+        } else if (dataLen != MAX_FRAGMENT_SIZE) {
+            log.warning("Received incomplete video frame. len={}, maxlen={}", dataLen, MAX_FRAGMENT_SIZE);
+        }
+        it.getBytes(fragmentBuffer, offset, dataLen);
+        log.debug("FrameNum={}, fragNum={}, numOfFrag={}, flush={}", frameNum, fragNum, fragPerFrame, flushFrame);
+
+        // Set ack flags:
+        if (0 <= fragNum && fragNum < 64)
+        {
+            lowPacketsAck |= (1 << fragNum);
+        }
+        else if (64 <= fragNum && fragNum < 128)
+        {
+            highPacketsAck |= (1 << (fragNum-64));
+        }
+
+        // Now ack this video data
+        DataChannel ch = channels.get(FrameDirection.TO_DRONE).get(VIDEO_ACK);
+        Frame f = ch.createFrame(FrameHelper.getVideoAck(frameNum, lowPacketsAck, highPacketsAck));
+        sendData(FrameHelper.getFrameData(f));
     }
 
     private void handlePong(ByteString data) {
@@ -345,6 +454,7 @@ public class ArDrone3 extends UntypedActor {
         addSendChannel(FrameType.DATA, PING_CHANNEL);
         addSendChannel(FrameType.DATA, PONG_CHANNEL);
         addSendChannel(FrameType.DATA, NONACK_CHANNEL);
+        addSendChannel(FrameType.DATA_LOW_LATENCY, VIDEO_ACK);
         addSendChannel(FrameType.DATA_WITH_ACK, ACK_CHANNEL);
         addSendChannel(FrameType.DATA_WITH_ACK, EMERGENCY_CHANNEL);
     }
@@ -363,7 +473,7 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void droneDiscovered(DroneConnectionDetails details) {
-        if(this.senderAddress != null){
+        if (this.senderAddress != null) {
             log.info("ArDrone3 protocol drone IP information updated: {}", details);
         }
         this.senderAddress = new InetSocketAddress(details.getIp(), details.getSendingPort());
@@ -408,6 +518,8 @@ public class ArDrone3 extends UntypedActor {
                     .match(RequestStatusCommand.class, s -> requestStatus())
                     .match(SetOutdoorCommand.class, s -> setOutdoor(s.isOutdoor()))
                     .match(RequestSettingsCommand.class, s -> requestSettings())
+                    .match(InitVideoCommand.class, s -> handleSetVideo(true))
+                    .match(StopVideoCommand.class, s -> handleSetVideo(false))
                     .match(MoveCommand.class, s -> handleMove(s.getVx(), s.getVy(), s.getVz(), s.getVr()))
                     .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(SetDateCommand.class, s -> setDate(s.getDate()))
@@ -428,19 +540,62 @@ public class ArDrone3 extends UntypedActor {
             droneDiscovered((DroneConnectionDetails) msg);
         } else if (msg instanceof StopMessage) {
             stop();
-        } else if(msg instanceof Udp.SimpleSenderReady){
+        } else if (msg instanceof Udp.SimpleSenderReady) {
             senderRef = sender();
         } else {
             unhandled(msg);
         }
     }
 
-    private void handleFlip(FlipType flip){
+    private void startVideo() {
+        if (decoder == null) {
+            log.info("Starting video decoder for Bebop");
+            try {
+                pos = new PipedOutputStream();
+                pis = new PipedInputStream(pos, MAX_VIDEOBUFFER_SIZE);
+                fragmentBuffer = new byte[MAX_FRAGMENT_NUM * MAX_FRAGMENT_SIZE];
+
+                H264Decoder decoder = new H264Decoder(pis, listener);
+                decoder.start();
+            } catch (Exception ex) {
+                log.error(ex, "Failed to start video decoder.");
+            }
+            setVideoStreaming(true);
+            captureVideo = true;
+        }
+    }
+
+    private void stopVideo() {
+        if (decoder != null) {
+            setVideoStreaming(false);
+            captureVideo = false;
+            decoder.setStop(); //request stop
+            decoder = null;
+            fragmentBuffer = null; //release handle so GC can cleanup
+
+            try {
+                pos.close();
+                pis.close();
+            } catch (IOException ex) {
+                log.error(ex, "Failed to close bebop video output streams.");
+            }
+        }
+    }
+
+    private void handleSetVideo(boolean enable) {
+        if (enable && !captureVideo) {
+            startVideo();
+        } else if (!enable && captureVideo) {
+            stopVideo();
+        }
+    }
+
+    private void handleFlip(FlipType flip) {
         sendDataAck(PacketCreator.createFlipPacket(flip));
     }
 
     private void handleMove(double vx, double vy, double vz, double vr) {
-        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", vx, vy,vz, vr);
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", vx, vy, vz, vr);
         boolean useRoll = (Math.abs(vx) > 0.0 || Math.abs(vy) > 0.0); // flag 1 if not hovering
 
         double[] vars = new double[]{vy, vx, vr, vz};
@@ -516,7 +671,7 @@ public class ArDrone3 extends UntypedActor {
                     sendData(FrameHelper.getFrameData(f)); //TODO: only compute once
                 }
             }
-        } catch(Exception ex){
+        } catch (Exception ex) {
             log.warning("Failed to process ArDrone3 timer tick.");
         }
 
@@ -610,11 +765,11 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createSetHomePacket(latitude, longitude, altitude));
     }
 
-    private void setDate(DateTime time){
+    private void setDate(DateTime time) {
         sendDataAck(PacketCreator.createCurrentDatePacket(time));
     }
 
-    private void setTime(DateTime time){
+    private void setTime(DateTime time) {
         sendDataAck(PacketCreator.createCurrentTimePacket(time));
     }
 

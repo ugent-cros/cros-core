@@ -28,6 +28,7 @@ GET            /takeoff                              controllers.Application.tak
 GET            /land                                 controllers.Application.land(id: Long)
 GET            /emergency                            controllers.Application.emergency(id: Long)
 GET            /initVideo                            controllers.Application.initVideo(id: Long)
+GET            /stopVideo                            controllers.Application.stopVideo(id: Long)
 GET            /subscribe                            controllers.Application.subscribeMonitor(id: Long)
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
