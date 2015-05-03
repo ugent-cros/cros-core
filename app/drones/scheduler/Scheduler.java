@@ -39,7 +39,7 @@ public abstract class Scheduler extends AbstractActor {
      * @return an ActorRef for the scheduler.
      * @throws SchedulerException
      */
-    public static ActorRef getScheduler() throws SchedulerException {
+    public static ActorRef getScheduler(){
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
                 throw new SchedulerException("The scheduler has not been started yet.");
@@ -56,10 +56,10 @@ public abstract class Scheduler extends AbstractActor {
      * @param type the type of scheduler to be used, has to be a subclass of Scheduler
      * @throws SchedulerException
      */
-    public static void start(Class<? extends Scheduler> type) throws SchedulerException {
+    public static void start(Class<? extends Scheduler> type){
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
-                scheduler = Akka.system().actorOf(Props.create(type));
+                scheduler = Akka.system().actorOf(Props.create(type),"CROS-Scheduler");
             } else {
                 throw new SchedulerException("The scheduler has already been started.");
             }
@@ -72,7 +72,7 @@ public abstract class Scheduler extends AbstractActor {
      *
      * @throws SchedulerException
      */
-    public static void stop() throws SchedulerException {
+    public static void stop(){
         synchronized (lock) {
             if (scheduler != null) {
                 if (!scheduler.isTerminated()) {
@@ -92,7 +92,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param subscriber actorref to receive events
      * @throws SchedulerException
      */
-    public static void subscribe(Class<? extends SchedulerEvent> type, ActorRef subscriber) throws SchedulerException {
+    public static void subscribe(Class<? extends SchedulerEvent> type, ActorRef subscriber){
         ActorRef publisher = getScheduler();
         SubscribeMessage message = new SubscribeMessage(type);
         publisher.tell(message, subscriber);
@@ -105,7 +105,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param subscriber
      * @throws SchedulerException
      */
-    public static void unsubscribe(Class<? extends SchedulerEvent> type, ActorRef subscriber) throws SchedulerException {
+    public static void unsubscribe(Class<? extends SchedulerEvent> type, ActorRef subscriber){
         ActorRef publisher = getScheduler();
         UnsubscribeMessage message = new UnsubscribeMessage(type);
         publisher.tell(message, subscriber);
@@ -116,7 +116,7 @@ public abstract class Scheduler extends AbstractActor {
      *
      * @throws SchedulerException
      */
-    public static void schedule() throws SchedulerException {
+    public static void schedule(){
         getScheduler().tell(new ScheduleMessage(), ActorRef.noSender());
     }
 
@@ -126,7 +126,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param assignmentId id of the assignment to cancel.
      * @throws SchedulerException
      */
-    public static void cancelAssignment(long assignmentId) throws SchedulerException {
+    public static void cancelAssignment(long assignmentId){
         getScheduler().tell(new CancelAssignmentMessage(assignmentId), ActorRef.noSender());
     }
 
@@ -136,7 +136,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param droneId id of the drone to add to the pool
      * @throws SchedulerException
      */
-    public static void addDrone(long droneId) throws SchedulerException {
+    public static void addDrone(long droneId){
         getScheduler().tell(new AddDroneMessage(droneId), ActorRef.noSender());
     }
 
@@ -145,7 +145,7 @@ public abstract class Scheduler extends AbstractActor {
      *
      * @throws SchedulerException
      */
-    public static void addDrones() throws SchedulerException {
+    public static void addDrones(){
         ActorRef scheduler = getScheduler();
         List<Drone> drones = Drone.FIND.all();
         for (Drone drone : drones) {
@@ -155,13 +155,30 @@ public abstract class Scheduler extends AbstractActor {
     }
 
     /**
-     * Prohibit the scheduler from using a particular drone for assignments.
-     *
+     * Remove the drone from the scheduler drone pool.
      * @param droneId id of the drone to be removed from the active pool
      * @throws SchedulerException
      */
-    public static void removeDrone(long droneId) throws SchedulerException {
+    public static void removeDrone(long droneId){
         getScheduler().tell(new RemoveDroneMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
+     * Ask scheduler to make a drone available.
+     * @param droneId
+     * @throws SchedulerException
+     */
+    public static void setDroneAvailable(long droneId){
+        getScheduler().tell(new DroneAvailableMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
+     * Ask scheduler to go charge a drone.
+     * @param droneId
+     * @throws SchedulerException
+     */
+    public static void setDroneCharging(long droneId){
+        getScheduler().tell(new DroneChargingMessage(droneId), ActorRef.noSender());
     }
 
     /**
@@ -170,8 +187,26 @@ public abstract class Scheduler extends AbstractActor {
      * @param droneId
      * @throws SchedulerException
      */
-    public static void emergency(long droneId) throws SchedulerException {
-        getScheduler().tell(new EmergencyMessage(droneId), ActorRef.noSender());
+    public static void setDroneEmergency(long droneId){
+        getScheduler().tell(new DroneEmergencyMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
+     * Ask the scheduler to make a drone inactive, so he doesn't get scheduled again.
+     * @param droneId
+     * @throws SchedulerException
+     */
+    public static void setDroneInactive(long droneId){
+        getScheduler().tell(new DroneInactiveMessage(droneId), ActorRef.noSender());
+    }
+
+    /**
+     * Ask the scheduler to cede control of a drone to manual control.
+     * @param droneId
+     * @throws SchedulerException
+     */
+    public static void setDroneManualControl(long droneId){
+        getScheduler().tell(new DroneManualControlMessage(droneId), ActorRef.noSender());
     }
 
     /**
@@ -180,7 +215,7 @@ public abstract class Scheduler extends AbstractActor {
      * @param event
      * @throws SchedulerException
      */
-    public static void publishEvent(SchedulerEvent event) throws SchedulerException {
+    public static void publishEvent(SchedulerEvent event){
         getScheduler().tell(new SchedulerPublishMessage(event), ActorRef.noSender());
     }
 
@@ -205,12 +240,16 @@ public abstract class Scheduler extends AbstractActor {
                 .match(SubscribeMessage.class, m -> subscribe(m))
                 .match(UnsubscribeMessage.class, m -> unsubscribe(m))
                 .match(SchedulerRequestMessage.class, m -> reply(m))
-                .match(EmergencyMessage.class, m -> emergency(m))
                 .match(ScheduleMessage.class, m -> schedule(m))
                 .match(StopSchedulerMessage.class, m -> stop(m))
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
                 .match(AddDroneMessage.class, m -> addDrone(m))
                 .match(RemoveDroneMessage.class, m -> removeDrone(m))
+                .match(DroneAvailableMessage.class, m -> setDroneAvailable(m))
+                .match(DroneChargingMessage.class, m -> setDroneCharging(m))
+                .match(DroneEmergencyMessage.class, m -> setDroneEmergency(m))
+                .match(DroneInactiveMessage.class, m -> setDroneInactive(m))
+                .match(DroneManualControlMessage.class, m -> setDroneManualControl(m))
                 .match(SchedulerPublishMessage.class, m -> eventBus.publish(m.getEvent()));
     }
 
@@ -231,50 +270,17 @@ public abstract class Scheduler extends AbstractActor {
     protected Drone getDrone(long droneId) {
         return Drone.FIND.byId(droneId);
     }
-
     protected Assignment getAssignment(long assignmentId) {
         return Assignment.FIND.byId(assignmentId);
     }
-
-    /**
-     * Handle a drone emergency message
-     *
-     * @param message
-     */
-    protected abstract void emergency(EmergencyMessage message);
-
-    /**
-     * Force the scheduler to execute schedule procedure.
-     *
-     * @param message containing sequenceId
-     */
     protected abstract void schedule(ScheduleMessage message);
-
-    /**
-     * Tell the scheduler to stop all flights and terminate itself.
-     *
-     * @param message
-     */
     protected abstract void stop(StopSchedulerMessage message);
-
-    /**
-     * Tell the scheduler to cancel an assignment, regardless whether it is assigned to a drone.
-     *
-     * @param message
-     */
     protected abstract void cancelAssignment(CancelAssignmentMessage message);
-
-    /**
-     * Tell the scheduler to add a drone to the drone pool.
-     *
-     * @param message
-     */
     protected abstract void addDrone(AddDroneMessage message);
-
-    /**
-     * Tell the scheduler to remove a drone from his drone pool, regardless whether it is executing an assignment.
-     *
-     * @param message
-     */
     protected abstract void removeDrone(RemoveDroneMessage message);
+    protected abstract void setDroneAvailable(DroneAvailableMessage message);
+    protected abstract void setDroneCharging(DroneChargingMessage message);
+    protected abstract void setDroneEmergency(DroneEmergencyMessage message);
+    protected abstract void setDroneInactive(DroneInactiveMessage message);
+    protected abstract void setDroneManualControl(DroneManualControlMessage message);
 }

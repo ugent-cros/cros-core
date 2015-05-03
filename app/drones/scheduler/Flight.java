@@ -1,6 +1,7 @@
 package drones.scheduler;
 
 import akka.actor.ActorRef;
+import models.Drone;
 
 /**
  * Created by Ronald on 13/04/2015.
@@ -13,19 +14,22 @@ public class Flight {
     private long assignmentId;
     private ActorRef flightControl;
     private Type type;
+    private Drone.Status nextStatus;
 
     public Flight(long droneId, long assignmentId, ActorRef flightControl) {
         this.droneId = droneId;
         this.assignmentId = assignmentId;
         this.flightControl = flightControl;
         this.type = Type.ASSIGNMENT;
+        this.nextStatus = Drone.Status.FLYING;
     }
 
-    public Flight(long droneId, ActorRef flightControl){
+    public Flight(long droneId, ActorRef flightControl, Drone.Status nextStatus){
         this.droneId = droneId;
         this.assignmentId = NO_ASSIGNMENT_ID;
         this.flightControl = flightControl;
         this.type = Type.RETURN;
+        this.nextStatus = nextStatus;
     }
 
     public Long getDroneId() {
@@ -44,8 +48,21 @@ public class Flight {
         return type;
     }
 
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    public Drone.Status getNextStatus() {
+        return nextStatus;
+    }
+
+    public void setNextStatus(Drone.Status nextStatus) {
+        this.nextStatus = nextStatus;
+    }
+
     public enum Type{
         ASSIGNMENT,
-        RETURN;
+        RETURN,
+        CANCELED;
     }
 }

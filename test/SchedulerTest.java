@@ -1,14 +1,12 @@
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
+import drones.scheduler.AdvancedScheduler;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
-import drones.scheduler.SimpleScheduler;
 import org.junit.*;
 import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
-
-import controllers.*;
 
 /**
  * Created by Ronald on 6/04/2015.
@@ -51,13 +49,13 @@ public class SchedulerTest extends TestSuperclass {
 
     @Test(expected = SchedulerException.class)
     public void start_Started_Fails() throws Exception{
-        Scheduler.start(SimpleScheduler.class);
+        Scheduler.start(AdvancedScheduler.class);
     }
 
     @Test
     public void start_NotStarted_Succeeds() throws Exception{
         Scheduler.stop();
-        Scheduler.start(SimpleScheduler.class);
+        Scheduler.start(AdvancedScheduler.class);
     }
 
     @Test(expected = SchedulerException.class)

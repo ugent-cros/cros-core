@@ -1,6 +1,5 @@
 package controllers;
 
-import akka.actor.ActorRef;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,7 +9,6 @@ import droneapi.api.DroneCommander;
 import drones.models.Fleet;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
-import drones.scheduler.messages.to.EmergencyMessage;
 import models.Drone;
 import models.DroneType;
 import models.Location;
@@ -157,11 +155,9 @@ public class DroneController {
 
     public static Result update(Long id, String update) {
         Drone drone = Drone.FIND.byId(id);
-        if (drone == null)
+        if (drone == null) {
             return notFound();
-
-        if (drone.getStatus() == Drone.Status.FLYING)
-            return forbidden("You cannot update a drone which is in flight.");
+        }
 
         JsonNode body = Json.parse(update);
         JsonNode strippedBody;
@@ -178,50 +174,36 @@ public class DroneController {
 
         Drone updatedDrone = droneForm.get();
 
-        if (!transitionAllowed(drone.getStatus(), updatedDrone.getStatus()))
-            return forbidden(Json.toJson("cannot transition dronestatus from " + drone.getStatus() + " to " + updatedDrone.getStatus() + "."));
+        // TODO: How do we update the IP address?
+        if(updatedDrone.getAddress() != drone.getAddress()){
+            return forbidden("You cannot change the address yet this way.");
+        }
 
-        updatedDrone.setVersion(drone.getVersion());
-        updatedDrone.setId(drone.getId());
-        updatedDrone.update();
+        // Status will be updated by the system asynchronously.
+        switch (updatedDrone.getStatus()){
+            case AVAILABLE:
+                Scheduler.setDroneAvailable(drone.getId());
+                break;
+            case CHARGING:
+                Scheduler.setDroneCharging(drone.getId());
+                break;
+            case EMERGENCY:
+                Scheduler.setDroneEmergency(drone.getId());
+                break;
+            case INACTIVE:
+                Scheduler.setDroneInactive(drone.getId());
+                break;
+            case MANUAL_CONTROL:
+                Scheduler.setDroneManualControl(drone.getId());
+                break;
+            default:
+                return forbidden("You cannot manually transition drone status to " + updatedDrone.getStatus());
+        }
+
+        // Update name
+        drone.setName(updatedDrone.getName());
+        drone.update();
         return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
-    }
-
-    public static boolean transitionAllowed(Drone.Status s1, Drone.Status s2) {
-        if (s1 == s2)
-            return true;
-
-        return ((s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.MANUAL_CONTROL)
-        );
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -332,8 +314,7 @@ public class DroneController {
 
         // [QUICK FIX] Send emergency via Scheduler
         try {
-            // TODO: Use advanced scheduler in the future for more reliable emergency.
-            Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+            Scheduler.setDroneEmergency(drone.getId());
             return F.Promise.pure(ok());
         }catch(SchedulerException ex){
             Logger.error("Scheduler error", ex);
