@@ -10,6 +10,9 @@ import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.ByteString;
+import droneapi.model.properties.FlyingState;
+import droneapi.model.properties.NavigationState;
+import droneapi.model.properties.NavigationStateReason;
 import parrot.ardrone2.commands.*;
 import parrot.ardrone2.util.ConfigKey;
 import parrot.ardrone2.util.DefaultPorts;
@@ -106,7 +109,7 @@ public class ArDrone2Protocol extends UntypedActor {
                             // Drone commands
                     .match(InitDroneCommand.class, s -> handleInit())
                     .match(CalibrateCommand.class, s -> handleCalibrate())
-                    .match(ResetCommand.class, s -> handleReset())
+                    .match(ResetCommand.class, s -> handleEmergencyReset())
                     .match(FlatTrimCommand.class, s -> handleFlatTrim())
                     .match(TakeOffCommand.class, s -> handleTakeoff())
                     .match(LandCommand.class, s -> handleLand())
@@ -120,6 +123,7 @@ public class ArDrone2Protocol extends UntypedActor {
                     .match(FlipCommand.class, s -> handleFlip(s.getFlip()))
                     .match(InitVideoCommand.class, s -> handleInitVideo())
                     .match(StopVideoCommand.class, s -> handleStopVideo())
+                    .match(EmergencyCommand.class, s -> handleEmergencyReset())
 
                     .matchAny(s -> {
                         log.warning("[ARDRONE2] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -146,12 +150,20 @@ public class ArDrone2Protocol extends UntypedActor {
     }
 
     private void handleStopVideo() {
-        if(ardrone2Video != null) {
+        if (ardrone2Video != null) {
             ardrone2Video.tell(new StopMessage(), self());
         }
 
         videoInited = false;
         ardrone2Video = null;
+    }
+
+    private void handleEmergencyReset() {
+        Object stateMessage = new FlyingStateChangedMessage(FlyingState.EMERGENCY);
+        listener.tell(stateMessage, getSelf());
+        
+        int bitFields = (1 << 8) | REF_BIT_FIELD;
+        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
 
     private void handleInitVideo() {
@@ -231,14 +243,6 @@ public class ArDrone2Protocol extends UntypedActor {
     private void handleCalibrate() {
         log.info("[ARDRONE2] Calibrate");
         sendData(PacketCreator.createPacket(new ATCommandCALIB(seq++)));
-    }
-
-    private void handleReset() {
-        log.info("[ARDRONE2] Reset");
-
-        // 8th bit is reset bit
-        int bitFields = (1 << 8) | REF_BIT_FIELD;
-        sendData(PacketCreator.createPacket(new ATCommandREF(seq++, bitFields)));
     }
 
     private void handleTakeoff() {

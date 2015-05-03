@@ -26,6 +26,12 @@ public interface DroneControl {
     Future<Void> land();
 
     /**
+     * Initiates an emergency action
+     * @return Promise whether the emergency was initiated
+     */
+    Future<Void> emergency();
+
+    /**
      *
      * @return Promise whether the emergency was initiated
      */

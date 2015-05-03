@@ -9,6 +9,7 @@ import play.db.ebean.Model;
 import utilities.JsonHelper;
 
 import javax.persistence.*;
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -32,6 +33,7 @@ public class Assignment extends Model {
     @Constraints.Required
     @OneToMany(cascade = CascadeType.ALL)
     @OrderColumn
+    @Valid
     private List<Checkpoint> route;
 
     @Constraints.Required
@@ -42,6 +44,7 @@ public class Assignment extends Model {
 
     @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
+    @Constraints.Min(value=0)
     private int priority;
 
     @JsonView(JsonHelper.Summary.class)

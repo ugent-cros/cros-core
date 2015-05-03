@@ -11,6 +11,7 @@ import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.validation.Valid;
 
 /**
  * Created by Eveline on 6/03/2015.
@@ -29,9 +30,11 @@ public class Checkpoint extends Model {
     protected Long id;
 
     @Constraints.Required
+    @Constraints.Min(value=0)
     private int waitingTime;
 
     @Constraints.Required
+    @Valid
     @Embedded
     private Location location;
 

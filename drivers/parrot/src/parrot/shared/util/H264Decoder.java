@@ -1,4 +1,4 @@
-package parrot.shared.protocols;
+package parrot.shared.util;
 
 import akka.actor.ActorRef;
 import com.xuggle.xuggler.*;
@@ -22,7 +22,6 @@ public class H264Decoder extends Thread {
     private IVideoResampler resampler;
     private IPacket packet;
     private int videoStreamId;
-    private int numStreams;
 
     private InputStream is;
     private int numberOfDecodedImages = 1;
@@ -53,7 +52,7 @@ public class H264Decoder extends Thread {
             throw new XugglerException("could not open inputstream");
         }
 
-        numStreams = container.getNumStreams();
+        int numStreams = container.getNumStreams();
 
         videoStreamId = -1;
         videoCoder = null;

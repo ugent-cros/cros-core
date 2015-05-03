@@ -2,6 +2,7 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import droneapi.api.DroneCommander;
+import droneapi.api.DroneControl;
 import droneapi.model.properties.FlipType;
 import drones.models.Fleet;
 import models.Drone;
@@ -81,6 +82,8 @@ public class ManualDroneController extends Controller {
 
     public static F.Promise<Result> command(Long id, String command) {
         Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
 
         if (drone.getStatus() != Drone.Status.MANUAL_CONTROL)
             return F.Promise.pure(forbidden(Json.toJson("you can only control a drone which is in manual control mode.")));
@@ -95,25 +98,21 @@ public class ManualDroneController extends Controller {
     }
 
     public static F.Promise<Result> setManual(Long id) {
-        return setMode(Drone.FIND.byId(id), Drone.Status.MANUAL_CONTROL);
+        return setMode(id, Drone.Status.MANUAL_CONTROL);
     }
 
     public static F.Promise<Result> setAutomatic(Long id) {
-        return setMode(Drone.FIND.byId(id), Drone.Status.AVAILABLE);
+        return setMode(id, Drone.Status.AVAILABLE);
     }
 
-    private static F.Promise<Result> setMode(Drone drone, Drone.Status status) {
-        if (drone.getStatus() == Drone.Status.CHARGING || drone.getStatus() == Drone.Status.RETIRED ||
-                drone.getStatus() == Drone.Status.EMERGENCY || drone.getStatus() == Drone.Status.UNKNOWN ||
-                drone.getStatus() == Drone.Status.UNREACHABLE || drone.getStatus() == Drone.Status.INACTIVE)
-            return F.Promise.pure(forbidden(Json.toJson("you cannot set control mode of a drone with status " + drone.getStatus().toString() + ".")));
-
-        if (drone.getStatus() == status)
-            return F.Promise.pure(ok(Json.toJson("drone was allready in mode " + status.toString() + ".")));
+    private static F.Promise<Result> setMode(Long id, Drone.Status status) {
+        Drone drone = Drone.FIND.byId(id);
+        if (drone == null)
+            return F.Promise.pure(notFound());
 
         drone.setStatus(status);
-        drone.update();
-        return F.Promise.pure(ok(Json.toJson("drone mode updated to " + status.toString() + ".")));
+
+        return F.Promise.pure(DroneController.update(id, JsonHelper.addRootElement(Json.toJson(drone), Drone.class).toString()));
     }
 
     public static Result links(Long id) {

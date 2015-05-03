@@ -39,6 +39,7 @@ public class MessageWebSocket extends AbstractActor {
         TYPENAMES.add(new F.Tuple<>(BatteryPercentageChangedMessage.class, "batteryPercentageChanged"));
         TYPENAMES.add(new F.Tuple<>(AltitudeChangedMessage.class, "altitudeChanged"));
         TYPENAMES.add(new F.Tuple<>(LocationChangedMessage.class, "locationChanged"));
+        TYPENAMES.add(new F.Tuple<>(SpeedChangedMessage.class, "speedChanged"));
 
         IGNORETYPES.add(FlyingStateChangedMessage.class);
         IGNORETYPES.add(NavigationStateChangedMessage.class);
