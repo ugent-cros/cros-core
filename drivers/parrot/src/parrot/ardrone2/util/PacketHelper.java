@@ -33,7 +33,7 @@ public class PacketHelper {
         long value = 0;
         for (int i = 7; i >= 0; i--) {
             int shift = i * 8;
-            value += (data[i + offset] & 0x000000FF) << shift;
+            value += ((long) data[i + offset] & 0x000000FF) << shift;
         }
         return value;
     }
