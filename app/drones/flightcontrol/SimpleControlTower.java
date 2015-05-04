@@ -165,27 +165,6 @@ public class SimpleControlTower extends ControlTower {
         drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
         waitForFlightCanceledMessage.add(droneId);
 
-        ActorRef pilot = drones.get(droneId).getKey();
-
-        //adjust hashmap for granted count
-        for (RequestMessage requestMessage : requestGrantedCount.keySet()) {
-            //check if requestMessage is created by the drone that will be removed
-            if (requestMessage.getRequester() == pilot) {
-                tellToAllPilots(new CompletedMessage(requestMessage));
-                noFlyPoints.remove(requestMessage.getLocation());
-                requestGrantedCount.remove(requestMessage);
-            } else {
-                //remove droneId from granted count
-                requestGrantedCount.get(requestMessage).remove(droneId);
-
-                //check if this is the last drone which one was waiting
-                if (requestGrantedCount.get(requestMessage).size() == drones.size() - 2) {
-                    requestGrantedCount.remove(requestMessage);
-                    requestMessage.getRequester().tell(new RequestGrantedMessage(droneId, requestMessage), self());
-                }
-            }
-        }
-
         //remove from drones map is done when FlightCanceledMessage is received
         return true;
     }
@@ -206,6 +185,26 @@ public class SimpleControlTower extends ControlTower {
             //remove drone
             availableCruisingAltitudes.add(drones.get(m.getDroneId()).getValue());
             drones.remove(m.getDroneId());
+
+            //adjust hashmap for granted count
+            ActorRef pilot = drones.get(m.getDroneId()).getKey();
+            for (RequestMessage requestMessage : requestGrantedCount.keySet()) {
+                //check if requestMessage is created by the drone that will be removed
+                if (requestMessage.getRequester() == pilot) {
+                    tellToAllPilots(new CompletedMessage(requestMessage));
+                    noFlyPoints.remove(requestMessage.getLocation());
+                    requestGrantedCount.remove(requestMessage);
+                } else {
+                    //remove droneId from granted count
+                    requestGrantedCount.get(requestMessage).remove(m.getDroneId());
+
+                    //check if this is the last drone which one was waiting
+                    if (requestGrantedCount.get(requestMessage).size() == drones.size() - 2) {
+                        requestGrantedCount.remove(requestMessage);
+                        requestMessage.getRequester().tell(new RequestGrantedMessage(m.getDroneId(), requestMessage), self());
+                    }
+                }
+            }
 
             //Check if wait for ShutDown and if all messages are received
             if(waitForShutDown){

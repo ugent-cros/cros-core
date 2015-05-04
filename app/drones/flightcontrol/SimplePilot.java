@@ -234,6 +234,7 @@ public class SimplePilot extends Pilot {
     protected void requestMessage(RequestMessage m) {
         if(blocked){
             noFlyPoints.add(m.getLocation());
+            reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
         } else {
             if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
                 evacuationPoints.add(m);
