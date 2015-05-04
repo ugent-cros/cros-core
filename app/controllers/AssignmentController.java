@@ -96,28 +96,25 @@ public class AssignmentController {
         assignment.setCreator(user);
         assignment.save();
 
-        try {
-            Scheduler.schedule();
-            return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to start schedule procedure.", ex);
-            return internalServerError("Failed to start schedule procedure.");
-        }
-
+        Scheduler.scheduleAssignment(assignment.getId());
+        return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
     }
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long id) {
         Assignment assignment = Assignment.FIND.byId(id);
 
-        if(assignment == null)
+        if(assignment == null) {
             return notFound("Requested assignment not found");
-        if(assignment.getAssignedDrone() != null)
-            return forbidden("you cannot delete an assignment which has a drone assigned");
-
-        assignment.delete();
-
-        return ok();
+        }
+        if(assignment.isScheduled()){
+            Scheduler.cancelAssignment(assignment.getId());
+        }else{
+            assignment.delete();
+        }
+        ObjectNode node = Json.newObject();
+        node.put("status", "ok");
+        return ok(node);
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {

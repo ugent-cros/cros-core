@@ -14,5 +14,4 @@ public class DroneAddedMessage implements SchedulerEvent {
     public long getDroneId() {
         return droneId;
     }
-
 }

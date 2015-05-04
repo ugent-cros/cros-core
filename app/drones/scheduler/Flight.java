@@ -8,28 +8,18 @@ import models.Drone;
  */
 public class Flight {
 
-    public static final long NO_ASSIGNMENT_ID = -1;
-
     private long droneId;
     private long assignmentId;
     private ActorRef flightControl;
     private Type type;
-    private Drone.Status nextStatus;
+    private Drone.Status cancelStatus;
 
     public Flight(long droneId, long assignmentId, ActorRef flightControl) {
         this.droneId = droneId;
         this.assignmentId = assignmentId;
         this.flightControl = flightControl;
         this.type = Type.ASSIGNMENT;
-        this.nextStatus = Drone.Status.FLYING;
-    }
-
-    public Flight(long droneId, ActorRef flightControl, Drone.Status nextStatus){
-        this.droneId = droneId;
-        this.assignmentId = NO_ASSIGNMENT_ID;
-        this.flightControl = flightControl;
-        this.type = Type.RETURN;
-        this.nextStatus = nextStatus;
+        this.cancelStatus = Drone.Status.AVAILABLE;
     }
 
     public Long getDroneId() {
@@ -52,17 +42,16 @@ public class Flight {
         this.type = type;
     }
 
-    public Drone.Status getNextStatus() {
-        return nextStatus;
+    public Drone.Status getCancelStatus() {
+        return cancelStatus;
     }
 
-    public void setNextStatus(Drone.Status nextStatus) {
-        this.nextStatus = nextStatus;
+    public void setCancelStatus(Drone.Status cancelStatus) {
+        this.cancelStatus = cancelStatus;
     }
 
     public enum Type{
         ASSIGNMENT,
-        RETURN,
         CANCELED;
     }
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import droneapi.api.DroneCommander;
 import drones.models.Fleet;
+import drones.scheduler.Helper;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
 import models.Drone;
@@ -26,6 +27,7 @@ import utilities.QueryHelper;
 import utilities.VideoWebSocket;
 import utilities.annotations.Authentication;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,6 +40,13 @@ import static play.mvc.Results.*;
  */
 
 public class DroneController {
+
+    private static ObjectNode EMPTY_RESULT;
+
+    static {
+        EMPTY_RESULT = Json.newObject();
+        EMPTY_RESULT.put("status", "ok");
+    }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
@@ -138,12 +147,8 @@ public class DroneController {
 
         Drone drone = form.get();
         drone.save();
-
-        try {
-            Scheduler.addDrone(drone.getId());
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to add drone to scheduler.",ex);
-        }
+        Fleet.getFleet().createCommanderForDrone(drone);
+        Scheduler.scheduleDrone(drone.getId());
 
         return F.Promise.pure(created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
@@ -174,35 +179,31 @@ public class DroneController {
 
         Drone updatedDrone = droneForm.get();
 
-        // TODO: How do we update the IP address?
-        if(updatedDrone.getAddress() != drone.getAddress()){
-            return forbidden("You cannot change the address yet this way.");
+        boolean updated = false;
+        while (!updated) {
+            drone.refresh();
+            // TODO: How do we update the address?
+            if (!drone.getAddress().equals(updatedDrone.getAddress())) {
+                return forbidden("Changing the address via update is not implemented.");
+            }
+            Drone.Status oldStatus = drone.getStatus();
+            Drone.Status newStatus = updatedDrone.getStatus();
+            if (!Helper.isValidTransition(oldStatus, newStatus)) {
+                return forbidden(String.format("Status transition from %s to %s is illegal.", oldStatus, newStatus));
+            }
+            // Update name
+            drone.setName(updatedDrone.getName());
+            drone.setStatus(updatedDrone.getStatus());
+            try {
+                drone.update();
+                updated = true;
+            } catch (OptimisticLockException ex) {
+                updated = false;
+            }
         }
-
-        // Status will be updated by the system asynchronously.
-        switch (updatedDrone.getStatus()){
-            case AVAILABLE:
-                Scheduler.setDroneAvailable(drone.getId());
-                break;
-            case CHARGING:
-                Scheduler.setDroneCharging(drone.getId());
-                break;
-            case EMERGENCY:
-                Scheduler.setDroneEmergency(drone.getId());
-                break;
-            case INACTIVE:
-                Scheduler.setDroneInactive(drone.getId());
-                break;
-            case MANUAL_CONTROL:
-                Scheduler.setDroneManualControl(drone.getId());
-                break;
-            default:
-                return forbidden("You cannot manually transition drone status to " + updatedDrone.getStatus());
+        if(drone.getStatus() == Drone.Status.AVAILABLE){
+            Scheduler.scheduleDrone(drone.getId());
         }
-
-        // Update name
-        drone.setName(updatedDrone.getName());
-        drone.update();
         return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
     }
 
@@ -213,7 +214,6 @@ public class DroneController {
             return F.Promise.pure(notFound());
         }
         if(!Fleet.getFleet().hasCommander(drone)){
-            // TODO: Handle when a drone has no commander (yet).
             return F.Promise.pure(notFound());
         }
 
@@ -315,7 +315,9 @@ public class DroneController {
         // [QUICK FIX] Send emergency via Scheduler
         try {
             Scheduler.setDroneEmergency(drone.getId());
-            return F.Promise.pure(ok());
+            ObjectNode result = Json.newObject();
+            result.put("status", "ok");
+            return F.Promise.pure(ok(result));
         }catch(SchedulerException ex){
             Logger.error("Scheduler error", ex);
             return F.Promise.pure(internalServerError("Scheduler could not process emergency."));
@@ -325,17 +327,32 @@ public class DroneController {
     @Authentication({User.Role.ADMIN})
     public static Result deleteAll() {
         Drone.FIND.all().forEach(d -> d.delete());
-        return ok();
+        return ok(EMPTY_RESULT);
     }
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long i) {
-        Drone d = Drone.FIND.byId(i);
-        if (d == null)
+        Drone drone = Drone.FIND.byId(i);
+        if (drone == null) {
             return notFound();
-
-        d.delete();
-        return ok();
+        }
+        boolean updated = false;
+        while (!updated) {
+            drone.refresh();
+            if (drone.getStatus() == Drone.Status.FLYING) {
+                return forbidden("Cannot remove drone while flying.");
+            }
+            drone.setStatus(Drone.Status.RETIRED);
+            try {
+                drone.update();
+                updated = true;
+            } catch (OptimisticLockException ex) {
+                updated = false;
+            }
+        }
+        Fleet.getFleet().stopCommander(drone);
+        drone.delete();
+        return ok(EMPTY_RESULT);
     }
 
     private static final List<ControllerHelper.Link> getAllLinks(long id) {

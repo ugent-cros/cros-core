@@ -16,8 +16,6 @@ import models.Assignment;
 import models.Drone;
 import play.libs.Akka;
 
-import java.util.List;
-
 /**
  * Created by Ronald on 16/03/2015.
  */
@@ -109,13 +107,21 @@ public abstract class Scheduler extends AbstractActor {
     }
 
     /**
-     * Force the scheduler to start scheduling
-     *
-     * @throws SchedulerException
+     * Try to schedule an assignment.
+     * @param assignmentId
      */
-    public static void schedule(){
-        getScheduler().tell(new ScheduleMessage(), ActorRef.noSender());
+    public static void scheduleAssignment(long assignmentId){
+        getScheduler().tell(new ScheduleAssignmentMessage(assignmentId), ActorRef.noSender());
     }
+
+    /**
+     * Try to schedule a drone.
+     * @param droneId
+     */
+    public static void scheduleDrone(long droneId){
+        getScheduler().tell(new ScheduleDroneMessage(droneId), ActorRef.noSender());
+    }
+
 
     /**
      * Cancel an assignment safely.
@@ -128,57 +134,6 @@ public abstract class Scheduler extends AbstractActor {
     }
 
     /**
-     * Provide a new drone to the scheduler to assign assignments.
-     *
-     * @param droneId id of the drone to add to the pool
-     * @throws SchedulerException
-     */
-    public static void addDrone(long droneId){
-        getScheduler().tell(new AddDroneMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
-     * Tell the scheduler to try adding all the drones from the database.
-     *
-     * @throws SchedulerException
-     */
-    public static void addDrones(){
-        ActorRef scheduler = getScheduler();
-        List<Drone> drones = Drone.FIND.all();
-        for (Drone drone : drones) {
-            // TODO: Make sure MANUAL_CONTROL drones aren't added.
-            scheduler.tell(new AddDroneMessage(drone.getId()), ActorRef.noSender());
-        }
-    }
-
-    /**
-     * Remove the drone from the scheduler drone pool.
-     * @param droneId id of the drone to be removed from the active pool
-     * @throws SchedulerException
-     */
-    public static void removeDrone(long droneId){
-        getScheduler().tell(new RemoveDroneMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
-     * Ask scheduler to make a drone available.
-     * @param droneId
-     * @throws SchedulerException
-     */
-    public static void setDroneAvailable(long droneId){
-        getScheduler().tell(new DroneAvailableMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
-     * Ask scheduler to go charge a drone.
-     * @param droneId
-     * @throws SchedulerException
-     */
-    public static void setDroneCharging(long droneId){
-        getScheduler().tell(new DroneChargingMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
      * Tell the scheduler to land a drone immediately.
      *
      * @param droneId
@@ -186,24 +141,6 @@ public abstract class Scheduler extends AbstractActor {
      */
     public static void setDroneEmergency(long droneId){
         getScheduler().tell(new DroneEmergencyMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
-     * Ask the scheduler to make a drone inactive, so he doesn't get scheduled again.
-     * @param droneId
-     * @throws SchedulerException
-     */
-    public static void setDroneInactive(long droneId){
-        getScheduler().tell(new DroneInactiveMessage(droneId), ActorRef.noSender());
-    }
-
-    /**
-     * Ask the scheduler to cede control of a drone to manual control.
-     * @param droneId
-     * @throws SchedulerException
-     */
-    public static void setDroneManualControl(long droneId){
-        getScheduler().tell(new DroneManualControlMessage(droneId), ActorRef.noSender());
     }
 
     /**
@@ -237,16 +174,12 @@ public abstract class Scheduler extends AbstractActor {
                 .match(SubscribeMessage.class, m -> subscribe(m))
                 .match(UnsubscribeMessage.class, m -> unsubscribe(m))
                 .match(SchedulerRequestMessage.class, m -> reply(m))
-                .match(ScheduleMessage.class, m -> schedule(m))
+                .match(StartSchedulerMessage.class, m -> start(m))
                 .match(StopSchedulerMessage.class, m -> stop(m))
+                .match(ScheduleAssignmentMessage.class, m -> scheduleAssignment(m))
+                .match(ScheduleDroneMessage.class, m -> scheduleDrone(m))
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
-                .match(AddDroneMessage.class, m -> addDrone(m))
-                .match(RemoveDroneMessage.class, m -> removeDrone(m))
-                .match(DroneAvailableMessage.class, m -> setDroneAvailable(m))
-                .match(DroneChargingMessage.class, m -> setDroneCharging(m))
-                .match(DroneEmergencyMessage.class, m -> setDroneEmergency(m))
-                .match(DroneInactiveMessage.class, m -> setDroneInactive(m))
-                .match(DroneManualControlMessage.class, m -> setDroneManualControl(m))
+                .match(DroneEmergencyMessage.class, m -> droneEmergency(m))
                 .match(SchedulerPublishMessage.class, m -> eventBus.publish(m.getEvent()));
     }
 
@@ -270,14 +203,10 @@ public abstract class Scheduler extends AbstractActor {
     protected Assignment getAssignment(long assignmentId) {
         return Assignment.FIND.byId(assignmentId);
     }
-    protected abstract void schedule(ScheduleMessage message);
+    protected abstract void scheduleAssignment(ScheduleAssignmentMessage message);
+    protected abstract void scheduleDrone(ScheduleDroneMessage message);
+    protected abstract void start(StartSchedulerMessage message);
     protected abstract void stop(StopSchedulerMessage message);
     protected abstract void cancelAssignment(CancelAssignmentMessage message);
-    protected abstract void addDrone(AddDroneMessage message);
-    protected abstract void removeDrone(RemoveDroneMessage message);
-    protected abstract void setDroneAvailable(DroneAvailableMessage message);
-    protected abstract void setDroneCharging(DroneChargingMessage message);
-    protected abstract void setDroneEmergency(DroneEmergencyMessage message);
-    protected abstract void setDroneInactive(DroneInactiveMessage message);
-    protected abstract void setDroneManualControl(DroneManualControlMessage message);
+    protected abstract void droneEmergency(DroneEmergencyMessage message);
 }

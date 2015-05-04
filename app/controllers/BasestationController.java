@@ -26,6 +26,12 @@ import static play.mvc.Results.*;
  */
 public class BasestationController {
 
+    private static ObjectNode EMPTY_RESULT;
+    static {
+        EMPTY_RESULT = Json.newObject();
+        EMPTY_RESULT.put("status", "ok");
+    }
+
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ExpressionList<Basestation> exp = QueryHelper.buildQuery(Basestation.class, Basestation.FIND.where());
@@ -122,7 +128,7 @@ public class BasestationController {
             return notFound("Requested basestation not found");
 
         basestation.delete();//cascading delete automatically
-        return ok();
+        return ok(EMPTY_RESULT);
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {

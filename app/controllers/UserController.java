@@ -31,6 +31,12 @@ import static play.mvc.Results.*;
 
 public class UserController {
 
+    private static ObjectNode EMPTY_RESULT;
+    static {
+        EMPTY_RESULT = Json.newObject();
+        EMPTY_RESULT.put("status", "ok");
+    }
+
     private static ObjectMapper jsonMapper = new ObjectMapper();
 
     public static final ControllerHelper.Link allUsersLink = new ControllerHelper.Link("users", controllers.routes.UserController.getAll().absoluteURL(request()));
@@ -259,7 +265,7 @@ public class UserController {
         user.invalidateAuthToken();
         user.save();
 
-        return ok();
+        return ok(EMPTY_RESULT);
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {

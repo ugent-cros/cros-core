@@ -56,7 +56,6 @@ public class Global extends GlobalSettings {
         super.onStart(application);
         try {
             Scheduler.start(AdvancedScheduler.class);
-            Scheduler.addDrones();
         }catch(SchedulerException ex){
             Logger.error("Scheduler failed on start.",ex);
         }
