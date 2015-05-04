@@ -7,8 +7,12 @@ import akka.japi.pf.ReceiveBuilder;
 import droneapi.api.DroneCommander;
 import droneapi.model.properties.Location;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static java.lang.Math.abs;
 
 /**
  * Created by Sander on 29/04/2015.
@@ -17,10 +21,13 @@ public class CollisionDetector extends AbstractActor {
 
     //Minimum distance between 2 drones.
     private static final double MIN_DISTANCE = 5;
+    //Minimum height of a drone to be able to collide
     private static final double MIN_COLLIDE_HEIGHT = 0.5;
+    //Minimum height between 2 drones on the same location
+    private static final double MIN_HEIGHT = 0.5;
 
-    private HashMap<DroneCommander,Location> drones;
-    private List<ActorRef> senders;
+    private Map<DroneCommander,Location> drones = new HashMap<>();
+    private List<ActorRef> senders = new ArrayList<>();
 
     private ActorRef reporterRef;
     private boolean collison = false;
@@ -63,12 +70,12 @@ public class CollisionDetector extends AbstractActor {
                 continue;
             }
             Location otherDroneLocation = drones.get(otherDrone);
-            if(otherDrone == null || otherDroneLocation.getHeight() < MIN_COLLIDE_HEIGHT){
+            if(otherDrone == null || otherDroneLocation.getHeight() < MIN_COLLIDE_HEIGHT || droneLocation.getHeight() < MIN_COLLIDE_HEIGHT){
                 continue;
             }
 
             //Check if collide
-            if(otherDroneLocation.distance(droneLocation) < MIN_DISTANCE){
+            if(otherDroneLocation.distance(droneLocation) < MIN_DISTANCE && abs(otherDroneLocation.getHeight() - droneLocation.getHeight()) < MIN_HEIGHT){
                 collison = true;
                 return;
             }
