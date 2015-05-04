@@ -117,7 +117,9 @@ public class AssignmentController {
 
         assignment.delete();
 
-        return ok();
+        ObjectNode node = Json.newObject();
+        node.put("status", "ok");
+        return ok(node);
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {
