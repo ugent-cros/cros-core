@@ -5,16 +5,16 @@ import java.io.Serializable;
 /**
  * Created by Sander on 26/03/2015.
  */
-public class FlightControlExceptionMessage extends Exception implements Serializable{
+public class FlightControlExceptionMessage extends AbstractIdFlightControlMessage implements Serializable{
 
-    private long droneId;
+    private String message;
 
     public FlightControlExceptionMessage(String s, long droneId) {
-        super(s);
-        this.droneId = droneId;
+        super(droneId);
+        this.message = message;
     }
 
-    public long getDroneId() {
-        return droneId;
+    public String getMessage() {
+        return message;
     }
 }
