@@ -66,7 +66,7 @@ public class LocationNavigator {
         } else if(goalDistance < gpsAccuracy) {
             vx = goalDistance / gpsAccuracy; // the closer, the slower
         } else {
-            vx = 1d; // else full ahead
+            vx = 0.7; // else full ahead
         }
 
         if(movedDistance > gpsAccuracy){
