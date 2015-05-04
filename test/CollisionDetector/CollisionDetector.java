@@ -62,13 +62,13 @@ public class CollisionDetector extends AbstractActor {
             if(otherDrone == m.getDroneCommander()){
                 continue;
             }
-            Location otherDronLocation = drones.get(otherDrone);
-            if(otherDrone == null || otherDronLocation.getHeight() < MIN_COLLIDE_HEIGHT){
+            Location otherDroneLocation = drones.get(otherDrone);
+            if(otherDrone == null || otherDroneLocation.getHeight() < MIN_COLLIDE_HEIGHT){
                 continue;
             }
 
             //Check if collide
-            if(otherDronLocation.distance(droneLocation) < MIN_DISTANCE){
+            if(otherDroneLocation.distance(droneLocation) < MIN_DISTANCE){
                 collison = true;
                 return;
             }
