@@ -74,8 +74,9 @@ public class SimpleControlTower extends ControlTower {
             blocked = true;
 
             //stop all pilots
-            for(Pair<ActorRef,Double> pair : drones.values()){
-                pair.getKey().tell(new StopFlightControlMessage(), self());
+            for(Long droneId : drones.keySet()){
+                waitForFlightCanceledMessage.add(droneId);
+                drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
             }
             waitForShutDown = true;
         } else {
@@ -152,6 +153,7 @@ public class SimpleControlTower extends ControlTower {
 
         //send stop message
         drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
+        waitForFlightCanceledMessage.add(droneId);
 
         ActorRef pilot = drones.get(droneId).getKey();
 
