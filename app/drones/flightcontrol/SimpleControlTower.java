@@ -26,12 +26,14 @@ public class SimpleControlTower extends ControlTower {
     private double minCruisingAltitude;
 
     //Map droneId on a pilot and a cruising altitude
+    //Map<droneId,Pair<SimplePilot,cruisingAltitude>
     private Map<Long,Pair<ActorRef,Double>> drones = new HashMap<>();
 
     private List<Double> availableCruisingAltitudes = new ArrayList<>();
 
     //List of current noFlyPoints of all SimplePilots
-    private List<Location> noFlyPoints = new ArrayList<>();
+    //List<Pair<Location,cruisingAltitude>
+    private List<Pair<Location,Double>> noFlyPoints = new ArrayList<>();
     //HashMap to count how many pilots already granted the request
     private Map<RequestMessage, List<Long>> requestGrantedCount = new HashMap<>();
 
@@ -120,10 +122,18 @@ public class SimpleControlTower extends ControlTower {
         final double cruisingAltitude = availableCruisingAltitudes.get(0);
         availableCruisingAltitudes.remove(cruisingAltitude);
 
+        //make list with all noFlyPoint with a lower cruisingAltitude
+        List<Location> list = new ArrayList<>();
+        for(Pair<Location,Double> pair: noFlyPoints){
+            if(pair.getValue() < cruisingAltitude){
+                list.add(pair.getKey());
+            }
+        }
+
         //create actor
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), cruisingAltitude, noFlyPoints)));
+                        () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), cruisingAltitude, list)));
 
         //add drone to map
         drones.put(m.getDroneId(), new Pair<>(pilot,cruisingAltitude));
@@ -217,7 +227,7 @@ public class SimpleControlTower extends ControlTower {
             return;
         }
 
-        noFlyPoints.add(m.getLocation());
+        noFlyPoints.add(new Pair<>(m.getLocation(),drones.get(m.getDroneId()).getValue()));
 
         if (drones.size() <= 1) {
             m.getRequester().tell(new RequestGrantedMessage(m.getDroneId(), m), self());
