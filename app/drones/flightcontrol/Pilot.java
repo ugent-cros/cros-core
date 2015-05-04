@@ -8,6 +8,7 @@ import droneapi.messages.FlyingStateChangedMessage;
 import droneapi.messages.LocationChangedMessage;
 import droneapi.messages.NavigationStateChangedMessage;
 import drones.flightcontrol.messages.AddNoFlyPointMessage;
+import drones.flightcontrol.messages.FlightControlExceptionMessage;
 import drones.flightcontrol.messages.WaitAtWayPointCompletedMessage;
 import drones.models.Fleet;
 import models.Drone;
@@ -62,6 +63,12 @@ public abstract class Pilot extends FlightControl{
                 match(LocationChangedMessage.class, s -> locationChanged(s)).
                 match(NavigationStateChangedMessage.class, s -> navigationStateChanged(s)).
                 match(WaitAtWayPointCompletedMessage.class, s -> waitAtWayPointCompletedMessage(s));
+    }
+
+    protected void handleErrorMessage(String s){
+        blocked = true;
+        reporterRef.tell(new FlightControlExceptionMessage(s,droneId),self());
+        log.error("FlightControl error with droneID " + droneId + ": " + s);
     }
 
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);

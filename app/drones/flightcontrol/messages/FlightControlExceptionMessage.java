@@ -7,11 +7,14 @@ import java.io.Serializable;
  */
 public class FlightControlExceptionMessage extends Exception implements Serializable{
 
-    public FlightControlExceptionMessage(String s) {
+    private long droneId;
+
+    public FlightControlExceptionMessage(String s, long droneId) {
         super(s);
+        this.droneId = droneId;
     }
 
-    public FlightControlExceptionMessage(Throwable throwable) {
-        super(throwable);
+    public long getDroneId() {
+        return droneId;
     }
 }
