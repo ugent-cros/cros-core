@@ -5,17 +5,19 @@ import com.xuggle.xuggler.*;
 import com.xuggle.xuggler.video.ConverterFactory;
 import com.xuggle.xuggler.video.IConverter;
 import droneapi.messages.ImageMessage;
-import parrot.shared.util.XugglerException;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 
 /**
  * Created by brecht on 4/30/15.
  */
 public class H264Decoder extends Thread {
+    private static final Logger LOGGER = Logger.getLogger(H264Decoder.class.getName());
+
     private IContainer container;
     private IConverter converter;
     private IStreamCoder videoCoder;
@@ -24,7 +26,6 @@ public class H264Decoder extends Thread {
     private int videoStreamId;
 
     private InputStream is;
-    private int numberOfDecodedImages = 1;
     private boolean stop;
 
     private final ActorRef listener;
@@ -101,7 +102,7 @@ public class H264Decoder extends Thread {
                     while (offset < packet.getSize()) {
                         int bytesDecoded = videoCoder.decodeVideo(picture, packet, offset);
                         if (bytesDecoded < 0) {
-                            System.out.println("[H264DECODER EXCEPTION] Got an error decoding single video frame");
+                            LOGGER.severe("[H264DECODER EXCEPTION] Got an error decoding single video frame");
                         }
                         offset += bytesDecoded;
                         if (picture.isComplete()) {
@@ -110,12 +111,11 @@ public class H264Decoder extends Thread {
                             if (resampler != null) {
                                 newPic = IVideoPicture.make(resampler.getOutputPixelFormat(), picture.getWidth(), picture.getHeight());
                                 if (resampler.resample(newPic, picture) < 0) {
-                                    System.out.println("[H264DECODER EXCEPTION] could not resample video");
-
+                                    LOGGER.severe("[H264DECODER EXCEPTION] could not resample video");
                                 }
                             }
                             if (newPic.getPixelType() != IPixelFormat.Type.BGR24) {
-                                System.out.println("[H264DECODER EXCEPTION] could not decode video as BGR 24 bit data");
+                                LOGGER.severe("[H264DECODER EXCEPTION] could not decode video as BGR 24 bit data");
                             }
 
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
