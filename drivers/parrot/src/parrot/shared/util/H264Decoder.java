@@ -101,7 +101,7 @@ public class H264Decoder extends Thread {
                     while (offset < packet.getSize()) {
                         int bytesDecoded = videoCoder.decodeVideo(picture, packet, offset);
                         if (bytesDecoded < 0) {
-                            throw new XugglerException("Got an error decoding single video frame");
+                            System.out.println("[H264DECODER EXCEPTION] Got an error decoding single video frame");
                         }
                         offset += bytesDecoded;
                         if (picture.isComplete()) {
@@ -110,19 +110,17 @@ public class H264Decoder extends Thread {
                             if (resampler != null) {
                                 newPic = IVideoPicture.make(resampler.getOutputPixelFormat(), picture.getWidth(), picture.getHeight());
                                 if (resampler.resample(newPic, picture) < 0) {
-                                    throw new XugglerException("could not resample video");
+                                    System.out.println("[H264DECODER EXCEPTION] could not resample video");
+
                                 }
                             }
                             if (newPic.getPixelType() != IPixelFormat.Type.BGR24) {
-                                throw new XugglerException("could not decode video as BGR 24 bit data");
+                                System.out.println("[H264DECODER EXCEPTION] could not decode video as BGR 24 bit data");
                             }
 
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
                             converter.toImage(picture);
                             ImageIO.write(converter.toImage(picture), "JPEG", bos);
-
-                            // @TODO remove
-                            System.out.println("[H264DECODER] Video image decoded [" + numberOfDecodedImages++ + "]");
 
                             Object imageMessage = new ImageMessage(bos.toByteArray());
                             listener.tell(imageMessage, null);
@@ -130,9 +128,6 @@ public class H264Decoder extends Thread {
                     }
                 }
             }
-        } catch (XugglerException ex) {
-            System.out.println("[H264DECODER] Exception");
-            ex.printStackTrace();
         } catch (IOException ex) {
             System.out.println("[H264DECODER] Exception");
             ex.printStackTrace();
