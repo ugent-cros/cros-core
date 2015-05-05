@@ -18,6 +18,7 @@ import utilities.JsonHelper;
 import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -107,10 +108,24 @@ public class AssignmentController {
         if(assignment == null) {
             return notFound("Requested assignment not found");
         }
-        if(assignment.isScheduled()){
-            Scheduler.cancelAssignment(assignment.getId());
-        }else{
-            assignment.delete();
+
+        boolean updated = false;
+        while(!updated){
+            try{
+                assignment.refresh();
+                if(assignment.getStatus() == Assignment.Status.EXECUTING) {
+                    // Can't delete, cancel first!
+                    assignment.setStatus(Assignment.Status.CANCELED);
+                    assignment.update();
+                    Scheduler.cancelAssignment(assignment.getId());
+                }else{
+                    // Save to delete
+                    assignment.delete();
+                }
+                updated = true;
+            }catch(OptimisticLockException ex){
+                updated = false;
+            }
         }
         ObjectNode node = Json.newObject();
         node.put("status", "ok");

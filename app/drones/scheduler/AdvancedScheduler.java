@@ -2,7 +2,6 @@ package drones.scheduler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.OnComplete;
 import akka.japi.pf.ReceiveBuilder;
 import akka.japi.pf.UnitPFBuilder;
 import com.avaje.ebean.Ebean;
@@ -19,7 +18,6 @@ import drones.scheduler.messages.to.*;
 import models.*;
 import play.Logger;
 import scala.concurrent.Await;
-import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 
 import javax.persistence.OptimisticLockException;
@@ -57,16 +55,18 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
     }
 
     @Override
-    protected void start(StartSchedulerMessage message) {
+    protected void startScheduler(StartSchedulerMessage message) {
         // Initial scheduling
         List<Drone> drones = Drone.FIND.all();
         for(Drone drone : drones){
-            scheduleDrone(drone.getId());
+            if(drone.getStatus() == Drone.Status.AVAILABLE) {
+                scheduleDrone(drone.getId());
+            }
         }
     }
 
     @Override
-    protected void stop(StopSchedulerMessage message) {
+    protected void stopScheduler(StopSchedulerMessage message) {
         // Cancel all remaining flights
         if (flights.isEmpty()) {
             // Termination
@@ -78,14 +78,19 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Termination phase
         // Hotswap new receive behaviour
         context().become(ReceiveBuilder
-                .match(FlightControlExceptionMessage.class, m -> flightFailed(m))
+                .match(FlightControlExceptionMessage.class, m -> termination(m))
                 .match(FlightCanceledMessage.class, m -> termination(m))
                 .match(FlightCompletedMessage.class, m -> termination(m))
                 .matchAny(m -> log.warning("Ignored message during termination: [{}]", m.getClass().getName())
                 ).build());
         for (Flight flight : flights.values()) {
             if (flight.getType() == Flight.Type.ASSIGNMENT) {
-                cancelAssignment(flight.getAssignmentId());
+                Drone drone = getDrone(flight.getDroneId());
+                if(drone == null){
+                    Logger.warn("Stop: drone is null.");
+                }else {
+                    cancelFlight(drone, Drone.Status.INACTIVE);
+                }
             }
         }
     }
@@ -149,6 +154,10 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("ScheduleAssignment: assignment is null.");
             return;
         }
+        if(assignment.getStatus() != Assignment.Status.PENDING){
+            Logger.warn("ScheduleAssignment: assignment is not pending.");
+            return;
+        }
         Drone drone = fetchDrone(assignment);
         if(drone == null){
             Logger.info("ScheduleAssignment: no drone for assignment.");
@@ -163,6 +172,10 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         Drone drone = getDrone(message.getDroneId());
         if(drone == null){
             Logger.warn("ScheduleDrone: drone is null.");
+            return;
+        }
+        if(drone.getStatus() != Drone.Status.AVAILABLE){
+            Logger.warn("ScheduleDrone: drone is not available.");
             return;
         }
         Assignment assignment = fetchAssignment(drone);
@@ -180,7 +193,6 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         boolean updated = false;
         while(!updated) {
             assignment.refresh();
-            assignment.setScheduled(true);
             assignment.setAssignedDrone(drone);
             try {
                 assignment.update();
@@ -231,6 +243,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
                 Logger.warn("FlightCompleted: assignment is null.");
             }else{
                 unassign(drone, assignment);
+                updateAssignmentStatus(assignment, Assignment.Status.COMPLETED);
                 eventBus.publish(new AssignmentCompletedMessage(assignment.getId()));
             }
         }
@@ -245,27 +258,57 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("FlightCanceled: flight is null.");
             return;
         }
+        // Drone
         Drone drone = getDrone(flight.getDroneId());
         if (drone == null) {
             Logger.warn("FlightCanceled: drone is null.");
             return;
         }
-        // Assignment
-        Assignment assignment = getAssignment(flight.getAssignmentId());
-        if(assignment == null){
-            Logger.warn("FlightCompleted: assignment is null.");
-        }else{
-            unassign(drone, assignment);
-            eventBus.publish(new AssignmentCanceledMessage(assignment.getId()));
-        }
         updateDroneStatus(drone, flight.getCancelStatus());
         if(flight.getCancelStatus() == Drone.Status.AVAILABLE){
             scheduleDrone(drone.getId());
         }
+        // Assignment
+        Assignment assignment = getAssignment(flight.getAssignmentId());
+        if(assignment == null){
+            Logger.warn("FlightCanceled: assignment is null.");
+            return;
+        }
+        unassign(drone, assignment);
+        if(assignment.getStatus() == Assignment.Status.CANCELED){
+            eventBus.publish(new AssignmentCanceledMessage(assignment.getId()));
+        }else{
+            updateAssignmentProgress(assignment, 0);
+            updateAssignmentStatus(assignment, Assignment.Status.PENDING);
+            scheduleAssignment(assignment.getId());
+        }
     }
 
     protected void flightFailed(FlightControlExceptionMessage message){
-        // TODO
+        // Flight
+        Flight flight = flights.remove(message.getDroneId());
+        if(flight == null){
+            Logger.warn("FlightFailed: flight is null.");
+            return;
+        }
+        // Drone
+        Drone drone = getDrone(message.getDroneId());
+        if(drone == null){
+            Logger.warn("FlightFailed: drone is null.");
+            return;
+        }
+        updateDroneStatus(drone, Drone.Status.ERROR);
+        eventBus.publish(new DroneFailedMessage(drone.getId(),message.getMessage()));
+        //Assignment
+        Assignment assignment = getAssignment(flight.getAssignmentId());
+        if(assignment == null){
+            Logger.warn("FlightFailed: assignment is null.");
+            return;
+        }
+        unassign(drone,assignment);
+        updateAssignmentProgress(assignment, 0);
+        updateAssignmentStatus(assignment, Assignment.Status.PENDING);
+        scheduleAssignment(assignment.getId());
     }
 
     protected void waypointCompleted(WayPointCompletedMessage message) {
@@ -283,20 +326,13 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("WaypointCompleted: assignment is null.");
             return;
         }
-        assignment.setProgress(message.getWaypointNumber());
-        try {
-            assignment.update();
-        }catch (OptimisticLockException ex){
-            Logger.warn("WaypointCompleted: failed to update.");
-            return;
-        }
-        eventBus.publish(new AssignmentProgressedMessage(assignment.getId(), message.getWaypointNumber()));
+        updateAssignmentProgress(assignment, message.getWaypointNumber() + 1);
     }
 
     protected Assignment fetchAssignment(Drone drone){
         // Fetch
         Query<Assignment> query = Ebean.createQuery(Assignment.class);
-        query.where().eq("scheduled", false);
+        query.where().eq("status", Assignment.Status.PENDING);
         query.orderBy("priority, id");
         List<Assignment> assignments = query.findList();
 
@@ -335,7 +371,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         Query<Drone> query = Ebean.createQuery(Drone.class);
         query.where().eq("status", Drone.Status.AVAILABLE);
         List<Drone> drones = query.findList();
-        // Find the closest drone to this assignment start location
+        // Find the closest drone to this assignment startScheduler location
         Location startLocation = assignment.getRoute().get(0).getLocation();
         double minDistance = Double.MAX_VALUE;
         Drone minDrone = null;
@@ -419,14 +455,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("CancelAssignment: assignment == null.");
             return;
         }
-        assignment.setScheduled(false);
-        try {
-            assignment.update();
-        }catch(OptimisticLockException ex){
-            Logger.warn("CancelAssignment: failed to update.");
-            return;
-        }
-        // Assigned drone
+        // Drone
         Drone drone = assignment.getAssignedDrone();
         if (drone == null) {
             Logger.warn("CancelAssignment: drone == null.");
@@ -447,6 +476,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         Flight flight = new Flight(droneId, assignment.getId(), pilot);
         flights.put(droneId, flight);
         updateDroneStatus(drone, Drone.Status.FLYING);
+        updateAssignmentStatus(assignment, Assignment.Status.EXECUTING);
         eventBus.publish(new AssignmentStartedMessage(assignment.getId()));
     }
 
@@ -457,17 +487,11 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("CancelFlight: flight is null");
             return;
         }
-        if(flight.getType() == Flight.Type.CANCELED){
+        if (flight.getType() == Flight.Type.CANCELED) {
             Logger.warn("CancelFlight: flight already canceled.");
-        }else{
-            flight.setType(Flight.Type.CANCELED);
-            Assignment assignment = getAssignment(flight.getAssignmentId());
-            if (assignment != null) {
-                unassign(drone, assignment);
-            } else {
-                Logger.warn("CancelFlight: assignment is null");
-            }
+            return;
         }
+        flight.setType(Flight.Type.CANCELED);
         flight.setCancelStatus(cancelStatus);
         // Flight control
         // TODO: Use ControlTower
@@ -488,5 +512,32 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
                 Logger.warn("UpdateDroneStatus: retry to update.");
             }
         }
+    }
+
+    private void updateAssignmentStatus(Assignment assignment, Assignment.Status newStatus){
+        boolean updated = false;
+        while(!updated) {
+            assignment.refresh();
+            Assignment.Status oldStatus = assignment.getStatus();
+            assignment.setStatus(newStatus);
+            try {
+                assignment.update();
+                updated = true;
+                eventBus.publish(new AssignmentStatusMessage(assignment.getId(), oldStatus, newStatus));
+            } catch (OptimisticLockException ex) {
+                Logger.warn("UpdateAssignmentStatus: retry to update.");
+            }
+        }
+    }
+
+    private void updateAssignmentProgress(Assignment assignment, int progress){
+        assignment.setProgress(progress);
+        try {
+            assignment.update();
+        }catch (OptimisticLockException ex){
+            Logger.warn("UpdateAssignmentProgress: failed to update.");
+            return;
+        }
+        eventBus.publish(new AssignmentProgressedMessage(assignment.getId(), progress));
     }
 }

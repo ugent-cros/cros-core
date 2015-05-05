@@ -174,8 +174,8 @@ public abstract class Scheduler extends AbstractActor {
                 .match(SubscribeMessage.class, m -> subscribe(m))
                 .match(UnsubscribeMessage.class, m -> unsubscribe(m))
                 .match(SchedulerRequestMessage.class, m -> reply(m))
-                .match(StartSchedulerMessage.class, m -> start(m))
-                .match(StopSchedulerMessage.class, m -> stop(m))
+                .match(StartSchedulerMessage.class, m -> startScheduler(m))
+                .match(StopSchedulerMessage.class, m -> stopScheduler(m))
                 .match(ScheduleAssignmentMessage.class, m -> scheduleAssignment(m))
                 .match(ScheduleDroneMessage.class, m -> scheduleDrone(m))
                 .match(CancelAssignmentMessage.class, m -> cancelAssignment(m))
@@ -205,8 +205,8 @@ public abstract class Scheduler extends AbstractActor {
     }
     protected abstract void scheduleAssignment(ScheduleAssignmentMessage message);
     protected abstract void scheduleDrone(ScheduleDroneMessage message);
-    protected abstract void start(StartSchedulerMessage message);
-    protected abstract void stop(StopSchedulerMessage message);
+    protected abstract void startScheduler(StartSchedulerMessage message);
+    protected abstract void stopScheduler(StopSchedulerMessage message);
     protected abstract void cancelAssignment(CancelAssignmentMessage message);
     protected abstract void droneEmergency(DroneEmergencyMessage message);
 }

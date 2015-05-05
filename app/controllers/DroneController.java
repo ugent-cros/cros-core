@@ -1,5 +1,6 @@
 package controllers;
 
+import akka.dispatch.OnSuccess;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,6 +17,7 @@ import models.Location;
 import models.User;
 import play.Logger;
 import play.data.Form;
+import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.BodyParser;
@@ -147,7 +149,15 @@ public class DroneController {
 
         Drone drone = form.get();
         drone.save();
-        Fleet.getFleet().createCommanderForDrone(drone);
+        Fleet.getFleet().createCommanderForDrone(drone).onSuccess(new OnSuccess<DroneCommander>(){
+            @Override
+            public void onSuccess(DroneCommander result) throws Throwable {
+                drone.refresh();
+                if(drone.getStatus() == Drone.Status.AVAILABLE){
+                    Scheduler.scheduleDrone(drone.getId());
+                }
+            }
+        }, Akka.system().dispatcher());
         Scheduler.scheduleDrone(drone.getId());
 
         return F.Promise.pure(created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
@@ -342,16 +352,14 @@ public class DroneController {
             if (drone.getStatus() == Drone.Status.FLYING) {
                 return forbidden("Cannot remove drone while flying.");
             }
-            drone.setStatus(Drone.Status.RETIRED);
             try {
-                drone.update();
+                drone.delete();
                 updated = true;
             } catch (OptimisticLockException ex) {
                 updated = false;
             }
         }
         Fleet.getFleet().stopCommander(drone);
-        drone.delete();
         return ok(EMPTY_RESULT);
     }
 

@@ -92,7 +92,7 @@ public class ControlTowerTest extends TestSuperclass {
                 wayPoints.add(new Checkpoint(51.0226, 3.72, 0));
                 wayPoints.add(new Checkpoint(51.0226, 3.73, 0));
 
-                //start a new flight
+                //startScheduler a new flight
                 simpleControlTower.tell(new AddFlightMessage(drone.getId(),wayPoints),getRef());
 
                 expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);

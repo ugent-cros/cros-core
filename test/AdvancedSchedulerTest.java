@@ -222,6 +222,7 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 subscribe(this, DroneAssignedMessage.class);
                 subscribe(this, AssignmentStartedMessage.class);
                 subscribe(this, DroneStatusMessage.class);
+                subscribe(this, AssignmentStatusMessage.class);
                 Assignment assignment = createAssignment(SOUTH);
                 Scheduler.scheduleAssignment(assignment.getId());
 
@@ -229,7 +230,6 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 Assert.assertTrue("Correct assignment id", A.getAssignmentId() == assignment.getId());
                 Assert.assertTrue("Correct drone id", A.getDroneId() == closest.getId());
                 assignment.refresh();
-                Assert.assertTrue("Assignment scheduled", assignment.isScheduled());
                 Assert.assertTrue("Closest assigned", closest.getId() == assignment.getAssignedDrone().getId());
 
                 DroneStatusMessage B = expectMsgClass(DroneStatusMessage.class);
@@ -238,8 +238,14 @@ public class AdvancedSchedulerTest extends TestSuperclass {
                 closest.refresh();
                 Assert.assertTrue("Drone status FLYING", closest.getStatus() == Drone.Status.FLYING);
 
-                AssignmentStartedMessage C = expectMsgClass(AssignmentStartedMessage.class);
+                AssignmentStatusMessage C = expectMsgClass(AssignmentStatusMessage.class);
                 Assert.assertTrue("Correct assignment id", C.getAssignmentId() == assignment.getId());
+                Assert.assertTrue("Message status EXECUTING", C.getNewStatus() == Assignment.Status.EXECUTING);
+                assignment.refresh();
+                Assert.assertTrue("Assignment status EXECUTING", assignment.getStatus() == Assignment.Status.EXECUTING);
+
+                AssignmentStartedMessage D = expectMsgClass(AssignmentStartedMessage.class);
+                Assert.assertTrue("Correct assignment id", D.getAssignmentId() == assignment.getId());
             }
         };
     }
