@@ -158,20 +158,22 @@ public class ArDrone2NavData extends UntypedActor {
     }
 
     private void parseGPSData(byte[] navdata, int offset) {
-        double latitude = PacketHelper.getDouble(navdata, offset);
-        offset += 8;
-        double longitude = PacketHelper.getDouble(navdata, offset);
-        offset += 8;
-        double elevation = PacketHelper.getDouble(navdata, offset);
-        offset += 16; // Elevation and hdop
-        int dataAvailable = PacketHelper.getInt(navdata, offset);
+        if(navdata.length < offset + 34) {
+            double latitude = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+            double longitude = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+            double elevation = PacketHelper.getDouble(navdata, offset);
+            offset += 16; // Elevation and hdop
+            int dataAvailable = PacketHelper.getInt(navdata, offset);
 
-        boolean gpsAvailable = (dataAvailable != 0);
-        Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
-        listener.tell(gpsFixMessage, getSelf());
+            boolean gpsAvailable = (dataAvailable != 0);
+            Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+            listener.tell(gpsFixMessage, getSelf());
 
-        Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
-        listener.tell(locationMessage, getSelf());
+            Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
+            listener.tell(locationMessage, getSelf());
+        }
     }
 
     private void attitudeChanged(byte[] navdata) {
