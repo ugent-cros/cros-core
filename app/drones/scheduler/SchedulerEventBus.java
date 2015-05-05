@@ -51,11 +51,8 @@ public class SchedulerEventBus extends LookupEventBus<SchedulerEvent,ActorRef,Cl
     @Override
     public boolean unsubscribe(ActorRef subscriber, Class from) {
         if(from == null){
-            boolean result = true;
-            for(Class event : EVENTS){
-                result &= super.unsubscribe(subscriber,event);
-            }
-            return result;
+            super.unsubscribe(subscriber);
+            return true;
         }else{
             return super.unsubscribe(subscriber, from);
         }
