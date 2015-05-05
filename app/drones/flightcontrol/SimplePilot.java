@@ -59,6 +59,8 @@ public class SimplePilot extends Pilot {
     //Buffer when waiting for takeoff or landed to send the completed message
     private RequestMessage requestMessageBuffer;
 
+    private boolean done = false;
+
     /**
      * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the startFlightControlMessage message.
      * @param droneId                  Drone to control.
@@ -145,7 +147,10 @@ public class SimplePilot extends Pilot {
     private void stop(){
         blocked = true;
         dc.unsubscribe(self());
-        reporterRef.tell(new FlightCanceledMessage(droneId), self());
+        if(!done || linkedWithControlTower){
+            reporterRef.tell(new FlightCanceledMessage(droneId), self());
+        }
+
         //stop
         getContext().stop(self());
     }
@@ -325,6 +330,7 @@ public class SimplePilot extends Pilot {
                     if(linkedWithControlTower){
                         reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
                     }
+                    done = true;
                     reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
                     return;
                 }
