@@ -11,7 +11,6 @@ import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
 import models.Checkpoint;
-import play.Logger;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
