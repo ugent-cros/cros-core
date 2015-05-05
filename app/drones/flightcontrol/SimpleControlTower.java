@@ -73,8 +73,10 @@ public class SimpleControlTower extends ControlTower {
 
             //stop all pilots
             for(Long droneId : drones.keySet()){
-                waitForFlightCanceledMessage.add(droneId);
-                drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
+                if(!waitForFlightCanceledMessage.contains(droneId)){
+                    waitForFlightCanceledMessage.add(droneId);
+                    drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
+                }
             }
             waitForShutDown = true;
         } else {
