@@ -158,7 +158,6 @@ public class DroneController {
                 }
             }
         }, Akka.system().dispatcher());
-        Scheduler.scheduleDrone(drone.getId());
 
         return F.Promise.pure(created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
