@@ -153,10 +153,11 @@ public class ControlTowerTest extends TestSuperclass {
                 simpleControlTower.tell(new AddFlightMessage(droneWC.getId(),wayPointsDroneWC),getRef());
 
                 expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,WayPointCompletedMessage.class,FlightCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,WayPointCompletedMessage.class,FlightCompletedMessage.class,RemoveFlightCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING, WayPointCompletedMessage.class, FlightCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING, WayPointCompletedMessage.class, FlightCompletedMessage.class, RemoveFlightCompletedMessage.class);
                 expectMsgAnyClassOf(MAX_DURATION_FLYING,WayPointCompletedMessage.class,RemoveFlightCompletedMessage.class);
                 expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
+                expectMsgClass(MAX_DURATION_FLYING, RemoveFlightCompletedMessage.class);
 
                 simpleControlTower.tell(new StopFlightControlMessage(), getRef());
 
