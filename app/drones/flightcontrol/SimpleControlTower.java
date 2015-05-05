@@ -8,10 +8,7 @@ import drones.scheduler.messages.to.FlightCompletedMessage;
 import javafx.util.Pair;
 import droneapi.model.properties.Location;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Simple Control Tower
@@ -182,29 +179,34 @@ public class SimpleControlTower extends ControlTower {
         if(waitForFlightCanceledMessage.contains(m.getDroneId())){
             waitForFlightCanceledMessage.remove(m.getDroneId());
 
-            //remove drone
-            availableCruisingAltitudes.add(drones.get(m.getDroneId()).getValue());
-            drones.remove(m.getDroneId());
-
             //adjust hashmap for granted count
             ActorRef pilot = drones.get(m.getDroneId()).getKey();
-            for (RequestMessage requestMessage : requestGrantedCount.keySet()) {
+
+            Iterator<RequestMessage> it = requestGrantedCount.keySet().iterator(); //use iterator because otherwise ConcurrentModificationException
+            while(it.hasNext()){
+                RequestMessage requestMessage = it.next();
                 //check if requestMessage is created by the drone that will be removed
                 if (requestMessage.getRequester() == pilot) {
                     tellToAllPilots(new CompletedMessage(requestMessage));
                     noFlyPoints.remove(requestMessage.getLocation());
-                    requestGrantedCount.remove(requestMessage);
+                    //Remove from hasmap requestGrantedCount
+                    it.remove();
                 } else {
                     //remove droneId from granted count
                     requestGrantedCount.get(requestMessage).remove(m.getDroneId());
 
                     //check if this is the last drone which one was waiting
                     if (requestGrantedCount.get(requestMessage).size() == drones.size() - 2) {
-                        requestGrantedCount.remove(requestMessage);
+                        //Remove from hasmap requestGrantedCount
+                        it.remove();
                         requestMessage.getRequester().tell(new RequestGrantedMessage(m.getDroneId(), requestMessage), self());
                     }
                 }
             }
+
+            //remove drone
+            availableCruisingAltitudes.add(drones.get(m.getDroneId()).getValue());
+            drones.remove(m.getDroneId());
 
             //Check if wait for ShutDown and if all messages are received
             if(waitForShutDown){
@@ -263,11 +265,11 @@ public class SimpleControlTower extends ControlTower {
         }
 
         //add drone to granted count
-        requestGrantedCount.get(m).add(m.getDroneId());
+        requestGrantedCount.get(m.getRequestMessage()).add(m.getDroneId());
 
         //check if this is the last drone which one was waiting
-        if (requestGrantedCount.get(m).size() == drones.size() - 1) {
-            requestGrantedCount.remove(m);
+        if (requestGrantedCount.get(m.getRequestMessage()).size() == drones.size() - 1) {
+            requestGrantedCount.remove(m.getRequestMessage());
             m.getRequestMessage().getRequester().tell(m, self());
         }
     }
