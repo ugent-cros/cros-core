@@ -68,10 +68,4 @@ public abstract class FlightControl extends AbstractActor {
      * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
      */
     protected abstract void completedMessage(CompletedMessage m);
-
-    protected void handleErrorMessage(String s){
-        blocked = true;
-        reporterRef.tell(new FlightControlExceptionMessage("FlightControl: " + s),self());
-        log.error("FlightControl: " + s);
-    }
 }
