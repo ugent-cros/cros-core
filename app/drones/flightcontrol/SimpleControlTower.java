@@ -5,7 +5,6 @@ import akka.actor.Props;
 import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
-import javafx.util.Pair;
 import droneapi.model.properties.Location;
 
 import java.util.*;
