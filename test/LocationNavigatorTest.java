@@ -39,8 +39,8 @@ public class LocationNavigatorTest {
     @Test
     public void should_correct_angle(){
         Location start = new Location(51.046266, 3.724902, 1);
-        Location goal = new Location(51.046253, 3.725443, 3); // goal east of startScheduler
-        Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of startScheduler
+        Location goal = new Location(51.046253, 3.725443, 3); // goal east of start
+        Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
         LocationNavigator nav2 = new LocationNavigator(start, goal, 2f, 120f, 1f);
         MoveVector cmda1 = nav.update(firstStep);
@@ -65,8 +65,8 @@ public class LocationNavigatorTest {
     @Test
     public void should_not_correct_angle() {
         Location start = new Location(51.046266, 3.725902, 1);
-        Location goal = new Location(51.046266, 3.726952, 3); // goal east of startScheduler
-        Location firstStep = new Location(51.046266, 3.726327, 2); // first step north of startScheduler
+        Location goal = new Location(51.046266, 3.726952, 3); // goal east of start
+        Location firstStep = new Location(51.046266, 3.726327, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
         MoveVector cmda = nav.update(firstStep);
         Assert.assertEquals(cmda.getVr(), 0, 0); // The bearing difference should be less than 10 degrees
@@ -75,8 +75,8 @@ public class LocationNavigatorTest {
     @Test
     public void should_prefer_left_turn(){
         Location start = new Location(51.046266, 3.724902, 1);
-        Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of startScheduler
-        Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of startScheduler
+        Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
+        Location firstStep = new Location(51.046366, 3.724877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
         MoveVector cmd1 = nav.update(firstStep);
         Assert.assertTrue(cmd1.getVr() < 0); // prefer left turn instead of long right turn to go to southwest
@@ -85,8 +85,8 @@ public class LocationNavigatorTest {
     @Test
     public void should_prefer_right_turn(){
         Location start = new Location(51.046266, 3.724902, 1);
-        Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of startScheduler
-        Location firstStep = new Location(51.046366, 3.754877, 2); // first step north of startScheduler
+        Location goal = new Location(51.046167, 3.724808, 2.5); // southwest of start
+        Location firstStep = new Location(51.046366, 3.754877, 2); // first step north of start
         LocationNavigator nav = new LocationNavigator(start, goal, 2f, 60f, 1f);
         MoveVector cmd1 = nav.update(firstStep);
         Assert.assertTrue(cmd1.getVr() > 0); // prefer left turn instead of long right turn to go to southwest

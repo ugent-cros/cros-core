@@ -131,7 +131,7 @@ public class SimplePilotTest extends TestSuperclass {
                                 () -> new SimplePilot(getRef(), dc, true, wayPoints))
                 );
 
-                //startScheduler
+                //start
                 simplePilot.tell(new StartFlightControlMessage(), getRef());
 
                 //request for take off

@@ -58,7 +58,7 @@ public class SimpleControlTower extends ControlTower {
     public void startFlightControlMessage() {
         started = true;
 
-        //startScheduler all pilots
+        //start all pilots
         tellToAllPilots(new StartFlightControlMessage());
     }
 
@@ -73,14 +73,14 @@ public class SimpleControlTower extends ControlTower {
         if (!blocked) {
             blocked = true;
 
-            //stopScheduler all pilots
+            //stop all pilots
             for(Long droneId : drones.keySet()){
                 waitForFlightCanceledMessage.add(droneId);
                 drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
             }
             waitForShutDown = true;
         } else {
-            //stopScheduler
+            //stop
             getContext().stop(self());
         }
     }
@@ -151,7 +151,7 @@ public class SimpleControlTower extends ControlTower {
             return false;
         }
 
-        //send stopScheduler message
+        //send stop message
         drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
         waitForFlightCanceledMessage.add(droneId);
 
@@ -202,7 +202,7 @@ public class SimpleControlTower extends ControlTower {
                 if(waitForFlightCanceledMessage.isEmpty()) {
                     waitForShutDown = false;
                     reporterRef.tell(new FlightControlCancledMessage(), self());
-                    //stopScheduler
+                    //stop
                     getContext().stop(self());
                 }
             } else {

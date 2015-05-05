@@ -106,12 +106,12 @@ public class SimplePilot extends Pilot {
         try {
             NavigationState m = Await.result(dc.getNavigationState(), MAX_DURATION_SHORT);
             if(m != NavigationState.AVAILABLE){
-                handleErrorMessage("Can not startScheduler because NavigationState is not \"AVAILABLE\".");
+                handleErrorMessage("Can not start because NavigationState is not \"AVAILABLE\".");
                 return;
             }
             actualLocation = Await.result(dc.getLocation(), MAX_DURATION_SHORT);
         } catch (Exception e) {
-            handleErrorMessage("Error while getting NavigationState after startScheduler");
+            handleErrorMessage("Error while getting NavigationState after start");
             return;
         }
 
@@ -135,7 +135,7 @@ public class SimplePilot extends Pilot {
                 Await.ready(dc.land(), MAX_DURATION_LONG);
                 landed = true;
             } catch (TimeoutException | InterruptedException e) {
-                handleErrorMessage("Could no land drone after stopScheduler message");
+                handleErrorMessage("Could no land drone after stop message");
                 return;
             }
             waitForLandAfterStopFinished = true;
@@ -152,7 +152,7 @@ public class SimplePilot extends Pilot {
             reporterRef.tell(new FlightCanceledMessage(droneId), self());
         }
 
-        //stopScheduler
+        //stop
         getContext().stop(self());
     }
 
@@ -291,7 +291,7 @@ public class SimplePilot extends Pilot {
             }
             for (Location l : noFlyPoints) {
                 if (actualLocation.distance(l) < NO_FY_RANGE) {
-                    //stopScheduler with flying
+                    //stop with flying
                     try {
                         Await.ready(dc.cancelMoveToLocation(), MAX_DURATION_SHORT);
                     } catch (TimeoutException | InterruptedException e) {
