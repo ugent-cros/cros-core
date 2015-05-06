@@ -340,8 +340,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         DroneCommander commander = getCommander(drone);
         Location droneLocation = getDroneLocation(commander);
         if (droneLocation == null) {
-            updateDroneStatus(drone, Drone.Status.UNREACHABLE);
-            Logger.warn("FetchAssignment: drone unreachable.");
+            Logger.warn("FetchAssignment: drone location is null.");
             return null;
         }
         for(Assignment assignment : assignments){
@@ -381,8 +380,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             DroneCommander commander = getCommander(drone);
             Location droneLocation = getDroneLocation(commander);
             if (droneLocation == null) {
-                updateDroneStatus(drone, Drone.Status.UNREACHABLE);
-                Logger.warn("FetchDrone: drone unreachable.");
+                Logger.warn("FetchDrone: drone location is null.");
                 continue;
             }
             // Calculate distance to first checkpoint.
