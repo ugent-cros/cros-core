@@ -162,8 +162,11 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         if(drone == null){
             Logger.info("ScheduleAssignment: no drone for assignment.");
         }else{
-            assign(drone,assignment);
-            createFlight(drone, assignment);
+            if(assign(drone,assignment)) {
+                createFlight(drone, assignment);
+            }else{
+                scheduleAssignment(assignment.getId());
+            }
         }
     }
 
@@ -182,26 +185,24 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         if(assignment == null){
             Logger.info("ScheduleDrone: no assignment for drone.");
         }else{
-            assign(drone,assignment);
-            createFlight(drone, assignment);
-        }
-
-    }
-
-    protected void assign(Drone drone, Assignment assignment) {
-        // Update assignment
-        boolean updated = false;
-        while(!updated) {
-            assignment.refresh();
-            assignment.setAssignedDrone(drone);
-            try {
-                assignment.update();
-                updated = true;
-            } catch (OptimisticLockException ex) {
-                Logger.warn("Assign: retry to update.");
+            if(assign(drone,assignment)) {
+                createFlight(drone, assignment);
+            }else{
+                scheduleDrone(drone.getId());
             }
         }
-        eventBus.publish(new DroneAssignedMessage(assignment.getId(), drone.getId()));
+    }
+
+    protected boolean assign(Drone drone, Assignment assignment) {
+        assignment.setAssignedDrone(drone);
+        try {
+            assignment.update();
+            eventBus.publish(new DroneAssignedMessage(assignment.getId(), drone.getId()));
+            return true;
+        } catch (OptimisticLockException ex) {
+            Logger.warn("Assign: OptimisticLockException.");
+            return false;
+        }
     }
 
     protected void unassign(Drone drone, Assignment assignment) {
