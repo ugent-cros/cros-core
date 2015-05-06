@@ -1,35 +1,41 @@
 package controllers;
 
-import akka.actor.ActorRef;
+import akka.dispatch.OnSuccess;
 import com.avaje.ebean.ExpressionList;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import droneapi.api.DroneCommander;
+import droneapi.model.properties.FlyingState;
 import drones.models.Fleet;
+import drones.scheduler.Helper;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
-import drones.scheduler.messages.to.EmergencyMessage;
 import models.Drone;
 import models.DroneType;
 import models.Location;
 import models.User;
 import play.Logger;
 import play.data.Form;
+import play.libs.Akka;
 import play.libs.F;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Result;
 import play.mvc.WebSocket;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
 import utilities.VideoWebSocket;
 import utilities.annotations.Authentication;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
@@ -42,6 +48,7 @@ import static play.mvc.Results.*;
 public class DroneController {
 
     private static ObjectNode EMPTY_RESULT;
+
     static {
         EMPTY_RESULT = Json.newObject();
         EMPTY_RESULT.put("status", "ok");
@@ -146,12 +153,15 @@ public class DroneController {
 
         Drone drone = form.get();
         drone.save();
-
-        try {
-            Scheduler.addDrone(drone.getId());
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to add drone to scheduler.",ex);
-        }
+        Fleet.getFleet().createCommanderForDrone(drone).onSuccess(new OnSuccess<DroneCommander>(){
+            @Override
+            public void onSuccess(DroneCommander result) throws Throwable {
+                drone.refresh();
+                if(drone.getStatus() == Drone.Status.AVAILABLE){
+                    Scheduler.scheduleDrone(drone.getId());
+                }
+            }
+        }, Akka.system().dispatcher());
 
         return F.Promise.pure(created(JsonHelper.createJsonNode(drone, getAllLinks(drone.getId()), Drone.class)));
     }
@@ -163,11 +173,9 @@ public class DroneController {
 
     public static Result update(Long id, String update) {
         Drone drone = Drone.FIND.byId(id);
-        if (drone == null)
+        if (drone == null) {
             return notFound();
-
-        if (drone.getStatus() == Drone.Status.FLYING)
-            return forbidden("You cannot update a drone which is in flight.");
+        }
 
         JsonNode body = Json.parse(update);
         JsonNode strippedBody;
@@ -184,50 +192,46 @@ public class DroneController {
 
         Drone updatedDrone = droneForm.get();
 
-        if (!transitionAllowed(drone.getStatus(), updatedDrone.getStatus()))
-            return forbidden(Json.toJson("cannot transition dronestatus from " + drone.getStatus() + " to " + updatedDrone.getStatus() + "."));
+        boolean updated = false;
+        while (!updated) {
+            drone.refresh();
+            // TODO: How do we update the address?
+            if (!drone.getAddress().equals(updatedDrone.getAddress())) {
+                return forbidden("Changing the address via update is not implemented.");
+            }
+            Drone.Status oldStatus = drone.getStatus();
+            Drone.Status newStatus = updatedDrone.getStatus();
 
-        updatedDrone.setVersion(drone.getVersion());
-        updatedDrone.setId(drone.getId());
-        updatedDrone.update();
+            // Return drone control back to framework only if drone has landed
+            if(oldStatus == Drone.Status.MANUAL_CONTROL) {
+                DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+                FlyingState state = null;
+                try {
+                    state = Await.result(commander.getFlyingState(), Duration.create(1, TimeUnit.SECONDS));
+                } catch (Exception ex) {
+                }
+                if(state != FlyingState.LANDED){
+                    return forbidden("Drone needs to land before changing from manual control.");
+                }
+            }
+
+            if (!Helper.isValidTransition(oldStatus, newStatus)) {
+                return forbidden(String.format("Status transition from %s to %s is illegal.", oldStatus, newStatus));
+            }
+            // Update name
+            drone.setName(updatedDrone.getName());
+            drone.setStatus(updatedDrone.getStatus());
+            try {
+                drone.update();
+                updated = true;
+            } catch (OptimisticLockException ex) {
+                updated = false;
+            }
+        }
+        if(drone.getStatus() == Drone.Status.AVAILABLE){
+            Scheduler.scheduleDrone(drone.getId());
+        }
         return ok(JsonHelper.createJsonNode(updatedDrone, getAllLinks(updatedDrone.getId()), Drone.class));
-    }
-
-    public static boolean transitionAllowed(Drone.Status s1, Drone.Status s2) {
-        if (s1 == s2)
-            return true;
-
-        return ((s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.AVAILABLE && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.CHARGING && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.EMERGENCY && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.MANUAL_CONTROL) ||
-                (s1 == Drone.Status.INACTIVE && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.MANUAL_CONTROL && s2 == Drone.Status.RETIRED) ||
-
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.AVAILABLE) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.CHARGING) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.INACTIVE) ||
-                (s1 == Drone.Status.RETIRED && s2 == Drone.Status.MANUAL_CONTROL)
-        );
     }
 
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
@@ -237,7 +241,6 @@ public class DroneController {
             return F.Promise.pure(notFound());
         }
         if(!Fleet.getFleet().hasCommander(drone)){
-            // TODO: Handle when a drone has no commander (yet).
             return F.Promise.pure(notFound());
         }
 
@@ -338,8 +341,7 @@ public class DroneController {
 
         // [QUICK FIX] Send emergency via Scheduler
         try {
-            // TODO: Use advanced scheduler in the future for more reliable emergency.
-            Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
+            Scheduler.setDroneEmergency(drone.getId());
             ObjectNode result = Json.newObject();
             result.put("status", "ok");
             return F.Promise.pure(ok(result));
@@ -357,11 +359,24 @@ public class DroneController {
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long i) {
-        Drone d = Drone.FIND.byId(i);
-        if (d == null)
+        Drone drone = Drone.FIND.byId(i);
+        if (drone == null) {
             return notFound();
-
-        d.delete();
+        }
+        boolean updated = false;
+        while (!updated) {
+            drone.refresh();
+            if (drone.getStatus() == Drone.Status.FLYING) {
+                return forbidden("Cannot remove drone while flying.");
+            }
+            try {
+                drone.delete();
+                updated = true;
+            } catch (OptimisticLockException ex) {
+                updated = false;
+            }
+        }
+        Fleet.getFleet().stopCommander(drone);
         return ok(EMPTY_RESULT);
     }
 

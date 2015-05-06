@@ -18,6 +18,7 @@ import utilities.JsonHelper;
 import utilities.QueryHelper;
 import utilities.annotations.Authentication;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -96,27 +97,36 @@ public class AssignmentController {
         assignment.setCreator(user);
         assignment.save();
 
-        try {
-            Scheduler.schedule();
-            return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to start schedule procedure.", ex);
-            return internalServerError("Failed to start schedule procedure.");
-        }
-
+        Scheduler.scheduleAssignment(assignment.getId());
+        return created(JsonHelper.createJsonNode(assignment, getAllLinks(assignment.getId()), Assignment.class));
     }
 
     @Authentication({User.Role.ADMIN})
     public static Result delete(long id) {
         Assignment assignment = Assignment.FIND.byId(id);
 
-        if(assignment == null)
+        if(assignment == null) {
             return notFound("Requested assignment not found");
-        if(assignment.getAssignedDrone() != null)
-            return forbidden("you cannot delete an assignment which has a drone assigned");
+        }
 
-        assignment.delete();
-
+        boolean updated = false;
+        while(!updated){
+            try{
+                assignment.refresh();
+                if(assignment.getStatus() == Assignment.Status.EXECUTING) {
+                    // Can't delete, cancel first!
+                    assignment.setStatus(Assignment.Status.CANCELED);
+                    assignment.update();
+                    Scheduler.cancelAssignment(assignment.getId());
+                }else{
+                    // Save to delete
+                    assignment.delete();
+                }
+                updated = true;
+            }catch(OptimisticLockException ex){
+                updated = false;
+            }
+        }
         ObjectNode node = Json.newObject();
         node.put("status", "ok");
         return ok(node);

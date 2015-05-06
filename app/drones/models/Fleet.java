@@ -145,6 +145,7 @@ public class Fleet {
         if (driver == null)
             return null;
 
+
         // Create commander
         ActorRef droneActor = Akka.system().actorOf(
                 Props.create(driver.getActorClass(),

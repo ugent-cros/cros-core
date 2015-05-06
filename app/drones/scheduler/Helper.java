@@ -1,9 +1,6 @@
 package drones.scheduler;
 
-import models.Assignment;
-import models.Basestation;
-import models.Checkpoint;
-import models.Location;
+import models.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,5 +108,14 @@ public class Helper {
      */
     public static Location droneToEntityLocation(droneapi.model.properties.Location location){
         return new Location(location.getLatitude(),location.getLongitude(),location.getHeight());
+    }
+
+    public static boolean isValidTransition(Drone.Status oldStatus, Drone.Status newStatus){
+        boolean validOldStatus = oldStatus != Drone.Status.FLYING;
+        boolean validNewStatus = newStatus == Drone.Status.AVAILABLE
+                || newStatus == Drone.Status.CHARGING
+                || newStatus == Drone.Status.INACTIVE
+                || newStatus == Drone.Status.MANUAL_CONTROL;
+        return validOldStatus && validNewStatus;
     }
 }

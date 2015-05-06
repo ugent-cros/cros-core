@@ -14,4 +14,9 @@ public class AssignmentCanceledMessage implements SchedulerEvent{
     public long getAssignmentId() {
         return assignmentId;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Assignment %d canceled.",assignmentId);
+    }
 }

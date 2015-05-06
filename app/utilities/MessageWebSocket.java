@@ -11,6 +11,7 @@ import drones.models.Fleet;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
 import drones.scheduler.messages.from.*;
+import models.Assignment;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -47,17 +48,14 @@ public class MessageWebSocket extends AbstractActor {
 
     public MessageWebSocket(final ActorRef out) {
         this.out = out;
-
-        // Scheduler
-        try {
-            Scheduler.subscribe(DroneAssignedMessage.class, self());
-            Scheduler.subscribe(AssignmentStartedMessage.class, self());
-            Scheduler.subscribe(AssignmentCompletedMessage.class, self());
-            Scheduler.subscribe(DroneStatusMessage.class, self());
-            Scheduler.subscribe(AssignmentProgressedMessage.class, self());
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to subscribe to scheduler.", ex);
-        }
+        Scheduler.subscribe(DroneAssignedMessage.class, self());
+        Scheduler.subscribe(DroneUnassignedMessage.class, self());
+        Scheduler.subscribe(AssignmentStartedMessage.class, self());
+        Scheduler.subscribe(AssignmentProgressedMessage.class, self());
+        Scheduler.subscribe(AssignmentCompletedMessage.class, self());
+        Scheduler.subscribe(DroneStatusMessage.class, self());
+        Scheduler.subscribe(AssignmentStatusMessage.class, self());
+        Scheduler.subscribe(AssignmentCanceledMessage.class, self());
 
         Fleet.getFleet().subscribe(self());
         UnitPFBuilder<Object> builder = ReceiveBuilder.match(TYPENAMES.get(0)._1, s -> {
@@ -87,6 +85,14 @@ public class MessageWebSocket extends AbstractActor {
             out.tell(node.toString(), self());
         });
 
+        builder.match(DroneUnassignedMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "droneUnassigned");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
         builder.match(AssignmentCompletedMessage.class, s -> {
             ObjectNode node = Json.newObject();
             node.put("type", "assignmentCompleted");
@@ -111,10 +117,26 @@ public class MessageWebSocket extends AbstractActor {
             out.tell(node.toString(), self());
         });
 
+        builder.match(AssignmentCanceledMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentCanceled");
+            node.put("id", s.getAssignmentId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
         builder.match(DroneStatusMessage.class, s -> {
             ObjectNode node = Json.newObject();
             node.put("type", "droneStatusChanged");
             node.put("id", s.getDroneId());
+            node.put("value", Json.toJson(s));
+            out.tell(node.toString(), self());
+        });
+
+        builder.match(AssignmentStatusMessage.class, s -> {
+            ObjectNode node = Json.newObject();
+            node.put("type", "assignmentStatusChanged");
+            node.put("id", s.getAssignmentId());
             node.put("value", Json.toJson(s));
             out.tell(node.toString(), self());
         });
@@ -132,16 +154,13 @@ public class MessageWebSocket extends AbstractActor {
     public void postStop() throws Exception {
         super.postStop();
         Fleet.getFleet().unsubscribe(self());
-
-        // Scheduler
-        try {
-            Scheduler.unsubscribe(DroneAssignedMessage.class, self());
-            Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
-            Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
-            Scheduler.unsubscribe(DroneStatusMessage.class, self());
-            Scheduler.unsubscribe(AssignmentProgressedMessage.class, self());
-        } catch (SchedulerException ex) {
-            Logger.error("Failed to unsubscribe from scheduler.", ex);
-        }
+        Scheduler.unsubscribe(DroneAssignedMessage.class, self());
+        Scheduler.unsubscribe(DroneUnassignedMessage.class, self());
+        Scheduler.unsubscribe(AssignmentStartedMessage.class, self());
+        Scheduler.unsubscribe(AssignmentProgressedMessage.class, self());
+        Scheduler.unsubscribe(AssignmentCompletedMessage.class, self());
+        Scheduler.unsubscribe(DroneStatusMessage.class, self());
+        Scheduler.unsubscribe(AssignmentStatusMessage.class, self());
+        Scheduler.unsubscribe(AssignmentCanceledMessage.class, self());
     }
 }

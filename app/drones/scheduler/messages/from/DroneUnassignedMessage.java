@@ -20,4 +20,9 @@ public class DroneUnassignedMessage implements SchedulerEvent{
     public long getDroneId() {
         return droneId;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Drone %d unassigned from %d.", droneId, assignmentId);
+    }
 }

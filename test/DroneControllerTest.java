@@ -115,7 +115,7 @@ public class DroneControllerTest extends TestSuperclass {
         Drone d = new Drone("test1", Drone.Status.AVAILABLE, new DroneType(BebopDriver.BEBOP_TYPE), "address1");
         d.save();
         d.setName("test2");
-        d.setAddress("address2");
+        d.setStatus(Drone.Status.CHARGING);
 
         JsonNode node = JsonHelper.createJsonNode(d, Drone.class);
         Result result = callAction(routes.ref.DroneController.update(d.getId()),

@@ -1,14 +1,16 @@
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.JavaTestKit;
+import drones.scheduler.AdvancedScheduler;
 import drones.scheduler.Scheduler;
 import drones.scheduler.SchedulerException;
-import drones.scheduler.SimpleScheduler;
+import drones.scheduler.messages.from.SchedulerStoppedMessage;
+import drones.scheduler.messages.from.SubscribedMessage;
+import drones.scheduler.messages.from.UnsubscribedMessage;
 import org.junit.*;
 import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
-
-import controllers.*;
 
 /**
  * Created by Ronald on 6/04/2015.
@@ -40,35 +42,61 @@ public class SchedulerTest extends TestSuperclass {
     }
 
     @Test
-    public void getScheduler_Started_Succeeds() throws Exception{
+    public void getScheduler_Started_Succeeds(){
         Scheduler.getScheduler();
     }
 
     @Test
-    public void stop_Started_Succeeds() throws Exception{
+    public void stop_Started_Succeeds(){
         Scheduler.stop();
     }
 
     @Test(expected = SchedulerException.class)
-    public void start_Started_Fails() throws Exception{
-        Scheduler.start(SimpleScheduler.class);
+    public void start_Started_Fails(){
+        Scheduler.start(AdvancedScheduler.class);
     }
 
     @Test
-    public void start_NotStarted_Succeeds() throws Exception{
-        Scheduler.stop();
-        Scheduler.start(SimpleScheduler.class);
+    public void start_NotStarted_Succeeds(){
+        new JavaTestKit(system){
+            {
+                ActorRef scheduler = Scheduler.getScheduler();
+                watch(scheduler);
+                Scheduler.subscribe(SchedulerStoppedMessage.class, getRef());
+                expectMsgClass(SubscribedMessage.class);
+                Scheduler.stop();
+                expectMsgClass(SchedulerStoppedMessage.class);
+                expectTerminated(scheduler);
+                Scheduler.start(AdvancedScheduler.class);
+                Scheduler.unsubscribe(SchedulerStoppedMessage.class, getRef());
+                expectMsgClass(UnsubscribedMessage.class);
+            }
+        };
     }
 
     @Test(expected = SchedulerException.class)
-    public void getScheduler_NotStarted_Fails() throws Exception{
-        Scheduler.stop();
-        Scheduler.getScheduler();
+    public void getScheduler_NotStarted_Fails() {
+        new JavaTestKit(system){
+            {
+                ActorRef scheduler = Scheduler.getScheduler();
+                watch(scheduler);
+                Scheduler.stop();
+                expectTerminated(scheduler);
+                Scheduler.getScheduler();
+            }
+        };
     }
 
     @Test(expected = SchedulerException.class)
-    public void stop_NotStarted_Fails() throws Exception{
-        Scheduler.stop();
-        Scheduler.stop();
+    public void stop_NotStarted_Fails() {
+        new JavaTestKit(system){
+            {
+                ActorRef scheduler = Scheduler.getScheduler();
+                watch(scheduler);
+                Scheduler.stop();
+                expectTerminated(scheduler);
+                Scheduler.stop();
+            }
+        };
     }
 }
