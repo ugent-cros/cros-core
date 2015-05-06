@@ -83,6 +83,7 @@ public class ArDrone3 extends UntypedActor {
     private long lowPacketsAck;
     private long highPacketsAck;
     private boolean captureVideo;
+    private long lastCmd = 0;
 
     public ArDrone3(int receivingPort, final ActorRef listener) {
         this.receivingPort = receivingPort;
@@ -307,13 +308,10 @@ public class ArDrone3 extends UntypedActor {
         log.debug("FrameNum={}, fragNum={}, numOfFrag={}, flush={}", frameNum, fragNum, fragPerFrame, flushFrame);
 
         // Set ack flags:
-        if (0 <= fragNum && fragNum < 64)
-        {
+        if (0 <= fragNum && fragNum < 64) {
             lowPacketsAck |= (1 << fragNum);
-        }
-        else if (64 <= fragNum && fragNum < 128)
-        {
-            highPacketsAck |= (1 << (fragNum-64));
+        } else if (64 <= fragNum && fragNum < 128) {
+            highPacketsAck |= (1 << (fragNum - 64));
         }
 
         // Now ack this video data
@@ -561,18 +559,30 @@ public class ArDrone3 extends UntypedActor {
             } catch (Exception ex) {
                 log.error(ex, "Failed to start video decoder.");
             }
-            setVideoStreaming(true);
+
+            // TODO: these might be necessary right at the beginning as well to prevent video from crashing
+            startVideoCommands();
+
             captureVideo = true;
         }
     }
 
-    private void handleControllerState(boolean enabled){
+    private void startVideoCommands() {
+        setVideoStreaming(true);
+        try {
+            Thread.sleep(1000);
+        } catch (Exception ignored) {
+        }
+        handleControllerState(true);
+    }
+
+    private void handleControllerState(boolean enabled) {
         sendDataAck(PacketCreator.createControllerStatePacket(enabled));
     }
 
     private void stopVideo() {
         if (decoder != null) {
-            setVideoStreaming(false);
+            //setVideoStreaming(false);
             captureVideo = false;
             decoder.setStop(); //request stop
             decoder = null;
@@ -599,16 +609,15 @@ public class ArDrone3 extends UntypedActor {
         sendDataAck(PacketCreator.createFlipPacket(flip));
     }
 
-    private void handleMove(double vx, double vy, double vz, double vr) {
-        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", vx, vy, vz, vr);
+    private void moveDrone(double vx, double vy, double vz, double vr) {
         boolean useRoll = (Math.abs(vx) > 0.0 || Math.abs(vy) > 0.0); // flag 1 if not hovering
 
         double[] vars = new double[]{vy, vx, vr, vz};
         for (int i = 0; i < 4; i++) {
             vars[i] *= 100; // multiplicator [-1;1] => [-100;100]
 
-            if (Math.abs(vars[i]) > 100d) {
-                vars[i] = 100d * Math.signum(vars[i]);
+            if (Math.abs(vars[i]) > 100) {
+                vars[i] = 100d * Math.signum(vars[i]); // never full
             }
         }
 
@@ -637,7 +646,17 @@ public class ArDrone3 extends UntypedActor {
          */
 
         sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) vars[0], (byte) vars[1], (byte) vars[2], (byte) vars[3]));
-        sendDataNoAck(PacketCreator.createOrientationPacket((byte)0, (byte)0));
+    }
+
+    private void handleMove(double vx, double vy, double vz, double vr) {
+        log.debug("ArDrone3 MOVE command [vx=[{}], vy=[{}], vz=[{}], vr=[{}]", vx, vy, vz, vr);
+        moveDrone(vx, vy, vz, vr);
+
+        lastCmd = System.currentTimeMillis();
+    }
+
+    private void handleSetOrientation(byte tilt, byte pan) {
+        sendDataNoAck(PacketCreator.createOrientationPacket(tilt, pan));
     }
 
     private void checkPing(long time) {
@@ -668,8 +687,8 @@ public class ArDrone3 extends UntypedActor {
 
 
     private void tick() {
+        long time = System.currentTimeMillis();
         try {
-            long time = System.currentTimeMillis();
             checkPing(time);
             for (DataChannel ch : ackChannels) {
                 Frame f = ch.tick(time);
@@ -679,6 +698,10 @@ public class ArDrone3 extends UntypedActor {
             }
         } catch (Exception ex) {
             log.warning("Failed to process ArDrone3 timer tick.");
+        }
+
+        if(senderRef != null && time - lastCmd > 800) {
+            moveDrone(0, 0, 0, 0);
         }
 
         // Reschedule
