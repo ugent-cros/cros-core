@@ -29,6 +29,7 @@ public class SimplePilot extends Pilot {
 
     private Location actualLocation;
 
+    
     private List<Checkpoint> wayPoints;
     private int actualWayPoint = -1;
 
