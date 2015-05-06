@@ -340,9 +340,7 @@ public class DroneController {
         try {
             // TODO: Use advanced scheduler in the future for more reliable emergency.
             Scheduler.getScheduler().tell(new EmergencyMessage(drone.getId()), ActorRef.noSender());
-            ObjectNode result = Json.newObject();
-            result.put("status", "ok");
-            return F.Promise.pure(ok(result));
+            return F.Promise.pure(ok(EMPTY_RESULT));
         }catch(SchedulerException ex){
             Logger.error("Scheduler error", ex);
             return F.Promise.pure(internalServerError("Scheduler could not process emergency."));
