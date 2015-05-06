@@ -471,13 +471,14 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
                         () -> new SimplePilot(self(), droneId, false, assignment.getRoute())));
-        pilot.tell(new StartFlightControlMessage(), self());
         // Flight
         Flight flight = new Flight(droneId, assignment.getId(), pilot);
         flights.put(droneId, flight);
+        // Start
         updateDroneStatus(drone, Drone.Status.FLYING);
         updateAssignmentStatus(assignment, Assignment.Status.EXECUTING);
         eventBus.publish(new AssignmentStartedMessage(assignment.getId()));
+        pilot.tell(new StartFlightControlMessage(), self());
     }
 
     private void cancelFlight(Drone drone, Drone.Status cancelStatus) {
