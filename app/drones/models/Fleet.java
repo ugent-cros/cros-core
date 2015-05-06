@@ -120,7 +120,8 @@ public class Fleet {
                 ConnectionStatusChangedMessage.class,
                 FlyingStateChangedMessage.class,
                 NavigationStateChangedMessage.class,
-                AltitudeChangedMessage.class
+                AltitudeChangedMessage.class,
+                SpeedChangedMessage.class
         });
     }
 
