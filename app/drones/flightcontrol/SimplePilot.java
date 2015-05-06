@@ -29,6 +29,7 @@ public class SimplePilot extends Pilot {
 
     private Location actualLocation;
 
+    
     private List<Checkpoint> wayPoints;
     private int actualWayPoint = -1;
 
@@ -57,7 +58,7 @@ public class SimplePilot extends Pilot {
     private boolean waitForLandAfterStopFinished = false;
 
     //Buffer when waiting for takeoff or landed to send the completed message
-    private RequestMessage requestMessageBuffer;
+    private RequestMessage requestMessageBuffer = null;
 
     private boolean done = false;
 
@@ -129,6 +130,12 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
+        //check if there was a request granted but not yet completed
+        if(linkedWithControlTower && requestMessageBuffer != null){
+            requestMessageBuffer = null;
+            reporterRef.tell(new CompletedMessage(requestMessageBuffer),self());
+        }
+
         if(!landed){
             try {
                 Await.ready(dc.land(), MAX_DURATION_LONG);
@@ -228,6 +235,7 @@ public class SimplePilot extends Pilot {
     protected void requestMessage(RequestMessage m) {
         if(blocked){
             noFlyPoints.add(m.getLocation());
+            reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
         } else {
             if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
                 evacuationPoints.add(m);
@@ -252,7 +260,9 @@ public class SimplePilot extends Pilot {
                     return;
                 }
                 waitForLandFinished = true;
-                requestMessageBuffer = m.getRequestMessage();
+                if(linkedWithControlTower){
+                    requestMessageBuffer = m.getRequestMessage();
+                }
                 break;
             case TAKEOFF:
                 try {
@@ -262,7 +272,9 @@ public class SimplePilot extends Pilot {
                     return;
                 }
                 waitForTakeOffFinished = true;
-                requestMessageBuffer = m.getRequestMessage();
+                if(linkedWithControlTower){
+                    requestMessageBuffer = m.getRequestMessage();
+                }
                 break;
             default:
                 log.warning("No handler for: [{}]", m.getRequestMessage().getType());
@@ -329,6 +341,7 @@ public class SimplePilot extends Pilot {
                     blocked = true;
                     if(linkedWithControlTower){
                         reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                        requestMessageBuffer = null;
                     }
                     done = true;
                     reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
@@ -354,6 +367,7 @@ public class SimplePilot extends Pilot {
                         landed = false;
                         if(linkedWithControlTower){
                             reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
+                            requestMessageBuffer = null;
                         }
                         goToNextWaypoint();
                         break;

@@ -66,7 +66,7 @@ public class Bebop extends NavigatedDroneActor {
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
-                2f, 40f, 0.4f); // Bebop parameters
+                4f, 60f, 0.4f); // Bebop parameters
     }
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {

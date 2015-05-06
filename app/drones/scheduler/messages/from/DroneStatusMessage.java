@@ -28,4 +28,9 @@ public class DroneStatusMessage implements SchedulerEvent{
     public Drone.Status getNewStatus() {
         return newStatus;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Drone %d status changed from %s to %s.", droneId, oldStatus, newStatus);
+    }
 }

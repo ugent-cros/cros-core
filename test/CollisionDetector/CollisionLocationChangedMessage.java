@@ -15,19 +15,19 @@ public class CollisionLocationChangedMessage implements Serializable{
 
     private LocationChangedMessage locationChangedMessage;
 
-    private DroneCommander droneCommander;
+    private Long droneId;
 
-    public CollisionLocationChangedMessage(LocationChangedMessage locationChangedMessage, DroneCommander droneCommander) {
+    public CollisionLocationChangedMessage(LocationChangedMessage locationChangedMessage, Long droneId) {
         this.locationChangedMessage = locationChangedMessage;
-        this.droneCommander = droneCommander;
+        this.droneId = droneId;
     }
 
     public LocationChangedMessage getLocationChangedMessage() {
         return locationChangedMessage;
     }
 
-    public DroneCommander getDroneCommander() {
-        return droneCommander;
+    public Long getDroneId() {
+        return droneId;
     }
 
     public Location getLocation(){
