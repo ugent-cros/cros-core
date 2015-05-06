@@ -70,6 +70,19 @@ public class PacketCreator {
         return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.PILOTING.getVal(), (short)2, b.result());
     }
 
+    public static Packet createControllerStatePacket(boolean controlling){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(controlling ? (byte) 1 : (byte) 0);
+        return new Packet(PacketType.COMMON.getVal(), CommonTypeProcessor.CommonClass.CONTROLLERSTATE.getVal(), (short)0, b.result());
+    }
+
+    public static Packet createOrientationPacket(byte tilt, byte pan){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putByte(tilt);
+        b.putByte(pan);
+        return new Packet(PacketType.ARDRONE3.getVal(), ArDrone3TypeProcessor.ArDrone3Class.CAMERA.getVal(), (short)0, b.result());
+    }
+
     public static Packet createSetVideoStreamingStatePacket(boolean enabled){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putByte(enabled ? (byte) 1 : (byte) 0);

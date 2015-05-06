@@ -135,6 +135,7 @@ public class Bebop extends NavigatedDroneActor {
             sendMessage(new SetTimeCommand(DateTime.now()));
             sendMessage(new FlatTrimCommand());
         }
+        sendMessage(new SetControllerStateCommand(true));
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
     }

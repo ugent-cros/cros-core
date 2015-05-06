@@ -530,6 +530,7 @@ public class ArDrone3 extends UntypedActor {
                     .match(SetHullCommand.class, s -> setHull(s.hasHull()))
                     .match(SetCountryCommand.class, s -> setCountry(s.getCountry()))
                     .match(SetHomeCommand.class, s -> setHome(s.getLatitude(), s.getLongitude(), s.getAltitude()))
+                    .match(SetControllerStateCommand.class, s -> handleControllerState(s.isEnabled()))
                     .match(NavigateHomeCommand.class, s -> navigateHome(s.isStart()))
                     .matchAny(s -> {
                         log.warning("No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -563,6 +564,10 @@ public class ArDrone3 extends UntypedActor {
             setVideoStreaming(true);
             captureVideo = true;
         }
+    }
+
+    private void handleControllerState(boolean enabled){
+        sendDataAck(PacketCreator.createControllerStatePacket(enabled));
     }
 
     private void stopVideo() {
@@ -632,6 +637,7 @@ public class ArDrone3 extends UntypedActor {
          */
 
         sendDataNoAck(PacketCreator.createMove3dPacket(useRoll, (byte) vars[0], (byte) vars[1], (byte) vars[2], (byte) vars[3]));
+        sendDataNoAck(PacketCreator.createOrientationPacket((byte)0, (byte)0));
     }
 
     private void checkPing(long time) {
