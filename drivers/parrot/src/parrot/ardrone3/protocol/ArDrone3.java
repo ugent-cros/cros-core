@@ -701,7 +701,7 @@ public class ArDrone3 extends UntypedActor {
         }
 
         if(senderRef != null && time - lastCmd > 800) {
-            moveDrone(0, 0, 0, 0);
+            sendDataNoAck(PacketCreator.createMove3dPacket(false, (byte)0, (byte)0, (byte)0, (byte)0)); // movement keep-alive?
         }
 
         // Reschedule
