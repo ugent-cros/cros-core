@@ -75,13 +75,6 @@ public class ArDrone2Video extends UntypedActor {
     private void stop() {
         log.info("Stopping videostream");
 
-        try {
-            pos.close();
-            pis.close();
-        } catch (IOException e) {
-            log.error(e, "Error while closing streams");
-        }
-
         getContext().stop(getSelf());
     }
 

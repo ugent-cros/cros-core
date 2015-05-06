@@ -339,7 +339,7 @@ public class ArDrone2Protocol extends UntypedActor {
         if(isMoveParamInRange((float) s.getVx()) && isMoveParamInRange((float) s.getVy())
                 && isMoveParamInRange((float) s.getVz()) && isMoveParamInRange((float) s.getVr())) {
 
-            float[] v = {-0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
+            float[] v = {0.2f * (float) s.getVy(), -0.2f * (float) s.getVx(),
                     1.0f * (float) s.getVz(), 1.0f * (float) s.getVr()};
             boolean mode = Math.abs(v[0]) > 0.0 || Math.abs(v[1]) > 0.0;
 
@@ -351,7 +351,7 @@ public class ArDrone2Protocol extends UntypedActor {
             }
 
             sendData(PacketCreator.createPacket(new ATCommandPCMD(seq++, mode ? 1 : 0,
-                    v[1], v[0], v[2], v[3])));
+                    v[0], v[1], v[2], v[3])));
             getContext().system().scheduler().scheduleOnce(Duration.create(1000, TimeUnit.MILLISECONDS),
                     getSelf(), new StopMoveMessage(), getContext().system().dispatcher(), null);
         }
