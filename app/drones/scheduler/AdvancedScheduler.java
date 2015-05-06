@@ -371,7 +371,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         Query<Drone> query = Ebean.createQuery(Drone.class);
         query.where().eq("status", Drone.Status.AVAILABLE);
         List<Drone> drones = query.findList();
-        // Find the closest drone to this assignment startScheduler location
+        // Find the closest drone to this assignment start location
         Location startLocation = assignment.getRoute().get(0).getLocation();
         double minDistance = Double.MAX_VALUE;
         Drone minDrone = null;

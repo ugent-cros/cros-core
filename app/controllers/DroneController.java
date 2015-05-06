@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import droneapi.api.DroneCommander;
+import droneapi.model.properties.FlyingState;
 import drones.models.Fleet;
 import drones.scheduler.Helper;
 import drones.scheduler.Scheduler;
@@ -23,6 +24,8 @@ import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Result;
 import play.mvc.WebSocket;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 import utilities.ControllerHelper;
 import utilities.JsonHelper;
 import utilities.QueryHelper;
@@ -32,6 +35,7 @@ import utilities.annotations.Authentication;
 import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static play.mvc.Controller.request;
@@ -197,6 +201,20 @@ public class DroneController {
             }
             Drone.Status oldStatus = drone.getStatus();
             Drone.Status newStatus = updatedDrone.getStatus();
+
+            // Return drone control back to framework only if drone has landed
+            if(oldStatus == Drone.Status.MANUAL_CONTROL) {
+                DroneCommander commander = Fleet.getFleet().getCommanderForDrone(drone);
+                FlyingState state = null;
+                try {
+                    state = Await.result(commander.getFlyingState(), Duration.create(1, TimeUnit.SECONDS));
+                } catch (Exception ex) {
+                }
+                if(state != FlyingState.LANDED){
+                    return forbidden("Drone needs to land before changing from manual control.");
+                }
+            }
+
             if (!Helper.isValidTransition(oldStatus, newStatus)) {
                 return forbidden(String.format("Status transition from %s to %s is illegal.", oldStatus, newStatus));
             }

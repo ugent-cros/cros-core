@@ -58,6 +58,7 @@ public abstract class Scheduler extends AbstractActor {
         synchronized (lock) {
             if (scheduler == null || scheduler.isTerminated()) {
                 scheduler = Akka.system().actorOf(Props.create(type),"CROS-Scheduler");
+                scheduler.tell(new StartSchedulerMessage(), ActorRef.noSender());
             } else {
                 throw new SchedulerException("The scheduler has already been started.");
             }
