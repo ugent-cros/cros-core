@@ -197,7 +197,7 @@ public class DroneController {
             drone.refresh();
             // TODO: How do we update the address?
             if (!drone.getAddress().equals(updatedDrone.getAddress())) {
-                return forbidden("Changing the address via update is not implemented.");
+                return forbidden(Json.toJson("Changing the address via update is not implemented."));
             }
             Drone.Status oldStatus = drone.getStatus();
             Drone.Status newStatus = updatedDrone.getStatus();
@@ -211,12 +211,12 @@ public class DroneController {
                 } catch (Exception ex) {
                 }
                 if(state != FlyingState.LANDED){
-                    return forbidden("Drone needs to land before changing from manual control.");
+                    return forbidden(Json.toJson("Drone needs to land before changing from manual control."));
                 }
             }
 
             if (!Helper.isValidTransition(oldStatus, newStatus)) {
-                return forbidden(String.format("Status transition from %s to %s is illegal.", oldStatus, newStatus));
+                return forbidden(Json.toJson(String.format("Status transition from %s to %s is illegal.", oldStatus, newStatus)));
             }
             // Update name
             drone.setName(updatedDrone.getName());
