@@ -751,6 +751,7 @@ public class ArDrone3 extends UntypedActor {
     }
 
     private void takeOff() {
+        lastCmd = System.currentTimeMillis() + 1000; //wait for 1s + extra to send move commands
         sendDataAck(PacketCreator.createTakeOffPacket());
     }
 
