@@ -342,9 +342,7 @@ public class DroneController {
         // [QUICK FIX] Send emergency via Scheduler
         try {
             Scheduler.setDroneEmergency(drone.getId());
-            ObjectNode result = Json.newObject();
-            result.put("status", "ok");
-            return F.Promise.pure(ok(result));
+            return F.Promise.pure(ok(EMPTY_RESULT));
         }catch(SchedulerException ex){
             Logger.error("Scheduler error", ex);
             return F.Promise.pure(internalServerError("Scheduler could not process emergency."));
