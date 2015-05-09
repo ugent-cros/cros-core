@@ -47,13 +47,6 @@ import static play.mvc.Results.*;
 
 public class DroneController {
 
-    private static ObjectNode EMPTY_RESULT;
-
-    static {
-        EMPTY_RESULT = Json.newObject();
-        EMPTY_RESULT.put("status", "ok");
-    }
-
     @Authentication({User.Role.ADMIN, User.Role.READONLY_ADMIN})
     public static Result getAll() {
         ExpressionList<Drone> exp = QueryHelper.buildQuery(Drone.class, Drone.FIND.where(),false);
@@ -342,7 +335,7 @@ public class DroneController {
         // [QUICK FIX] Send emergency via Scheduler
         try {
             Scheduler.setDroneEmergency(drone.getId());
-            return F.Promise.pure(ok(EMPTY_RESULT));
+            return F.Promise.pure(ok(ControllerHelper.EMPTY_RESULT));
         }catch(SchedulerException ex){
             Logger.error("Scheduler error", ex);
             return F.Promise.pure(internalServerError("Scheduler could not process emergency."));
@@ -352,7 +345,7 @@ public class DroneController {
     @Authentication({User.Role.ADMIN})
     public static Result deleteAll() {
         Drone.FIND.all().forEach(d -> d.delete());
-        return ok(EMPTY_RESULT);
+        return ok(ControllerHelper.EMPTY_RESULT);
     }
 
     @Authentication({User.Role.ADMIN})
@@ -375,7 +368,7 @@ public class DroneController {
             }
         }
         Fleet.getFleet().stopCommander(drone);
-        return ok(EMPTY_RESULT);
+        return ok(ControllerHelper.EMPTY_RESULT);
     }
 
     private static final List<ControllerHelper.Link> getAllLinks(long id) {
