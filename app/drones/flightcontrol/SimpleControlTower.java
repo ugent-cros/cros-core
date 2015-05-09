@@ -10,9 +10,12 @@ import droneapi.model.properties.Location;
 import java.util.*;
 
 /**
- * Simple Control Tower
- * DO NOT ADD A DRONE WITHIN THE NO FLY RANGE OF THE LOCATION WHERE ANOTHER DRONE WANTS TO LAND/TAKE OFF
- * <p>
+ * Basic implementation of a ControlTower. When a new flight is added, it creates a SimplePilot for it and
+ * assigns a cruising altitude to it. When a RequestMessage is received from a SimplePilot it will answer
+ * with a granted message when all SimplePilots with a lower cruising altitude has granted the request.
+ *
+ * !!! WARNING: do not add a drone within the NoFlyRange of the location where another drone wants to land or take off.
+ *
  * Created by Sander on 15/04/2015.
  */
 public class SimpleControlTower extends ControlTower {
@@ -39,9 +42,17 @@ public class SimpleControlTower extends ControlTower {
     private List<Long> waitForFlightCanceledMessage = new ArrayList<>();
 
     private boolean waitForShutDown = false;
+
     //list to check if all pilots has stopped
     private List<FlightCanceledMessage> flightCanceledMessages = new ArrayList<>();
 
+    /**
+     *
+     * @param reporterRef actor to report the outgoing messages
+     * @param maxCruisingAltitude maximum cruising altitude that the drones can fly
+     * @param minCruisingAltitude minimum cruising altitude that the drones can fly
+     * @param maxNumberOfDrones maximum number of drones that the controlTower can handle.
+     */
     public SimpleControlTower(ActorRef reporterRef, double maxCruisingAltitude, double minCruisingAltitude, int maxNumberOfDrones) {
         super(reporterRef);
         this.maxCruisingAltitude = maxCruisingAltitude;
@@ -60,6 +71,11 @@ public class SimpleControlTower extends ControlTower {
         tellAllPilots(new StartFlightControlMessage());
     }
 
+    /**
+     * Tell message to al the pilots in the ControlTower.
+     *
+     * @param message Message to be sent
+     */
     private void tellAllPilots(Object message){
         for(Pair<ActorRef,Double> pair : drones.values()){
             pair.getKey().tell(message, self());

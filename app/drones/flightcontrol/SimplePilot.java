@@ -20,16 +20,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Created by Sander on 18/03/2015.
+ * Basic implementation of a Pilot class. It will fly with the drone to its destinations via the wayPoints
+ * and will land on the last item in the list. It takes in to account the waiting time of wayPoint but not
+ * its altitude.
  *
- * Pilot class to fly with the drone to its destination via the wayPoints.
- * He lands on the last item in the list.
+ * When the SimplePilot is connected with a ControlTower it will send a request message before a take off or
+ * landing. When, subsequently, the RequestGrantedMessage is received it will execute the landing or take off
+ * and responds with a CompletedMessage.
+ *
+ * When a RequestMessage is received from another pilot it will check if its actual location is not within
+ * the NoFlyRange of the location of the request. If this is  so it will add the request location to the
+ * NoFlyPoint list and it will immediately responds with a RequestGrantedMessage. If this is not so it will
+ * wait until the drone has leaved the request location.
+ *
+ * !!! WARNING 1: The SimplePilot assumes that there are no obstacles on the route that he will fly.
+ *
+ * !!! WARNING 2: when an error occurs, the pilot will go to a blocked state. It is the responsibility of
+ * the user to land the drone on a safe place.
+ *
+ * Created by Sander on 18/03/2015.
  */
 public class SimplePilot extends Pilot {
 
     private Location actualLocation;
 
-    
+    //wayPoints = route to fly
     private List<Checkpoint> wayPoints;
     private int actualWayPoint = -1;
 
@@ -63,10 +78,10 @@ public class SimplePilot extends Pilot {
     private boolean done = false;
 
     /**
-     * @param reporterRef            Actor to report the messages. In theory this should be the same actor that sends the startFlightControlMessage message.
-     * @param droneId                  Drone to control.
-     * @param linkedWithControlTower True if connected to ControlTower
-     * @param wayPoints              Route to fly, the drone will land on the last item
+     * @param reporterRef            actor to report the outgoing messages
+     * @param droneId                drone to control
+     * @param linkedWithControlTower true if connected to a ControlTower
+     * @param wayPoints              route to fly, the drone will land on the last item
      */
     public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints) {
         super(reporterRef, droneId, linkedWithControlTower);
@@ -77,11 +92,28 @@ public class SimplePilot extends Pilot {
         this.wayPoints = wayPoints;
     }
 
+    /**
+     *
+     * @param reporterRef               actor to report the outgoing messages
+     * @param droneId                   drone to control
+     * @param linkedWithControlTower    true if connected to a ControlTower
+     * @param wayPoints                 route to fly, the drone will land on the last item
+     * @param cruisingAltitude          cruisingAltitude of the drone
+     */
     public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude) {
-        this(reporterRef,droneId,linkedWithControlTower,wayPoints);
+        this(reporterRef, droneId,linkedWithControlTower,wayPoints);
         this.cruisingAltitude = cruisingAltitude;
     }
 
+    /**
+     *
+     * @param reporterRef               actor to report the outgoing messages
+     * @param droneId                   drone to control
+     * @param linkedWithControlTower    true if connected to a ControlTower
+     * @param wayPoints                 route to fly, the drone will land on the last item
+     * @param cruisingAltitude          cruisingAltitude of the drone
+     * @param noFlyPoints               list of points where the drone cannot fly
+     */
     public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude, List<Location> noFlyPoints) {
         this(reporterRef,droneId,linkedWithControlTower,wayPoints, cruisingAltitude);
         this.cruisingAltitude = cruisingAltitude;
@@ -229,7 +261,7 @@ public class SimplePilot extends Pilot {
     }
 
     /**
-     * Handles a RequestMessage of a other drone. A RequestMessage is send when a drone wants to land or to take off.
+     * Handles a RequestMessage of a other drone. A RequestMessage is sent when a drone wants to land or to take off.
      */
     @Override
     protected void requestMessage(RequestMessage m) {
@@ -247,7 +279,7 @@ public class SimplePilot extends Pilot {
     }
 
     /**
-     * Handles a RequestGrantedMessage. A RequestGrantedMessage is send to a class as a reply on a RequestMessage.
+     * Handles a RequestGrantedMessage. A RequestGrantedMessage is sent to a class as a reply on a RequestMessage.
      */
     @Override
     protected void requestGrantedMessage(RequestGrantedMessage m) {
@@ -282,7 +314,7 @@ public class SimplePilot extends Pilot {
     }
 
     /**
-     * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
+     * Handles CompletedMessage of a other drone. A CompletedMessage is sent when a other drone has completed his landing of take off that he has requested.
      */
     @Override
     protected void completedMessage(CompletedMessage m) {
@@ -391,5 +423,11 @@ public class SimplePilot extends Pilot {
         } else {
             noFlyPoints.add(m.getNoFlyPoint());
         }
+    }
+
+    private void handleErrorMessage(String s){
+        blocked = true;
+        reporterRef.tell(new FlightControlExceptionMessage(s,droneId),self());
+        log.error("FlightControl error with droneID " + droneId + ": " + s);
     }
 }

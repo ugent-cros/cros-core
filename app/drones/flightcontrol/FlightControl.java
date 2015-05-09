@@ -12,25 +12,30 @@ import scala.concurrent.duration.FiniteDuration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by Sander on 16/03/2015.
+ * Abstract main class of the flightControl package.
  *
- * Flight control for the drones.
+ * Created by Sander on 16/03/2015.
  */
 public abstract class FlightControl extends AbstractActor {
 
-    protected ActorRef reporterRef;
-
     protected static final double DEFAULT_ALTITUDE = 2;
 
+    //max delay times
     protected static final FiniteDuration MAX_DURATION_SHORT = Duration.create(30, TimeUnit.SECONDS);
-
     protected static final FiniteDuration MAX_DURATION_LONG = Duration.create(120, TimeUnit.SECONDS);
+
+    //actor to report the outgoing messages
+    protected ActorRef reporterRef;
 
     //Boolean to indicate if the flightcontrol is blocked because of an error or because it has not yet started
     protected boolean blocked = true;
 
     protected LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
+    /**
+     *
+     * @param reporterRef actor to report the outgoing messages
+     */
     public FlightControl(ActorRef reporterRef) {
         this.reporterRef = reporterRef;
 
@@ -45,27 +50,33 @@ public abstract class FlightControl extends AbstractActor {
         );
     }
 
+    /**
+     * Return a UnitPFBuilder with all needed listeners registered.
+     */
     protected abstract UnitPFBuilder<Object> createListeners();
 
     /**
      * Start flying the drones when all initialization parameters are set.
      */
-    public abstract void startFlightControlMessage();
+    protected abstract void startFlightControlMessage();
 
+    /**
+     * Handles a StopFlightControlMessage.
+     */
     protected abstract void stopFlightControlMessage(StopFlightControlMessage m);
 
     /**
-     * Handles a RequestMessage of a other drone. A RequestMessage is send when a drone wants to land or to take off.
+     * Handles a RequestMessage of a other drone. A RequestMessage is sent when a drone wants to land or to take off.
      */
     protected abstract void requestMessage(RequestMessage m);
 
     /**
-     * Handles a RequestGrantedMessage. A RequestGrantedMessage is send to a class as a reply on a RequestMessage.
+     * Handles a RequestGrantedMessage. A RequestGrantedMessage is sent to a class as a reply on a RequestMessage.
      */
     protected abstract void requestGrantedMessage(RequestGrantedMessage m);
 
     /**
-     * Handles CompletedMessage of a other drone. A CompletedMessage is send when a other drone has completed his landing of take off that he has requested.
+     * Handles CompletedMessage of a other drone. A CompletedMessage is sent when a other drone has completed his landing of take off that he has requested.
      */
     protected abstract void completedMessage(CompletedMessage m);
 }

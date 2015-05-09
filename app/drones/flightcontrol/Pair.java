@@ -1,6 +1,8 @@
 package drones.flightcontrol;
 
 /**
+ * A pair consisting of two elements.
+ *
  * Created by Sander on 5/05/2015.
  */
 public class Pair<K, V> {
