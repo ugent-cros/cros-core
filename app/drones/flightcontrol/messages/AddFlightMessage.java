@@ -5,6 +5,8 @@ import models.Checkpoint;
 import java.util.List;
 
 /**
+ * Sent to the flightControl in order to add a flight.
+ *
  * Created by Sander on 26/03/2015.
  */
 public class AddFlightMessage extends AbstractIdFlightControlMessage{
