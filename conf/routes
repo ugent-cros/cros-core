@@ -58,6 +58,7 @@ GET            /drones/:id/video                     controllers.DroneController
 GET            /drones/:id/commands                  controllers.ManualDroneController.links(id: Long)
 GET            /drones/:id/commands/manual           controllers.ManualDroneController.setManual(id: Long)
 GET            /drones/:id/commands/automatic        controllers.ManualDroneController.setAutomatic(id: Long)
+GET            /drones/:id/commands/status           controllers.ManualDroneController.setStatus(id: Long)
 GET            /drones/:id/commands/:command         controllers.ManualDroneController.command(id: Long, command: String)
 
 POST           /login                                controllers.SecurityController.login()
