@@ -5,5 +5,5 @@ import java.io.Serializable;
 /**
  * Created by Sander on 29/04/2015.
  */
-public class FlightControlCancledMessage implements Serializable{
+public class FlightControlCanceledMessage implements Serializable{
 }

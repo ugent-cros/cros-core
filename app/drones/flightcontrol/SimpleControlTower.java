@@ -57,10 +57,10 @@ public class SimpleControlTower extends ControlTower {
         started = true;
 
         //start all pilots
-        tellToAllPilots(new StartFlightControlMessage());
+        tellAllPilots(new StartFlightControlMessage());
     }
 
-    private void tellToAllPilots(Object message){
+    private void tellAllPilots(Object message){
         for(Pair<ActorRef,Double> pair : drones.values()){
             pair.getKey().tell(message, self());
         }
@@ -188,7 +188,7 @@ public class SimpleControlTower extends ControlTower {
                 RequestMessage requestMessage = it.next();
                 //check if requestMessage is created by the drone that will be removed
                 if (requestMessage.getRequester() == pilot) {
-                    tellToAllPilots(new CompletedMessage(requestMessage));
+                    tellAllPilots(new CompletedMessage(requestMessage));
                     noFlyPoints.remove(requestMessage.getLocation());
                     //Remove from hasmap requestGrantedCount
                     it.remove();
@@ -213,7 +213,7 @@ public class SimpleControlTower extends ControlTower {
             if(waitForShutDown){
                 if(waitForFlightCanceledMessage.isEmpty()) {
                     waitForShutDown = false;
-                    reporterRef.tell(new FlightControlCancledMessage(), self());
+                    reporterRef.tell(new FlightControlCanceledMessage(), self());
                     //stop
                     getContext().stop(self());
                 }
@@ -284,8 +284,8 @@ public class SimpleControlTower extends ControlTower {
         //remove
         noFlyPoints.remove(m.getLocation());
 
-        //tell to all other pilots
-        tellToAllPilots(m);
+        //tell all other pilots
+        tellAllPilots(m);
     }
 
     @Override
