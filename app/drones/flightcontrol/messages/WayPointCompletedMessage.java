@@ -1,7 +1,7 @@
 package drones.flightcontrol.messages;
 
 /**
- * Send when a pilot arrives at a wayPoint (and the waiting time is completed).
+ * Sent when a pilot arrives at a wayPoint (and the waiting time is completed).
  *
  * Created by Sander on 26/03/2015.
  */

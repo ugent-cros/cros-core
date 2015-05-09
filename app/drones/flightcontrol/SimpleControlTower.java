@@ -12,9 +12,10 @@ import java.util.*;
 /**
  * Basic implementation of a ControlTower. When a new flight is added, it creates a SimplePilot for it and
  * assigns a cruising altitude to it. When a RequestMessage is received from a SimplePilot it will answer
- * with a granted message when all SimplePilots with a lower cruising altitude has granted the request.
+ * with a GrantedMessage when all SimplePilots with a lower cruising altitude has granted the request.
  *
- * !!! WARNING: do not add a drone within the NoFlyRange of the location where another drone wants to land or take off.
+ * !!! WARNING: do not add a drone within the NoFlyRange of the location where another drone wants to land
+ * or take off.
  *
  * Created by Sander on 15/04/2015.
  */

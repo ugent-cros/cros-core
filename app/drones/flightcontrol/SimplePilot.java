@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
  * and responds with a CompletedMessage.
  *
  * When a RequestMessage is received from another pilot it will check if its actual location is not within
- * the NoFlyRange of the location of the request. If this is  so it will add the request location to the
+ * the NoFlyRange of the location of the request. If this is so, it will add the request location to the
  * NoFlyPoint list and it will immediately responds with a RequestGrantedMessage. If this is not so it will
  * wait until the drone has leaved the request location.
  *
