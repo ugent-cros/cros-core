@@ -21,7 +21,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Basic implementation of a Pilot class. It will fly with the drone to its destinations via the wayPoints
- * and will land on the last item in the list. It takes in to account the waiting time of wayPoint but not
+ * and will land on the last item in the list. It takes into account the waiting time of a wayPoint but not
  * its altitude.
  *
  * When the SimplePilot is connected with a ControlTower it will send a request message before a take off or

@@ -1,7 +1,7 @@
 package drones.flightcontrol.messages;
 
 /**
- * Send from the controlTower when more flights ara added than allowed.
+ * Sent from the controlTower when more flights ara added than allowed.
  *
  * Created by Sander on 26/03/2015.
  */
