@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import droneapi.model.properties.Location;
 
 /**
+ * Message to request a landing or a take off. Sent from the pilot to the controlTower.
+ *
  * Created by Sander on 26/03/2015.
  */
 public class RequestMessage extends AbstractFlightControlMessage{

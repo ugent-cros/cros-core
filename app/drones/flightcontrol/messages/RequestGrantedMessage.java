@@ -1,6 +1,8 @@
 package drones.flightcontrol.messages;
 
 /**
+ * Message as reply on a RequestMessage when the request for landing or take off has been granted. Sent from the controlTower to the pilot.
+ *
  * Created by Sander on 26/03/2015.
  */
 public class RequestGrantedMessage extends AbstractIdFlightControlMessage{

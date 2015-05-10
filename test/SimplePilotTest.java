@@ -92,7 +92,7 @@ public class SimplePilotTest extends TestSuperclass {
                 try {
                     droneLocation = Await.result(dc.getLocation(), MAX_DURATION_MESSAGE);
                     double d = droneLocation.distance(destination.getLocation().getLongitude(), destination.getLocation().getLatitude());
-                    assertTrue("Check dronelocation: " + d,d < 50);
+                    assertTrue("Check dronelocation: " + d,d < TOP_SPEED*1.1);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

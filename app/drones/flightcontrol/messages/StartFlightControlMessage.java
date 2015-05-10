@@ -3,9 +3,9 @@ package drones.flightcontrol.messages;
 import java.io.Serializable;
 
 /**
- * Created by Sander on 18/03/2015.
+ * Sent to FlightControl to start it.
  *
- * Message to let the master FlightControl knows that he can startFlightControlMessage.
+ * Created by Sander on 18/03/2015.
  */
 public class StartFlightControlMessage implements Serializable {
 }

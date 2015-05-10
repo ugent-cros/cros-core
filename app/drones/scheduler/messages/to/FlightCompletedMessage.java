@@ -5,6 +5,8 @@ import droneapi.model.properties.Location;
 import java.io.Serializable;
 
 /**
+ * Sent from a pilot when the flight has been completed and the drone has landed.
+ *
  * Created by Ronald on 18/03/2015.
  */
 public class FlightCompletedMessage implements Serializable{

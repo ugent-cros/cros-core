@@ -11,12 +11,16 @@ import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
 
 /**
- * Created by Sander on 18/03/2015.
+ * A control tower ensures that multiple drones can fly without colliding.
  *
- * Flight control to control multiple drones
+ * Created by Sander on 18/03/2015.
  */
 public abstract class ControlTower extends FlightControl{
 
+    /**
+     *
+     * @param reporterRef actor to report the outgoing messages
+     */
     public ControlTower(ActorRef reporterRef) {
         super(reporterRef);
     }
@@ -32,15 +36,33 @@ public abstract class ControlTower extends FlightControl{
                 match(WayPointCompletedMessage.class, s -> wayPointCompletedMessage(s));
     }
 
+    /**
+     * Add a flight to the controlTower.
+     */
     protected abstract void addFlightMessage(AddFlightMessage m);
 
+    /**
+     * Remove a flight from the controlTower.
+     */
     protected abstract void removeFlightMessage(RemoveFlightMessage m);
 
+    /**
+     * Handles a FlightControlExceptionMessage sent by a pilot.
+     */
     protected abstract void flightControlExceptionMessage(FlightControlExceptionMessage m);
 
+    /**
+     * Handles a FlightCompletedMessage sent by a pilot.
+     */
     protected abstract void flightCompletedMessage(FlightCompletedMessage m);
 
+    /**
+     * Handles a FlightCanceledMessage sent by a pilot.
+     */
     protected abstract void flightCanceledMessage(FlightCanceledMessage m);
 
+    /**
+     * Handles a WayPointCompletedMessage sent by a pilot.
+     */
     protected abstract void wayPointCompletedMessage(WayPointCompletedMessage m);
 }

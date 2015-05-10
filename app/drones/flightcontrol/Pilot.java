@@ -14,9 +14,9 @@ import drones.models.Fleet;
 import models.Drone;
 
 /**
- * Created by Sander on 18/03/2015.
+ * A pilot executes a flight with one drone.
  *
- * Flight control for one single drone = pilot of the drone.
+ * Created by Sander on 18/03/2015.
  */
 public abstract class Pilot extends FlightControl{
 
@@ -25,6 +25,12 @@ public abstract class Pilot extends FlightControl{
     protected double cruisingAltitude = 0;
     protected boolean linkedWithControlTower;
 
+    /**
+     *
+     * @param reporterRef               actor to report the outgoing messages
+     * @param droneId                   drone to control
+     * @param linkedWithControlTower    true if connected to a ControlTower
+     */
     public Pilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower) {
         super(reporterRef);
         this.droneId = droneId;
@@ -65,19 +71,28 @@ public abstract class Pilot extends FlightControl{
                 match(WaitAtWayPointCompletedMessage.class, s -> waitAtWayPointCompletedMessage(s));
     }
 
-    protected void handleErrorMessage(String s){
-        blocked = true;
-        reporterRef.tell(new FlightControlExceptionMessage(s,droneId),self());
-        log.error("FlightControl error with droneID " + droneId + ": " + s);
-    }
-
+    /**
+     * Handles a FlyingStateChangedMessage sent by a droneActor.
+     */
     protected abstract void flyingStateChanged(FlyingStateChangedMessage m);
 
+    /**
+     * Handles a LocationChangedMessage sent by a droneActor.
+     */
     protected abstract void locationChanged(LocationChangedMessage m);
 
+    /**
+     * Handles a NavigationStateChangedMessage sent by a droneActor.
+     */
     protected abstract void navigationStateChanged(NavigationStateChangedMessage m);
 
+    /**
+     * Add a NoFLyPoint to the pilot.
+     */
     protected abstract void addNoFlyPointMessage(AddNoFlyPointMessage m);
 
+    /**
+     * Handles a WaitAtWayPointCompletedMessage sent by itself.
+     */
     protected abstract void waitAtWayPointCompletedMessage(WaitAtWayPointCompletedMessage m);
 }
