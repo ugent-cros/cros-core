@@ -26,12 +26,12 @@ import java.util.concurrent.TimeoutException;
  *
  * When the SimplePilot is connected with a ControlTower it will send a request message before a take off or
  * landing. When, subsequently, the RequestGrantedMessage is received it will execute the landing or take off
- * and responds with a CompletedMessage.
+ * and respond with a CompletedMessage.
  *
  * When a RequestMessage is received from another pilot it will check if its actual location is not within
  * the NoFlyRange of the location of the request. If this is so, it will add the request location to the
- * NoFlyPoint list and it will immediately responds with a RequestGrantedMessage. If this is not so it will
- * wait until the drone has leaved the request location.
+ * NoFlyPoint list and it will immediately respond with a RequestGrantedMessage. If this is not so, it will
+ * wait until the drone has left the request location.
  *
  * !!! WARNING 1: The SimplePilot assumes that there are no obstacles on the route that he will fly.
  *
