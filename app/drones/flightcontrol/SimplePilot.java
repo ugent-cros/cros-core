@@ -191,7 +191,7 @@ public class SimplePilot extends Pilot {
         blocked = true;
         dc.unsubscribe(self());
         if(!done || linkedWithControlTower){
-            reporterRef.tell(new FlightCanceledMessage(droneId), self());
+            reporterRef.tell(new FlightCanceledMessage(droneId,done), self());
         }
 
         //stop

@@ -233,12 +233,15 @@ public class SimpleControlTower extends ControlTower {
             if(waitForShutDown){
                 if(waitForFlightCanceledMessage.isEmpty()) {
                     waitForShutDown = false;
+                    reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
                     reporterRef.tell(new FlightControlCanceledMessage(), self());
                     //stop
                     getContext().stop(self());
                 }
             } else {
-                reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
+                if(!m.isDone()){
+                    reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
+                }
             }
         }
     }

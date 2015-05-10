@@ -64,7 +64,7 @@ public class FlightControlSimulator extends UntypedActor {
             if(!completed){
                 Logger.debug("FLIGHTCONTROL FLIGHT CANCELED");
                 Await.ready(commander.land(), TIME_OUT);
-                scheduler.tell(new FlightCanceledMessage(droneId),self());
+                scheduler.tell(new FlightCanceledMessage(droneId,false),self());
             }
             Logger.debug("FLIGHTCONTROL STOPPED");
             getContext().stop(self());

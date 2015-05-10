@@ -9,7 +9,19 @@ import drones.flightcontrol.messages.AbstractIdFlightControlMessage;
  */
 public class FlightCanceledMessage extends AbstractIdFlightControlMessage{
 
-    public FlightCanceledMessage(Long id) {
+    private boolean done;
+
+    /**
+     *
+     * @param id droneId
+     * @param done if the pilot is done
+     */
+    public FlightCanceledMessage(long id, boolean done) {
         super(id);
+        this.done = done;
+    }
+
+    public boolean isDone() {
+        return done;
     }
 }
