@@ -87,7 +87,7 @@ public class SimpleControlTower extends ControlTower {
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        if (!blocked) {
+        if (!blocked && !drones.isEmpty()) {
             blocked = true;
 
             //stop all pilots
@@ -99,6 +99,7 @@ public class SimpleControlTower extends ControlTower {
             }
             waitForShutDown = true;
         } else {
+            reporterRef.tell(new FlightControlCanceledMessage(), self());
             //stop
             getContext().stop(self());
         }
