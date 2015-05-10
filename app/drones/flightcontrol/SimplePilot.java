@@ -35,8 +35,12 @@ import java.util.concurrent.TimeoutException;
  *
  * !!! WARNING 1: The SimplePilot assumes that there are no obstacles on the route that he will fly.
  *
- * !!! WARNING 2: when an error occurs, the pilot will go to a blocked state. It is the responsibility of
+ * !!! WARNING 2: When an error occurs, the pilot will go to a blocked state. It is the responsibility of
  * the user to land the drone on a safe place.
+ *
+ * !!! WARNING 3: There can only be one pilot for each drone at any time.
+ *
+ * !!! WARNING 4: The drone should be landed before starting the pilot.
  *
  * Created by Sander on 18/03/2015.
  */
