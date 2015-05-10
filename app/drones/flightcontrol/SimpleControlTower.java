@@ -14,8 +14,10 @@ import java.util.*;
  * assigns a cruising altitude to it. When a RequestMessage is received from a SimplePilot it will answer
  * with a GrantedMessage when all SimplePilots with a lower cruising altitude has granted the request.
  *
- * !!! WARNING: do not add a drone within the NoFlyRange of the location where another drone wants to land
+ * !!! WARNING 1: Do not add a drone within the NoFlyRange of the location where another drone wants to land
  * or take off.
+ *
+ * !!! WARNING 2: The SimpleControlTower makes use of the SimplePilot class, see warnings there.
  *
  * Created by Sander on 15/04/2015.
  */
