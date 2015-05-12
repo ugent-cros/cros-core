@@ -507,7 +507,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
                 Props.create(SimplePilot.class,
                         () -> new SimplePilot(self(), droneId, false, assignment.getRoute())));
                         */
-        controlTower.tell(new AddFlightMessage(droneId,assignment.getRoute()),self());
         // Flight
         Flight flight = new Flight(droneId, assignment.getId());
         flights.put(droneId, flight);

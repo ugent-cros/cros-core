@@ -105,7 +105,7 @@ public class SimplePilot extends Pilot {
      * @param cruisingAltitude          cruisingAltitude of the drone
      */
     public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude) {
-        this(reporterRef, droneId,linkedWithControlTower,wayPoints);
+        this(reporterRef, droneId, linkedWithControlTower, wayPoints);
         this.cruisingAltitude = cruisingAltitude;
     }
 
@@ -191,7 +191,7 @@ public class SimplePilot extends Pilot {
         blocked = true;
         dc.unsubscribe(self());
         if(!done || linkedWithControlTower){
-            reporterRef.tell(new FlightCanceledMessage(droneId,done), self());
+            reporterRef.tell(new FlightCanceledMessage(droneId, done), self());
         }
 
         //stop
@@ -235,7 +235,7 @@ public class SimplePilot extends Pilot {
     private void land() {
         if(!blocked){
             if(linkedWithControlTower){
-                reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.LANDING, droneId),self());
+                reporterRef.tell(new RequestMessage(self(), actualLocation, AbstractFlightControlMessage.RequestType.LANDING, droneId), self());
             } else {
                 try {
                     Await.ready(dc.land(), MAX_DURATION_LONG);
