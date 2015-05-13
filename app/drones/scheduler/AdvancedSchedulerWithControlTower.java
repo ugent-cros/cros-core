@@ -259,10 +259,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
             Logger.warn("FlightCompleted: flight is null.");
             return;
         }
-        // Stop flight control
-        // Done in drone
-        //flight.getFlightControl().tell(new StopFlightControlMessage(), self());
-
         // Drone
         Drone drone = getDrone(flight.getDroneId());
         if(drone == null){
