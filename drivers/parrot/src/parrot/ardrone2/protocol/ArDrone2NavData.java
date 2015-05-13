@@ -30,6 +30,7 @@ public class ArDrone2NavData extends UntypedActor {
     private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
     private static final int HEADER_VALUE = 0x55667788;
     private static final int MIN_SIZE = 100;
+    private static final int SIZE_ZIMU_3000 = 12;
 
     // Percentage when battery level is low
     private static final int BATTERY_LEVEL_LOW = 30;
@@ -137,7 +138,9 @@ public class ArDrone2NavData extends UntypedActor {
                 if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
                     parseDemoData(navdata);
                 } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
-                    parseGPSData(navdata, offset);
+                    if(optionLen > SIZE_ZIMU_3000) {
+                        parseGPSData(navdata, offset);
+                    }
                 }
 
                 offset += optionLen - 4;
