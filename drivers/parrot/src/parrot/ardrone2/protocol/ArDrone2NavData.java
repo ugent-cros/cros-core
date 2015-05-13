@@ -75,7 +75,7 @@ public class ArDrone2NavData extends UntypedActor {
             sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
             parent.tell(new InitNavDataMessage(), getSelf());
         } else {
-            //log.error("[ARDRONE2NAVDATA] Unhandled message received ({})", msg.toString());
+            log.error("[ARDRONE2NAVDATA] Unhandled message received ({})", msg.toString());
             unhandled(msg);
         }
     }
