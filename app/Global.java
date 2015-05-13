@@ -56,7 +56,7 @@ public class Global extends GlobalSettings {
     public void onStart(Application application) {
         super.onStart(application);
         try {
-            Scheduler.start(AdvancedSchedulerWithControlTower.class);
+            Scheduler.start(AdvancedScheduler.class);
         }catch(SchedulerException ex){
             Logger.error("Scheduler failed on start.",ex);
         }
