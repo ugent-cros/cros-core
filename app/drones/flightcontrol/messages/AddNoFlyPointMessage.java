@@ -11,13 +11,13 @@ import java.io.Serializable;
  */
 public class AddNoFlyPointMessage implements Serializable {
 
-    Location noFlyPoint;
+    RequestMessage noFlyPoint;
 
-    public AddNoFlyPointMessage(Location noFlyPoint) {
+    public AddNoFlyPointMessage(RequestMessage noFlyPoint) {
         this.noFlyPoint = noFlyPoint;
     }
 
-    public Location getNoFlyPoint() {
+    public RequestMessage getNoFlyPoint() {
         return noFlyPoint;
     }
 }

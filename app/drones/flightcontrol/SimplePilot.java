@@ -54,8 +54,8 @@ public class SimplePilot extends Pilot {
     private List<Checkpoint> wayPoints;
     private int actualWayPoint = -1;
 
-    //List of points where the drone cannot fly
-    private List<Location> noFlyPoints = new ArrayList<>();
+    //List of points(wrapped in messages) where the drone cannot fly
+    private List<RequestMessage> noFlyPoints = new ArrayList<>();
     //List of points(wrapped in messages) where the drone currently is but that need to be evacuated for a landing or take off.
     private List<RequestMessage> evacuationPoints = new ArrayList<>();
 
@@ -123,7 +123,7 @@ public class SimplePilot extends Pilot {
      * @param cruisingAltitude          cruisingAltitude of the drone
      * @param noFlyPoints               list of points where the drone cannot fly
      */
-    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude, List<Location> noFlyPoints) {
+    public SimplePilot(ActorRef reporterRef, long droneId, boolean linkedWithControlTower, List<Checkpoint> wayPoints, double cruisingAltitude, List<RequestMessage> noFlyPoints) {
         this(reporterRef,droneId,linkedWithControlTower,wayPoints, cruisingAltitude);
         this.cruisingAltitude = cruisingAltitude;
         this.noFlyPoints = new ArrayList<>(noFlyPoints);
@@ -286,17 +286,17 @@ public class SimplePilot extends Pilot {
      */
     @Override
     protected void requestMessage(RequestMessage m) {
-        if(blocked || landed){
-            noFlyPoints.add(m.getLocation());
-            reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
+        if(blocked){
+            noFlyPoints.add(m);
+            reporterRef.tell(new RequestGrantedMessage(droneId, m), self());
             log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has granted it.");
         } else {
             if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
                 evacuationPoints.add(m);
                 log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has added it to the evacuation points.");
             } else {
-                noFlyPoints.add(m.getLocation());
-                reporterRef.tell(new RequestGrantedMessage(droneId,m), self());
+                noFlyPoints.add(m);
+                reporterRef.tell(new RequestGrantedMessage(droneId, m), self());
                 log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has granted it.");
             }
         }
@@ -345,7 +345,7 @@ public class SimplePilot extends Pilot {
     @Override
     protected void completedMessage(CompletedMessage m) {
         log.info("Pilot for drone " + droneId + " has received a CompletedMessage.");
-        noFlyPoints.remove(m.getLocation());
+        noFlyPoints.remove(m.getRequestMessage());
     }
 
     @Override
@@ -360,11 +360,12 @@ public class SimplePilot extends Pilot {
                     log.info("Pilot for drone " + droneId + " has left the evacuation range.");
                     //remove from list
                     it.remove();
-                    noFlyPoints.add(r.getLocation());
+                    noFlyPoints.add(r);
                     reporterRef.tell(new RequestGrantedMessage(droneId,r),self());
                 }
             }
-            for (Location l : noFlyPoints) {
+            for (RequestMessage requestMessage : noFlyPoints) {
+                Location l = requestMessage.getLocation();
                 if (actualLocation.distance(l) < NO_FY_RANGE && !landed) {
                     log.info("Pilot for drone " + droneId + " has entered a no fly range.");
                     //stop with flying
@@ -396,6 +397,7 @@ public class SimplePilot extends Pilot {
                 if(!blocked && waitForTakeOffFinished) {
                     waitForTakeOffFinished = false;
                     //go up until cruising altitude
+                    log.info("Pilot for drone " + droneId + " has completed the first take off procedure and will now go up until cruising altitude.");
                     try {
                         Await.ready(dc.moveToLocation(actualLocation.getLatitude(), actualLocation.getLongitude(), cruisingAltitude), MAX_DURATION_LONG);
                     } catch (TimeoutException | InterruptedException e) {
@@ -403,7 +405,6 @@ public class SimplePilot extends Pilot {
                         return;
                     }
                     waitForGoUpUntilCruisingAltitudeFinished = true;
-                    log.info("Pilot for drone " + droneId + " has completed the first take off procedure and will now go up until cruising altitude.");
                 }
                 break;
             case EMERGENCY:
@@ -466,7 +467,7 @@ public class SimplePilot extends Pilot {
 
     @Override
     protected void addNoFlyPointMessage(AddNoFlyPointMessage m) {
-        if (actualLocation.distance(m.getNoFlyPoint()) < NO_FY_RANGE) {
+        if (actualLocation.distance(m.getNoFlyPoint().getLocation()) < NO_FY_RANGE) {
             handleErrorMessage("You cannot add a drone within the no-fly-range " +
                     "of the location where another drone wants to land or to take off");
         } else {
