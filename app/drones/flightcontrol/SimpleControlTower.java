@@ -33,7 +33,7 @@ public class SimpleControlTower extends ControlTower {
 
     private List<Double> availableCruisingAltitudes = new ArrayList<>();
 
-    //List of current noFlyPoints of all SimplePilots
+    //List of current noFlyPoints (wrapped as messages) of all SimplePilots
     private List<RequestMessage> noFlyPoints = new ArrayList<>();
     //HashMap to count how many pilots already granted the request
     private Map<RequestMessage, List<Long>> requestGrantedCount = new HashMap<>();

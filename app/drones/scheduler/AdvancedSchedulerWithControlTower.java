@@ -57,12 +57,14 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
                 .match(WayPointCompletedMessage.class, m -> waypointCompleted(m))
                 .match(RemoveFlightCompletedMessage.class, m -> flightCanceled(m))
                 .match(FlightCompletedMessage.class, m -> flightCompleted(m))
-                .match(FlightControlCanceledMessage.class, m -> flightControlCanceledMessage(m))
+                .match(FlightControlCanceledMessage.class, m -> flightControlCanceled(m))
                 .match(ControlTowerFullMessage.class, m -> controlTowerFullMessage(m));
     }
 
-    private void flightControlCanceledMessage(FlightControlCanceledMessage m){
+    private void flightControlCanceled(FlightControlCanceledMessage m){
         log.info("Control tower has ended");
+        // Terminate the scheduler actor.
+        getContext().stop(self());
     }
 
     private void controlTowerFullMessage(ControlTowerFullMessage m){
@@ -133,8 +135,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
             controlTower.tell(new StopFlightControlMessage(),self());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
         }
     }
 
@@ -144,8 +144,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
             controlTower.tell(new StopFlightControlMessage(),self());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
         }
     }
 
@@ -155,8 +153,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
             controlTower.tell(new StopFlightControlMessage(),self());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
         }
     }
 
