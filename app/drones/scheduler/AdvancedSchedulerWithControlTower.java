@@ -497,13 +497,7 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
 
     private void createFlight(Drone drone, Assignment assignment) {
         long droneId = drone.getId();
-        // Flight control
-        // TODO: Use ControlTower
-        /*ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), droneId, false, assignment.getRoute())));
-                        */
-        // Flight
+
         Flight flight = new Flight(droneId, assignment.getId());
         flights.put(droneId, flight);
         // Start
@@ -527,8 +521,6 @@ public class AdvancedSchedulerWithControlTower extends Scheduler implements Comp
         flight.setType(Flight.Type.CANCELED);
         flight.setCancelStatus(cancelStatus);
         // Flight control
-        // TODO: Use ControlTower
-        //flight.getFlightControl().tell(new StopFlightControlMessage(), self());
         controlTower.tell(new RemoveFlightMessage(flight.getDroneId()),self());
     }
 
