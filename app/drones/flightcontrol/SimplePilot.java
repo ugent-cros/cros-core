@@ -166,13 +166,13 @@ public class SimplePilot extends Pilot {
             }
         }
         blocked = false;
-        log.info("Pilot for drone " + droneId + " has started.");
+        logPilot("has started");
         takeOff();
     }
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        log.info("Pilot for drone " + droneId + " has received a shut down message.");
+        logPilot("has received a shut down message");
 
         //check if there was a request granted but not yet completed
         if(linkedWithControlTower && requestMessageBuffer != null){
@@ -202,7 +202,7 @@ public class SimplePilot extends Pilot {
             reporterRef.tell(new FlightCanceledMessage(droneId, done), self());
         }
 
-        log.info("Pilot for drone " + droneId + " will shut down.");
+        logPilot("will shut down");
 
         //stop
         getContext().stop(self());
@@ -212,7 +212,7 @@ public class SimplePilot extends Pilot {
         if (!blocked) {
             actualWayPoint++;
             if (actualWayPoint == 0){
-                log.info("Pilot for drone " + droneId + " will go to the first way point.");
+                logPilot("will got to the first way point");
                 models.Location newLocation = wayPoints.get(actualWayPoint).getLocation();
                 dc.moveToLocation(newLocation.getLatitude(), newLocation.getLongitude(), cruisingAltitude);
             } else {
@@ -233,11 +233,11 @@ public class SimplePilot extends Pilot {
         if(!blocked){
             reporterRef.tell(new WayPointCompletedMessage(droneId, actualWayPoint -1), self());
             if (actualWayPoint == wayPoints.size()) {
-                log.info("Pilot for drone " + droneId + " has arrived at last way point.");
+                logPilot("has arrived at last way point");
                 //arrived at destination => land
                 land();
             } else {
-                log.info("Pilot for drone " + droneId + " has arrived at way point " + (actualWayPoint - 1) + " and will go to the next one.");
+                logPilot("has arrived at way point " + (actualWayPoint - 1) + " and will go to the next one");
                 //fly to next wayPoint
                 models.Location newLocation = wayPoints.get(actualWayPoint).getLocation();
                 dc.moveToLocation(newLocation.getLatitude(), newLocation.getLongitude(), cruisingAltitude);
@@ -248,10 +248,10 @@ public class SimplePilot extends Pilot {
     private void land() {
         if(!blocked){
             if(linkedWithControlTower){
-                log.info("Pilot for drone " + droneId + " has sent a request for landing.");
+                logPilot("has sent a request for landing");
                 reporterRef.tell(new RequestMessage(self(), actualLocation, AbstractFlightControlMessage.RequestType.LANDING, droneId), self());
             } else {
-                log.info("Pilot for drone " + droneId + " has started the landing procedure.");
+                logPilot("has started the landing procedure");
                 try {
                     Await.ready(dc.land(), MAX_DURATION_LONG);
                 } catch (TimeoutException | InterruptedException e) {
@@ -266,10 +266,10 @@ public class SimplePilot extends Pilot {
     private void takeOff() {
         if(!blocked){
             if(linkedWithControlTower){
-                log.info("Pilot for drone " + droneId + " has sent a request for take off.");
+                logPilot("has sent a request for take off");
                 reporterRef.tell(new RequestMessage(self(),actualLocation, AbstractFlightControlMessage.RequestType.TAKEOFF, droneId),self());
             } else {
-                log.info("Pilot for drone " + droneId + " has started the take off procedure.");
+                logPilot("has started the take off procedure");
                 try {
                     Await.ready(dc.takeOff(), MAX_DURATION_LONG);
                 } catch (TimeoutException | InterruptedException e) {
@@ -289,15 +289,15 @@ public class SimplePilot extends Pilot {
         if(blocked){
             noFlyPoints.add(m);
             reporterRef.tell(new RequestGrantedMessage(droneId, m), self());
-            log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has granted it.");
+            logPilot("has received a request from " + m.getDroneId() + " and has granted it");
         } else {
             if (actualLocation.distance(m.getLocation()) <= EVACUATION_RANGE) {
                 evacuationPoints.add(m);
-                log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has added it to the evacuation points.");
+                logPilot("has received a request from " + m.getDroneId() + " and has added it to the evacuation points");
             } else {
                 noFlyPoints.add(m);
                 reporterRef.tell(new RequestGrantedMessage(droneId, m), self());
-                log.info("Pilot for drone " + droneId + " has received a request from " + m.getDroneId() + " and has granted it.");
+                logPilot("has received a request from " + m.getDroneId() + " and has granted it");
             }
         }
     }
@@ -319,7 +319,7 @@ public class SimplePilot extends Pilot {
                 if(linkedWithControlTower){
                     requestMessageBuffer = m.getRequestMessage();
                 }
-                log.info("Pilot for drone " + droneId + " has received a RequestGrantedMessage and has started the landing procedure.");
+                logPilot("has received a RequestGrantedMessage and has started the landing procedure");
                 break;
             case TAKEOFF:
                 try {
@@ -332,7 +332,7 @@ public class SimplePilot extends Pilot {
                 if(linkedWithControlTower){
                     requestMessageBuffer = m.getRequestMessage();
                 }
-                log.info("Pilot for drone " + droneId + " has received a RequestGrantedMessage and has started the take off procedure.");
+                logPilot("has received a RequestGrantedMessage and has started the take off procedure");
                 break;
             default:
                 log.warning("No handler for: [{}]", m.getRequestMessage().getType());
@@ -344,7 +344,7 @@ public class SimplePilot extends Pilot {
      */
     @Override
     protected void completedMessage(CompletedMessage m) {
-        log.info("Pilot for drone " + droneId + " has received a CompletedMessage.");
+        logPilot("has received a CompletedMessage");
         noFlyPoints.remove(m.getRequestMessage());
     }
 
@@ -357,7 +357,7 @@ public class SimplePilot extends Pilot {
             while(it.hasNext()){
                 RequestMessage r = it.next();
                 if(actualLocation.distance(r.getLocation()) > EVACUATION_RANGE){
-                    log.info("Pilot for drone " + droneId + " has left the evacuation range.");
+                    logPilot("has left the evacuation range");
                     //remove from list
                     it.remove();
                     noFlyPoints.add(r);
@@ -367,7 +367,7 @@ public class SimplePilot extends Pilot {
             for (RequestMessage requestMessage : noFlyPoints) {
                 Location l = requestMessage.getLocation();
                 if (actualLocation.distance(l) < NO_FY_RANGE && !landed) {
-                    log.info("Pilot for drone " + droneId + " has entered a no fly range.");
+                    logPilot("has entered a no fly range");
                     //stop with flying
                     waitForLeavingNoFlyRange = true;
                     try {
@@ -384,7 +384,7 @@ public class SimplePilot extends Pilot {
                 //fly to next wayPoint
                 models.Location newLocation = wayPoints.get(actualWayPoint).getLocation();
                 dc.moveToLocation(newLocation.getLatitude(), newLocation.getLongitude(), cruisingAltitude);
-                log.info("Pilot for drone " + droneId + " can no fly further to the next way point: " + actualWayPoint + ".");
+                logPilot("can no fly further to the next way point: " + actualWayPoint);
             }
         }
 
@@ -397,7 +397,7 @@ public class SimplePilot extends Pilot {
                 if(!blocked && waitForTakeOffFinished) {
                     waitForTakeOffFinished = false;
                     //go up until cruising altitude
-                    log.info("Pilot for drone " + droneId + " has completed the first take off procedure and will now go up until cruising altitude.");
+                    logPilot("has completed the first take off procedure and will now go up until cruising altitude");
                     try {
                         Await.ready(dc.moveToLocation(actualLocation.getLatitude(), actualLocation.getLongitude(), cruisingAltitude), MAX_DURATION_LONG);
                     } catch (TimeoutException | InterruptedException e) {
@@ -422,11 +422,11 @@ public class SimplePilot extends Pilot {
                     }
                     done = true;
                     reporterRef.tell(new FlightCompletedMessage(droneId, actualLocation), self());
-                    log.info("Pilot for drone " + droneId + " has completed the landing procedure.");
+                    logPilot("has completed the landing procedure");
                     return;
                 }
                 if(!blocked && waitForLandAfterStopFinished){
-                    log.info("Pilot for drone " + droneId + " has completed the landing procedure.");
+                    logPilot("has completed the landing procedure");
                     stop();
                     return;
                 }
@@ -448,7 +448,7 @@ public class SimplePilot extends Pilot {
                             reporterRef.tell(new CompletedMessage(requestMessageBuffer), self());
                             requestMessageBuffer = null;
                         }
-                        log.info("Pilot for drone " + droneId + " has completed the second take off procedure.");
+                        logPilot("has completed the second take off procedure");
                         goToNextWaypoint();
                         break;
                     }
@@ -479,5 +479,9 @@ public class SimplePilot extends Pilot {
         blocked = true;
         reporterRef.tell(new FlightControlExceptionMessage(s,droneId),self());
         log.error("FlightControl error with droneID " + droneId + ": " + s);
+    }
+
+    private void logPilot(String s){
+        log.info("Pilot for drone {} {}.", droneId, s);
     }
 }
