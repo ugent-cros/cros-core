@@ -154,12 +154,11 @@ public class ControlTowerTest extends TestSuperclass {
 
                 expectMsgClass(MAX_DURATION_FLYING, WayPointCompletedMessage.class);
                 expectMsgAnyClassOf(MAX_DURATION_FLYING, WayPointCompletedMessage.class, FlightCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING, WayPointCompletedMessage.class, FlightCompletedMessage.class, RemoveFlightCompletedMessage.class);
-                expectMsgAnyClassOf(MAX_DURATION_FLYING,WayPointCompletedMessage.class,RemoveFlightCompletedMessage.class);
+                expectMsgAnyClassOf(MAX_DURATION_FLYING, WayPointCompletedMessage.class, FlightCompletedMessage.class);
                 expectMsgClass(MAX_DURATION_FLYING, FlightCompletedMessage.class);
-                expectMsgClass(MAX_DURATION_FLYING, RemoveFlightCompletedMessage.class);
-
+                Thread.sleep(5000);
                 simpleControlTower.tell(new StopFlightControlMessage(), getRef());
+                expectMsgClass(MAX_DURATION_FLYING, FlightControlCanceledMessage.class);
 
                 //stop collision detector
                 collisionDetector.tell(new CollisionDetectorStopMessage(), getRef());

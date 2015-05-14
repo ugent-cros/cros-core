@@ -14,9 +14,13 @@ public class Flight {
     private Type type;
     private Drone.Status cancelStatus;
 
-    public Flight(long droneId, long assignmentId, ActorRef flightControl) {
+    public Flight(long droneId, long assignmentId) {
         this.droneId = droneId;
         this.assignmentId = assignmentId;
+    }
+
+    public Flight(long droneId, long assignmentId, ActorRef flightControl) {
+        this(droneId,assignmentId);
         this.flightControl = flightControl;
         this.type = Type.ASSIGNMENT;
         this.cancelStatus = Drone.Status.AVAILABLE;

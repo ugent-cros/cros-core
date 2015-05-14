@@ -11,11 +11,18 @@ import droneapi.model.properties.Location;
  */
 public class CompletedMessage extends AbstractFlightControlMessage{
 
+    private RequestMessage requestMessage;
+
     public CompletedMessage(ActorRef requester, Location location, AbstractFlightControlMessage.RequestType type) {
         super(requester, location, type);
     }
 
-    public CompletedMessage(AbstractFlightControlMessage m){
-        super(m.getRequester(), m.getLocation(), m.getType());
+    public CompletedMessage(RequestMessage m){
+        this(m.getRequester(), m.getLocation(), m.getType());
+        this.requestMessage = m;
+    }
+
+    public RequestMessage getRequestMessage() {
+        return requestMessage;
     }
 }
