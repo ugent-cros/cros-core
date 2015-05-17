@@ -32,8 +32,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-stream-experimental_2.11" % "1.0-M5"
 )
 
-sources in (Compile, doc) <<= sources in (Compile, doc) map {_.filterNot(_.getName endsWith ".scala")}
-
 // Code coverage
 
 jacoco.settings
