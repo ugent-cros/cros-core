@@ -78,6 +78,7 @@ public abstract class DroneActor extends AbstractActor {
                 // General commands (can be converted to switch as well, depends on embedded data)
                 match(InitRequestMessage.class, s -> initInternal(sender(), self())).
                 match(TakeOffRequestMessage.class, s -> takeOffInternal(sender(), self())).
+                match(EmergencyRequestMessage.class, s -> emergencyInternal(sender(), self())).
                 match(FlatTrimRequestMessage.class, s -> flatTrimInternal(sender(), self())).
                 match(CalibrateRequestMessage.class, s -> calibrateInternal(sender(), self(), s.hasHull(), s.isOutdoor())).
                 match(SetHullRequestMessage.class, s -> setHullInternal(sender(), self(), s.hasHull())).
@@ -90,6 +91,7 @@ public abstract class DroneActor extends AbstractActor {
                 match(MoveToLocationCancellationMessage.class, s -> cancelMoveToLocationInternal(sender(), self())).
                 match(FlipRequestMessage.class, s -> flipInternal(sender(), self(), s.getFlip())).
                 match(InitVideoRequestMessage.class, s -> initVideoInternal(sender(), self())).
+                match(StopVideoRequestMessage.class, s -> stopVideoInternal(sender(), self())).
                 match(SubscribeEventMessage.class, s -> handleSubscribeMessage(sender(), s.getSubscribedClasses())).
                 match(UnsubscribeEventMessage.class, s -> handleUnsubscribeMessage(sender(), s.getSubscribedClass())).
 
@@ -431,6 +433,18 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    protected void emergencyInternal(final ActorRef sender, final ActorRef self) {
+        if (loaded) {
+            log.debug("Attempting emergency...");
+
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            emergency(v);
+        } else {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Drone not initialized yet")), self);
+        }
+    }
+
     private void setMaxHeightInternal(final ActorRef sender, final ActorRef self, float meters) {
         if (loaded) {
             Promise<Void> v = Futures.promise();
@@ -473,6 +487,17 @@ public abstract class DroneActor extends AbstractActor {
         }
     }
 
+    private void stopVideoInternal(final ActorRef sender, final ActorRef self){
+        if (!loaded) {
+            sender.tell(new akka.actor.Status.Failure(new DroneException("Cannot stop video when not initialized.")), self);
+        } else {
+            log.info("Attempting stopping video.");
+            Promise<Void> v = Futures.promise();
+            handleMessage(v.future(), sender, self);
+            stopVideo(v);
+        }
+    }
+
     protected abstract void stop();
 
     protected abstract void init(Promise<Void> p);
@@ -504,6 +529,8 @@ public abstract class DroneActor extends AbstractActor {
     protected abstract void flip(Promise<Void> p, FlipType type);
 
     protected abstract void initVideo(Promise<Void> p);
+
+    protected abstract void stopVideo(Promise<Void> p);
 
     protected abstract UnitPFBuilder<Object> createListeners();
 }

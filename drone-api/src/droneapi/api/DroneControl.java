@@ -26,6 +26,12 @@ public interface DroneControl {
     Future<Void> land();
 
     /**
+     * Initiates an emergency action
+     * @return Promise whether the emergency was initiated
+     */
+    Future<Void> emergency();
+
+    /**
      *
      * @return Promise whether the emergency was initiated
      */
@@ -123,6 +129,12 @@ public interface DroneControl {
      * @return Promise whether the request was initiated
      */
     Future<Void> initVideo();
+
+    /**
+     *
+     * @return Promise whether the request was initiated
+     */
+    Future<Void> stopVideo();
 
     /**
      * Stops the drone communication

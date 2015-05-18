@@ -8,7 +8,6 @@ import akka.event.LoggingAdapter;
 import akka.io.Udp;
 import akka.io.UdpMessage;
 import akka.japi.pf.ReceiveBuilder;
-import akka.util.ByteIterator;
 import akka.util.ByteString;
 import parrot.ardrone2.util.DefaultPorts;
 import parrot.messages.InitNavDataMessage;
@@ -31,6 +30,7 @@ public class ArDrone2NavData extends UntypedActor {
     private static final byte[] TRIGGER_NAV_BYTES = {0x01, 0x00, 0x00, 0x00};
     private static final int HEADER_VALUE = 0x55667788;
     private static final int MIN_SIZE = 100;
+    private static final int SIZE_ZIMU_3000 = 12;
 
     // Percentage when battery level is low
     private static final int BATTERY_LEVEL_LOW = 30;
@@ -51,9 +51,6 @@ public class ArDrone2NavData extends UntypedActor {
         udpManager.tell(UdpMessage.bind(getSelf(), new InetSocketAddress(0)), getSelf());
 
         this.senderAddressNAV = new InetSocketAddress(details.getIp(), DefaultPorts.NAV_DATA.getPort());
-
-        // Request a sender socket
-        udpManager.tell(UdpMessage.simpleSender(), getSelf());
     }
 
     @Override
@@ -61,11 +58,12 @@ public class ArDrone2NavData extends UntypedActor {
         if (msg instanceof Udp.Bound) {
             log.info("[ARDRONE2NAVDATA] Socket ARDRone 2.0 bound.");
 
+            senderRef = sender();
+
             // Setup handlers
             getContext().become(ReceiveBuilder
                     .match(Udp.Received.class, s -> processRawData(s.data()))
                     .match(Udp.Unbound.class, s -> getContext().stop(getSelf()))
-                    .match(Udp.SimpleSenderReady.class, s -> senderRef = sender())
                     .match(StopMessage.class, s -> stop())
                     .matchAny(s -> {
                         log.error("[ARDRONE2NAVDATA] No protocol handler for [{}]", s.getClass().getCanonicalName());
@@ -76,8 +74,6 @@ public class ArDrone2NavData extends UntypedActor {
             // Enable nav data
             sendNavData(ByteString.fromArray(TRIGGER_NAV_BYTES));
             parent.tell(new InitNavDataMessage(), getSelf());
-        } else if(msg instanceof Udp.SimpleSenderReady){
-            senderRef = sender();
         } else {
             log.error("[ARDRONE2NAVDATA] Unhandled message received ({})", msg.toString());
             unhandled(msg);
@@ -94,16 +90,7 @@ public class ArDrone2NavData extends UntypedActor {
 
     private void processRawData(ByteString data) {
         log.debug("[ARDRONE2NAVDATA] Message received");
-        byte[] received = new byte[data.length()];
-        ByteIterator it = data.iterator();
-
-        int i = 0;
-        while(it.hasNext()) {
-            received[i] = it.getByte();
-            i++;
-        }
-
-        processData(received);
+        processData(data.toArray());
     }
 
     public boolean sendNavData(ByteString data) {
@@ -151,11 +138,12 @@ public class ArDrone2NavData extends UntypedActor {
                 if(optionTag == NavDataTag.DEMO_TAG.getTag()) {
                     parseDemoData(navdata);
                 } else if(optionTag == NavDataTag.GPS_TAG.getTag()) {
-                    parseGPSData(navdata, offset);
+                    if(optionLen > SIZE_ZIMU_3000) {
+                        parseGPSData(navdata, offset);
+                    }
                 }
 
                 offset += optionLen - 4;
-
             }
         } else {
             log.info("Packet doesn't contain data");
@@ -172,25 +160,23 @@ public class ArDrone2NavData extends UntypedActor {
         alertStateChanged(navdata);
     }
 
-    // @TODO to be tested when GPS module arrives
     private void parseGPSData(byte[] navdata, int offset) {
-        int offsetTemp = offset;
+        if(navdata.length < offset + 34) {
+            double latitude = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+            double longitude = PacketHelper.getDouble(navdata, offset);
+            offset += 8;
+            double elevation = PacketHelper.getDouble(navdata, offset);
+            offset += 16; // Elevation and hdop
+            int dataAvailable = PacketHelper.getInt(navdata, offset);
 
-        double latitude = PacketHelper.getDouble(navdata, offsetTemp);
-        offsetTemp += 8;
-        double longitude = PacketHelper.getDouble(navdata, offsetTemp);
-        offsetTemp += 8;
-        double elevation = PacketHelper.getDouble(navdata, offsetTemp);
-        offsetTemp += 16; // Elevation and hdop
-        int dataAvailable = PacketHelper.getInt(navdata, offsetTemp);
+            boolean gpsAvailable = (dataAvailable != 0);
+            Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
+            listener.tell(gpsFixMessage, getSelf());
 
-        boolean gpsAvailable = dataAvailable == 1;
-        Object gpsFixMessage = new GPSFixChangedMessage(gpsAvailable);
-        listener.tell(gpsFixMessage, getSelf());
-
-        log.info("GPS values: [Lat: {}] [Lon: {}] [ALT: {}], available: {}", latitude, longitude, elevation, gpsAvailable); // @TODO remove
-        Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
-        listener.tell(locationMessage, getSelf());
+            Object locationMessage = new LocationChangedMessage(longitude, latitude, elevation);
+            listener.tell(locationMessage, getSelf());
+        }
     }
 
     private void attitudeChanged(byte[] navdata) {
@@ -322,7 +308,7 @@ public class ArDrone2NavData extends UntypedActor {
         ZIMMU3000_TAG(27),        // AR.Drone 2.0
         GPS_TAG(27),              // AR.Drone 2.4.1
         CKS_TAG(0xFFFF);
-        
+
         private final int tag;
 
         private NavDataTag(int tag) {

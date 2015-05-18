@@ -3,15 +3,20 @@ package drones.flightcontrol.messages;
 import java.io.Serializable;
 
 /**
+ * Sent from a pilot or controlTower when an error has occurred.
+ *
  * Created by Sander on 26/03/2015.
  */
-public class FlightControlExceptionMessage extends Exception implements Serializable{
+public class FlightControlExceptionMessage extends AbstractIdFlightControlMessage implements Serializable{
 
-    public FlightControlExceptionMessage(String s) {
-        super(s);
+    private String message;
+
+    public FlightControlExceptionMessage(String s, long droneId) {
+        super(droneId);
+        this.message = message;
     }
 
-    public FlightControlExceptionMessage(Throwable throwable) {
-        super(throwable);
+    public String getMessage() {
+        return message;
     }
 }

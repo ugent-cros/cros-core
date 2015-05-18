@@ -5,18 +5,20 @@ import akka.actor.Props;
 import drones.flightcontrol.messages.*;
 import drones.scheduler.messages.to.FlightCanceledMessage;
 import drones.scheduler.messages.to.FlightCompletedMessage;
-import javafx.util.Pair;
 import droneapi.model.properties.Location;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Simple Control Tower
- * DO NOT ADD A DRONE WITHIN THE NO FLY RANGE OF THE LOCATION WHERE ANOTHER DRONE WANTS TO LAND/TAKE OFF
- * <p>
+ * Basic implementation of a ControlTower. When a new flight is added, it creates a SimplePilot for it and
+ * assigns a cruising altitude to it. When a RequestMessage is received from a SimplePilot it will answer
+ * with a GrantedMessage when all SimplePilots with a lower cruising altitude have granted the request.
+ *
+ * !!! WARNING 1: Do not add a drone within the NoFlyRange of the location where another drone wants to land
+ * or take off.
+ *
+ * !!! WARNING 2: The SimpleControlTower makes use of the SimplePilot class, see warnings there.
+ *
  * Created by Sander on 15/04/2015.
  */
 public class SimpleControlTower extends ControlTower {
@@ -26,12 +28,13 @@ public class SimpleControlTower extends ControlTower {
     private double minCruisingAltitude;
 
     //Map droneId on a pilot and a cruising altitude
+    //Map<droneId,Pair<SimplePilot,cruisingAltitude>
     private Map<Long,Pair<ActorRef,Double>> drones = new HashMap<>();
 
     private List<Double> availableCruisingAltitudes = new ArrayList<>();
 
-    //List of current noFlyPoints of all SimplePilots
-    private List<Location> noFlyPoints = new ArrayList<>();
+    //List of current noFlyPoints (wrapped as messages) of all SimplePilots
+    private List<RequestMessage> noFlyPoints = new ArrayList<>();
     //HashMap to count how many pilots already granted the request
     private Map<RequestMessage, List<Long>> requestGrantedCount = new HashMap<>();
 
@@ -41,9 +44,17 @@ public class SimpleControlTower extends ControlTower {
     private List<Long> waitForFlightCanceledMessage = new ArrayList<>();
 
     private boolean waitForShutDown = false;
+
     //list to check if all pilots has stopped
     private List<FlightCanceledMessage> flightCanceledMessages = new ArrayList<>();
 
+    /**
+     *
+     * @param reporterRef actor to report the outgoing messages
+     * @param maxCruisingAltitude maximum cruising altitude that the drones can fly
+     * @param minCruisingAltitude minimum cruising altitude that the drones can fly
+     * @param maxNumberOfDrones maximum number of drones that the controlTower can handle.
+     */
     public SimpleControlTower(ActorRef reporterRef, double maxCruisingAltitude, double minCruisingAltitude, int maxNumberOfDrones) {
         super(reporterRef);
         this.maxCruisingAltitude = maxCruisingAltitude;
@@ -59,10 +70,15 @@ public class SimpleControlTower extends ControlTower {
         started = true;
 
         //start all pilots
-        tellToAllPilots(new StartFlightControlMessage());
+        tellAllPilots(new StartFlightControlMessage());
     }
 
-    private void tellToAllPilots(Object message){
+    /**
+     * Tell message to al the pilots in the ControlTower.
+     *
+     * @param message Message to be sent
+     */
+    private void tellAllPilots(Object message){
         for(Pair<ActorRef,Double> pair : drones.values()){
             pair.getKey().tell(message, self());
         }
@@ -70,15 +86,19 @@ public class SimpleControlTower extends ControlTower {
 
     @Override
     protected void stopFlightControlMessage(StopFlightControlMessage m) {
-        if (!blocked) {
+        if (!blocked && !drones.isEmpty()) {
             blocked = true;
 
             //stop all pilots
-            for(Pair<ActorRef,Double> pair : drones.values()){
-                pair.getKey().tell(new StopFlightControlMessage(), self());
+            for(Long droneId : drones.keySet()){
+                if(!waitForFlightCanceledMessage.contains(droneId)){
+                    waitForFlightCanceledMessage.add(droneId);
+                    drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
+                }
             }
             waitForShutDown = true;
         } else {
+            reporterRef.tell(new FlightControlCanceledMessage(), self());
             //stop
             getContext().stop(self());
         }
@@ -119,10 +139,18 @@ public class SimpleControlTower extends ControlTower {
         final double cruisingAltitude = availableCruisingAltitudes.get(0);
         availableCruisingAltitudes.remove(cruisingAltitude);
 
+        //make list with all noFlyPoint with a lower cruisingAltitude
+        List<RequestMessage> list = new ArrayList<>();
+        for(RequestMessage requestMessage: noFlyPoints){
+            if(drones.get(requestMessage.getDroneId()).getValue() < cruisingAltitude){
+                list.add(requestMessage);
+            }
+        }
+
         //create actor
         ActorRef pilot = getContext().actorOf(
                 Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), cruisingAltitude, noFlyPoints)));
+                        () -> new SimplePilot(self(), m.getDroneId(), true, m.getWaypoints(), cruisingAltitude, list)));
 
         //add drone to map
         drones.put(m.getDroneId(), new Pair<>(pilot,cruisingAltitude));
@@ -152,27 +180,7 @@ public class SimpleControlTower extends ControlTower {
 
         //send stop message
         drones.get(droneId).getKey().tell(new StopFlightControlMessage(), self());
-
-        ActorRef pilot = drones.get(droneId).getKey();
-
-        //adjust hashmap for granted count
-        for (RequestMessage requestMessage : requestGrantedCount.keySet()) {
-            //check if requestMessage is created by the drone that will be removed
-            if (requestMessage.getRequester() == pilot) {
-                tellToAllPilots(new CompletedMessage(requestMessage));
-                noFlyPoints.remove(requestMessage.getLocation());
-                requestGrantedCount.remove(requestMessage);
-            } else {
-                //remove droneId from granted count
-                requestGrantedCount.get(requestMessage).remove(droneId);
-
-                //check if this is the last drone which one was waiting
-                if (requestGrantedCount.get(requestMessage).size() == drones.size() - 2) {
-                    requestGrantedCount.remove(requestMessage);
-                    requestMessage.getRequester().tell(new RequestGrantedMessage(droneId, requestMessage), self());
-                }
-            }
-        }
+        waitForFlightCanceledMessage.add(droneId);
 
         //remove from drones map is done when FlightCanceledMessage is received
         return true;
@@ -191,6 +199,31 @@ public class SimpleControlTower extends ControlTower {
         if(waitForFlightCanceledMessage.contains(m.getDroneId())){
             waitForFlightCanceledMessage.remove(m.getDroneId());
 
+            //adjust hashmap for granted count
+            ActorRef pilot = drones.get(m.getDroneId()).getKey();
+
+            Iterator<RequestMessage> it = requestGrantedCount.keySet().iterator(); //use iterator because otherwise ConcurrentModificationException
+            while(it.hasNext()){
+                RequestMessage requestMessage = it.next();
+                //check if requestMessage is created by the drone that will be removed
+                if (requestMessage.getRequester() == pilot) {
+                    tellAllPilots(new CompletedMessage(requestMessage));
+                    noFlyPoints.remove(requestMessage.getLocation());
+                    //Remove from hasmap requestGrantedCount
+                    it.remove();
+                } else {
+                    //remove droneId from granted count
+                    requestGrantedCount.get(requestMessage).remove(m.getDroneId());
+
+                    //check if this is the last drone which one was waiting
+                    if (requestGrantedCount.get(requestMessage).size() == drones.size() - 2) {
+                        //Remove from hasmap requestGrantedCount
+                        it.remove();
+                        requestMessage.getRequester().tell(new RequestGrantedMessage(m.getDroneId(), requestMessage), self());
+                    }
+                }
+            }
+
             //remove drone
             availableCruisingAltitudes.add(drones.get(m.getDroneId()).getValue());
             drones.remove(m.getDroneId());
@@ -199,12 +232,15 @@ public class SimpleControlTower extends ControlTower {
             if(waitForShutDown){
                 if(waitForFlightCanceledMessage.isEmpty()) {
                     waitForShutDown = false;
-                    reporterRef.tell(new FlightControlCancledMessage(), self());
+                    reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
+                    reporterRef.tell(new FlightControlCanceledMessage(), self());
                     //stop
                     getContext().stop(self());
                 }
             } else {
-                reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
+                if(!m.isDone()){
+                    reporterRef.tell(new RemoveFlightCompletedMessage(m.getDroneId()), self());
+                }
             }
         }
     }
@@ -215,7 +251,7 @@ public class SimpleControlTower extends ControlTower {
             return;
         }
 
-        noFlyPoints.add(m.getLocation());
+        noFlyPoints.add(m);
 
         if (drones.size() <= 1) {
             m.getRequester().tell(new RequestGrantedMessage(m.getDroneId(), m), self());
@@ -252,11 +288,11 @@ public class SimpleControlTower extends ControlTower {
         }
 
         //add drone to granted count
-        requestGrantedCount.get(m).add(m.getDroneId());
+        requestGrantedCount.get(m.getRequestMessage()).add(m.getDroneId());
 
         //check if this is the last drone which one was waiting
-        if (requestGrantedCount.get(m).size() == drones.size() - 1) {
-            requestGrantedCount.remove(m);
+        if (requestGrantedCount.get(m.getRequestMessage()).size() == drones.size() - 1) {
+            requestGrantedCount.remove(m.getRequestMessage());
             m.getRequestMessage().getRequester().tell(m, self());
         }
     }
@@ -268,10 +304,10 @@ public class SimpleControlTower extends ControlTower {
         }
 
         //remove
-        noFlyPoints.remove(m.getLocation());
+        noFlyPoints.remove(m.getRequestMessage());
 
-        //tell to all other pilots
-        tellToAllPilots(m);
+        //tell all other pilots
+        tellAllPilots(m);
     }
 
     @Override

@@ -120,7 +120,8 @@ public class Fleet {
                 ConnectionStatusChangedMessage.class,
                 FlyingStateChangedMessage.class,
                 NavigationStateChangedMessage.class,
-                AltitudeChangedMessage.class
+                AltitudeChangedMessage.class,
+                SpeedChangedMessage.class
         });
     }
 
@@ -144,6 +145,7 @@ public class Fleet {
         DroneDriver driver = getDriver(droneEntity.getDroneType());
         if (driver == null)
             return null;
+
 
         // Create commander
         ActorRef droneActor = Akka.system().actorOf(

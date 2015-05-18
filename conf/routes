@@ -26,7 +26,9 @@ GET            /flip                                 controllers.Application.fli
 
 GET            /takeoff                              controllers.Application.takeOff(id: Long)
 GET            /land                                 controllers.Application.land(id: Long)
+GET            /emergency                            controllers.Application.emergency(id: Long)
 GET            /initVideo                            controllers.Application.initVideo(id: Long)
+GET            /stopVideo                            controllers.Application.stopVideo(id: Long)
 GET            /subscribe                            controllers.Application.subscribeMonitor(id: Long)
 GET            /unsubscribe                          controllers.Application.unsubscribeMonitor(id: Long)
 GET            /testSocket                           controllers.Application.testSocket()
@@ -56,6 +58,7 @@ GET            /drones/:id/video                     controllers.DroneController
 GET            /drones/:id/commands                  controllers.ManualDroneController.links(id: Long)
 GET            /drones/:id/commands/manual           controllers.ManualDroneController.setManual(id: Long)
 GET            /drones/:id/commands/automatic        controllers.ManualDroneController.setAutomatic(id: Long)
+GET            /drones/:id/commands/status           controllers.ManualDroneController.setStatus(id: Long)
 GET            /drones/:id/commands/:command         controllers.ManualDroneController.command(id: Long, command: String)
 
 POST           /login                                controllers.SecurityController.login()

@@ -1,13 +1,15 @@
 package drones.scheduler.messages.to;
 
+import java.io.Serializable;
+
 /**
- * Created by Ronald on 13/04/2015.
+ * Created by Ronald on 21/04/2015.
  */
-public class AddDroneMessage {
+public class DroneEmergencyMessage implements Serializable {
 
     private long droneId;
 
-    public AddDroneMessage(long droneId){
+    public DroneEmergencyMessage(long droneId) {
         this.droneId = droneId;
     }
 

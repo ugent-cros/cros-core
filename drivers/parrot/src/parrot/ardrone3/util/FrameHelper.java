@@ -60,6 +60,14 @@ public class FrameHelper {
         return b.result();
     }
 
+    public static ByteString getVideoAck(int frameId, long low, long high){
+        ByteStringBuilder b = new ByteStringBuilder();
+        b.putShort(frameId, BYTE_ORDER);
+        b.putLong(high, BYTE_ORDER);
+        b.putLong(low, BYTE_ORDER);
+        return b.result();
+    }
+
     public static ByteString getPong(long time){
         ByteStringBuilder b = new ByteStringBuilder();
         b.putLong(time, BYTE_ORDER);

@@ -9,6 +9,7 @@ import play.db.ebean.Model;
 import utilities.JsonHelper;
 
 import javax.persistence.*;
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -32,16 +33,18 @@ public class Assignment extends Model {
     @Constraints.Required
     @OneToMany(cascade = CascadeType.ALL)
     @OrderColumn
+    @Valid
     private List<Checkpoint> route;
 
     @Constraints.Required
-    private boolean scheduled;
+    private Status status;
 
     @Constraints.Required
     private int progress;
 
     @JsonView(JsonHelper.Summary.class)
     @Constraints.Required
+    @Constraints.Min(value=0)
     private int priority;
 
     @JsonView(JsonHelper.Summary.class)
@@ -61,7 +64,7 @@ public class Assignment extends Model {
     public Assignment() {
         priority = 0;
         progress = 0;
-        scheduled = false;
+        status = Status.PENDING;
     }
 
     public Long getId() {
@@ -94,12 +97,12 @@ public class Assignment extends Model {
         this.priority = priority;
     }
 
-    public boolean isScheduled(){
-        return scheduled;
+    public Status getStatus(){
+        return status;
     }
 
-    public void setScheduled(boolean scheduled){
-        this.scheduled = scheduled;
+    public void setStatus(Status status){
+        this.status = status;
     }
 
     public User getCreator() {
@@ -157,5 +160,12 @@ public class Assignment extends Model {
         result = 31 * result + (creator != null ? creator.hashCode() : 0);
         result = 31 * result + (assignedDrone != null ? assignedDrone.hashCode() : 0);
         return result;
+    }
+
+    public enum Status{
+        PENDING,
+        EXECUTING,
+        CANCELED,
+        COMPLETED;
     }
 }

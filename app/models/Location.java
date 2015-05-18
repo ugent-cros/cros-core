@@ -18,6 +18,7 @@ public class Location {
     @Constraints.Required
     protected double latitude;
     @Constraints.Required
+    @Constraints.Min(value=0)
     protected double altitude;
 
     public Location() {

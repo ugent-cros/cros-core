@@ -66,7 +66,7 @@ public class Bebop extends NavigatedDroneActor {
     @Override
     protected LocationNavigator createNavigator(Location currentLocation, Location goal) {
         return new LocationNavigator(currentLocation, goal,
-                2f, 40f, 0.4f); // Bebop parameters
+                4f, 60f, 0.4f); // Bebop parameters
     }
 
     private void handleDroneDiscoveryResponse(DroneDiscoveredMessage s) {
@@ -125,15 +125,15 @@ public class Bebop extends NavigatedDroneActor {
         protocol.tell(new DroneConnectionDetails(ip, details.getSendPort(), details.getRecvPort()), self());
 
         if(!reconnected) {
-            sendMessage(new SetVideoStreamingStateCommand(false)); //disable video
             sendMessage(new SetOutdoorCommand(!indoor));
             sendMessage(new SetHullCommand(hull));
             sendMessage(new SetMaxHeightCommand(5)); //TODO: when rebooting commander, do not override these again
             sendMessage(new SetMaxTiltCommand(60f)); //default max tilt to 60 degrees
-            sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
+            //sendMessage(new SetCountryCommand("BE")); //US code allows higher throughput regulations (breaks calibration?)
             sendMessage(new SetDateCommand(DateTime.now()));
             sendMessage(new SetTimeCommand(DateTime.now()));
-            sendMessage(new FlatTrimCommand());
+          //  sendMessage(new FlatTrimCommand());
+            //sendMessage(new SetVideoStreamingStateCommand(false));
         }
         sendMessage(new RequestStatusCommand());
         sendMessage(new RequestSettingsCommand());
@@ -292,7 +292,20 @@ public class Bebop extends NavigatedDroneActor {
 
     @Override
     protected void initVideo(Promise<Void> p) {
-        p.failure(new DroneException("Not implemented"));
+       if(sendMessage(new InitVideoCommand())){
+           p.success(null);
+       } else {
+           p.failure(new DroneException("Failed to send command. Not initialized yet."));
+       }
+    }
+
+    @Override
+    protected void stopVideo(Promise<Void> p) {
+        if(sendMessage(new StopVideoCommand())){
+            p.success(null);
+        } else {
+            p.failure(new DroneException("Failed to send command. Not initialized yet."));
+        }
     }
 
     @Override

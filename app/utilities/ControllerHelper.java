@@ -1,9 +1,19 @@
 package utilities;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import play.libs.Json;
+
 /**
  * Created by matthias on 6/03/2015.
  */
 public class ControllerHelper {
+
+    public static final ObjectNode EMPTY_RESULT;
+
+    static {
+        EMPTY_RESULT = Json.newObject();
+        EMPTY_RESULT.put("status", "ok");
+    }
 
     public static class Link {
 

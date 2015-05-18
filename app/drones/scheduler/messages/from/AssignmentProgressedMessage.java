@@ -20,4 +20,9 @@ public class AssignmentProgressedMessage implements SchedulerEvent{
     public int getProgress() {
         return progress;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Assignment %d progressed to %d.",assignmentId, progress);
+    }
 }

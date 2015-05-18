@@ -1,6 +1,8 @@
 package drones.flightcontrol.messages;
 
 /**
+ * Sent from the controlTower when more flights are added than allowed.
+ *
  * Created by Sander on 26/03/2015.
  */
 public class ControlTowerFullMessage {

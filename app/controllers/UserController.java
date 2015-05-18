@@ -259,7 +259,7 @@ public class UserController {
         user.invalidateAuthToken();
         user.save();
 
-        return ok();
+        return ok(ControllerHelper.EMPTY_RESULT);
     }
 
     private static List<ControllerHelper.Link> getAllLinks(long id) {

@@ -7,27 +7,32 @@ import akka.japi.pf.UnitPFBuilder;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Query;
 import droneapi.api.DroneCommander;
+import drones.flightcontrol.SimpleControlTower;
 import drones.flightcontrol.SimplePilot;
-import drones.flightcontrol.messages.FlightControlExceptionMessage;
-import drones.flightcontrol.messages.StartFlightControlMessage;
-import drones.flightcontrol.messages.StopFlightControlMessage;
-import drones.flightcontrol.messages.WayPointCompletedMessage;
+import drones.flightcontrol.messages.*;
 import drones.models.Fleet;
 import drones.scheduler.messages.from.*;
 import drones.scheduler.messages.to.*;
-import models.*;
+import models.Assignment;
+import models.Drone;
+import models.Location;
 import play.Logger;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
 import javax.persistence.OptimisticLockException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * AdvancedScheduler implemented with a ControlTower.
+ *
  * Created by Ronald on 10/04/2015.
  */
-public class AdvancedScheduler extends Scheduler implements Comparator<Assignment> {
+public class AdvancedSchedulerWithControlTower extends Scheduler implements Comparator<Assignment> {
 
     // Temporary metric in battery percentage per meter.
     // Every meter, this drone uses 0.01% of his total power, so he can fly 10km.
@@ -35,14 +40,35 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
     private static final Duration TIMEOUT = Duration.create(2, TimeUnit.SECONDS);
     private Map<Long, Flight> flights = new HashMap<>();
 
+    //settings for control tower
+    private int numberOfFlights = 0;
+    private static final int MAX_NUMBER_OF_FLIGHTS = 200;
+    private static final int MIN_CRUISING_ALTITUDE_DRONE = 2;
+    private static final int MAX_CRUISING_ALTITUDE_DRONE = MIN_CRUISING_ALTITUDE_DRONE + MAX_NUMBER_OF_FLIGHTS * 2;
+
+    ActorRef controlTower;
+
+
     @Override
     protected UnitPFBuilder<Object> initReceivers() {
         // TODO: add more flight control receivers
         return super.initReceivers()
                 .match(FlightControlExceptionMessage.class, m -> flightFailed(m))
                 .match(WayPointCompletedMessage.class, m -> waypointCompleted(m))
-                .match(FlightCanceledMessage.class, m -> flightCanceled(m))
-                .match(FlightCompletedMessage.class, m -> flightCompleted(m));
+                .match(RemoveFlightCompletedMessage.class, m -> flightCanceled(m))
+                .match(FlightCompletedMessage.class, m -> flightCompleted(m))
+                .match(FlightControlCanceledMessage.class, m -> flightControlCanceled(m))
+                .match(ControlTowerFullMessage.class, m -> controlTowerFullMessage(m));
+    }
+
+    private void flightControlCanceled(FlightControlCanceledMessage m){
+        log.info("Control tower has ended");
+        // Terminate the scheduler actor.
+        getContext().stop(self());
+    }
+
+    private void controlTowerFullMessage(ControlTowerFullMessage m){
+        log.error("Control tower is full, you should not add extra flights");
     }
 
     @Override
@@ -56,6 +82,13 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
 
     @Override
     protected void startScheduler(StartSchedulerMessage message) {
+        //Start Control Tower
+        controlTower = getContext().actorOf(
+                Props.create(SimpleControlTower.class,
+                        () -> new SimpleControlTower(self(), MAX_CRUISING_ALTITUDE_DRONE, MIN_CRUISING_ALTITUDE_DRONE, MAX_NUMBER_OF_FLIGHTS))
+        );
+        controlTower.tell(new StartFlightControlMessage(), self());
+
         // Initial scheduling
         List<Drone> drones = Drone.FIND.all();
         for(Drone drone : drones){
@@ -71,6 +104,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         if (flights.isEmpty()) {
             // Termination
             eventBus.publish(new SchedulerStoppedMessage());
+            controlTower.tell(new StopFlightControlMessage(),self());
             Logger.info("Scheduler terminates.");
             context().stop(self());
             return;
@@ -79,7 +113,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Hotswap new receive behaviour
         context().become(ReceiveBuilder
                 .match(FlightControlExceptionMessage.class, m -> termination(m))
-                .match(FlightCanceledMessage.class, m -> termination(m))
+                .match(RemoveFlightCompletedMessage.class, m -> termination(m))
                 .match(FlightCompletedMessage.class, m -> termination(m))
                 .matchAny(m -> log.warning("Ignored message during termination: [{}]", m.getClass().getName())
                 ).build());
@@ -100,18 +134,16 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Check if we can terminate
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
+            controlTower.tell(new StopFlightControlMessage(),self());
         }
     }
 
-    protected void termination(FlightCanceledMessage message){
+    protected void termination(RemoveFlightCompletedMessage message){
         flightCanceled(message);
         // Check if we can terminate
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
+            controlTower.tell(new StopFlightControlMessage(),self());
         }
     }
 
@@ -120,8 +152,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         // Check if we can terminate
         if (flights.isEmpty()) {
             eventBus.publish(new SchedulerStoppedMessage());
-            // Terminate the scheduler actor.
-            getContext().stop(self());
+            controlTower.tell(new StopFlightControlMessage(),self());
         }
     }
 
@@ -228,9 +259,6 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
             Logger.warn("FlightCompleted: flight is null.");
             return;
         }
-        // Stop flight control
-        flight.getFlightControl().tell(new StopFlightControlMessage(), self());
-
         // Drone
         Drone drone = getDrone(flight.getDroneId());
         if(drone == null){
@@ -252,7 +280,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         scheduleDrone(drone.getId());
     }
 
-    protected void flightCanceled(FlightCanceledMessage message) {
+    protected void flightCanceled(RemoveFlightCompletedMessage message) {
         // Flight
         Flight flight = flights.remove(message.getDroneId());
         if (flight == null) {
@@ -465,19 +493,14 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
 
     private void createFlight(Drone drone, Assignment assignment) {
         long droneId = drone.getId();
-        // Flight control
-        // TODO: Use ControlTower
-        ActorRef pilot = getContext().actorOf(
-                Props.create(SimplePilot.class,
-                        () -> new SimplePilot(self(), droneId, false, assignment.getRoute())));
-        // Flight
-        Flight flight = new Flight(droneId, assignment.getId(), pilot);
+
+        Flight flight = new Flight(droneId, assignment.getId());
         flights.put(droneId, flight);
         // Start
         updateDroneStatus(drone, Drone.Status.FLYING);
         updateAssignmentStatus(assignment, Assignment.Status.EXECUTING);
         eventBus.publish(new AssignmentStartedMessage(assignment.getId()));
-        pilot.tell(new StartFlightControlMessage(), self());
+        controlTower.tell(new AddFlightMessage(droneId,assignment.getRoute()),self());
     }
 
     private void cancelFlight(Drone drone, Drone.Status cancelStatus) {
@@ -494,8 +517,7 @@ public class AdvancedScheduler extends Scheduler implements Comparator<Assignmen
         flight.setType(Flight.Type.CANCELED);
         flight.setCancelStatus(cancelStatus);
         // Flight control
-        // TODO: Use ControlTower
-        flight.getFlightControl().tell(new StopFlightControlMessage(), self());
+        controlTower.tell(new RemoveFlightMessage(flight.getDroneId()),self());
     }
 
     private void updateDroneStatus(Drone drone, Drone.Status newStatus) {

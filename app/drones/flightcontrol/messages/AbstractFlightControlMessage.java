@@ -6,6 +6,8 @@ import droneapi.model.properties.Location;
 import java.io.Serializable;
 
 /**
+ * Abstract message with a type, location and a requester reference.
+ *
  * Created by Sander on 23/03/2015.
  */
 public abstract class AbstractFlightControlMessage implements Serializable{

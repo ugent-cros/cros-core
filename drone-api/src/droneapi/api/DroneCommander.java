@@ -95,6 +95,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
     }
 
     @Override
+    public Future<Void> emergency() {
+        if(canSend()) {
+            return Patterns.ask(droneActor, new EmergencyRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, system.dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
     public Future<Void> move3d(double vx, double vy, double vz, double vr) {
         if(canSend()) {
             return Patterns.ask(droneActor, new MoveRequestMessage(vx, vy, vz, vr), TIMEOUT).map(new Mapper<Object, Void>() {
@@ -223,6 +234,17 @@ public class DroneCommander implements DroneControl, DroneStatus {
     public Future<Void> initVideo() {
         if(canSend()) {
             return Patterns.ask(droneActor, new InitVideoRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
+                public Void apply(Object s) {
+                    return null;
+                }
+            }, system.dispatcher());
+        } else return noDroneConnection();
+    }
+
+    @Override
+    public Future<Void> stopVideo() {
+        if(canSend()) {
+            return Patterns.ask(droneActor, new StopVideoRequestMessage(), TIMEOUT).map(new Mapper<Object, Void>() {
                 public Void apply(Object s) {
                     return null;
                 }

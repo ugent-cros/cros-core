@@ -14,4 +14,9 @@ public class SchedulerReplyMessage implements SchedulerEvent{
     public long getRequestId() {
         return requestId;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Scheduler replied to request %d.", requestId);
+    }
 }

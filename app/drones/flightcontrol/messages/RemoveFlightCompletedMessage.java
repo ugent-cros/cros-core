@@ -1,6 +1,8 @@
 package drones.flightcontrol.messages;
 
 /**
+ * Sent from a controlTower when the removal of a flight has been completed.
+ *
  * Created by Sander on 26/03/2015.
  */
 public class RemoveFlightCompletedMessage extends AbstractIdFlightControlMessage {
