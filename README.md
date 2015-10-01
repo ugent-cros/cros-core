@@ -43,4 +43,4 @@ The server can now be started:
 /opt/cros/universal/stage/bin/cros-core -Dhttp.port=9000 -DapplyEvolutions.default=true </dev/null >play.out 2>&1 &
 ~~~
 
-nginx can be used as a reverse proxy in combination with the frontend. For more information, please check #TODO
+nginx can be used as a reverse proxy in combination with the frontend. For more information, [please checkout the frontend documentation](https://github.com/ugent-cros/cros-admin/blob/master/README.md).
