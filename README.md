@@ -52,6 +52,7 @@ Code samples
 
 Drone Misc
 ==========
+* [Architecture](docs/architecture.md)
 * [Internal Drone Messages](docs/messages.md)
 * [Configuring to join a network](docs/access_point.md)
 * [ArDrone3 protocol specification](https://github.com/Zepheus/ardrone3-pcap/blob/master/README.md)
