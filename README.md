@@ -44,3 +44,12 @@ The server can now be started:
 ~~~
 
 nginx can be used as a reverse proxy in combination with the frontend. For more information, [please checkout the frontend documentation](https://github.com/ugent-cros/cros-admin/blob/master/README.md).
+
+Code samples
+============
+* An ArDrone2 example can be found here:
+[ArDrone2](samples/ArDrone2Example.java)
+
+Drone Misc
+==========
+* [Configuring to join a network](docs/access_point.md)
