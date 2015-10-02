@@ -53,3 +53,4 @@ Code samples
 Drone Misc
 ==========
 * [Configuring to join a network](docs/access_point.md)
+* [ArDrone3 protocol specification](https://github.com/Zepheus/ardrone3-pcap/blob/master/README.md)
